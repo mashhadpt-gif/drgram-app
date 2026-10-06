@@ -2599,6 +2599,19 @@ public class PeerStoriesView extends SizeNotifierFrameLayout implements Notifica
 
 
 
+    /**
+     * DrGram premium effect: grand gold spark burst centered on the story like button,
+     * fired when the user reacts to a story. Gated by SharedConfig.drgramReactionRain.
+     */
+    private void drgramSparkLikeButton() {
+        if (!SharedConfig.drgramReactionRain || likeButtonContainer == null || bottomActionsLinearLayout == null) {
+            return;
+        }
+        float sparkX = bottomActionsLinearLayout.getX() + likeButtonContainer.getX() + likeButtonContainer.getMeasuredWidth() / 2.0f;
+        float sparkY = bottomActionsLinearLayout.getY() + likeButtonContainer.getY() + likeButtonContainer.getMeasuredHeight() / 2.0f;
+        startDrgramSparks(sparkX, sparkY, 1.6f);
+    }
+
     private void likeStory(ReactionsLayoutInBubble.VisibleReaction visibleReaction) {
         if (currentStory.storyItem == null) {
             return;
@@ -2619,10 +2632,14 @@ public class PeerStoriesView extends SizeNotifierFrameLayout implements Notifica
                     drawReactionEffect = true;
                     ReactionsLayoutInBubble.VisibleReaction likeReaction = ReactionsLayoutInBubble.VisibleReaction.fromEmojicon(reaction);
                     storiesController.setStoryReaction(dialogId, currentStory.storyItem, likeReaction);
+                    // DrGram premium effect: grand gold sparks on the like button
+                    drgramSparkLikeButton();
                 }
             } else {
                 animateLikeButton();
                 storiesController.setStoryReaction(dialogId, currentStory.storyItem, visibleReaction);
+                // DrGram premium effect: grand gold sparks on the like button
+                drgramSparkLikeButton();
             }
         } else {
             animateLikeButton();
