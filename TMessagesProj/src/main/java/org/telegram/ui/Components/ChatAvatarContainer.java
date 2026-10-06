@@ -50,6 +50,7 @@ import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
 import org.telegram.messenger.UserConfig;
+import org.telegram.messenger.SharedConfig;
 import org.telegram.messenger.UserObject;
 import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.tgnet.TLRPC;
@@ -81,6 +82,9 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
     private int avatarSizeInDp = 42;
     public BackupImageView avatarImageView;
     private boolean avatarImageIsHidden;
+    // DrGram premium effect: gold spark burst fired when the avatar is touched
+    // (DrGram's answer to Telegram's premium emoji interactions)
+    private DrGramSparkEffect drgramAvatarSparks;
     private SimpleTextView titleTextView;
     private AtomicReference<SimpleTextView> titleTextLargerCopyView = new AtomicReference<>();
     private SimpleTextView subtitleTextView;
@@ -274,6 +278,14 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
                     openProfile(true);
                 }
             });
+            // DrGram premium effect: spark burst the instant the avatar is pressed,
+            // so the burst is visible before the profile transition starts
+            avatarImageView.setOnTouchListener((v, event) -> {
+                if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+                    drgramSparkAvatar();
+                }
+                return false;
+            });
         }
 
         titleTextView = new SimpleTextConnectedView(context, titleTextLargerCopyView);
@@ -422,7 +434,30 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
         final float s = bounce.getScale(.02f);
         canvas.scale(s, s, getPivotX(), getHeight() - ActionBar.getCurrentActionBarHeight() / 2f);
         super.dispatchDraw(canvas);
+        // DrGram: draw the avatar spark burst on top of the container's children
+        if (drgramAvatarSparks != null && !drgramAvatarSparks.isEmpty()) {
+            drgramAvatarSparks.onDraw(this, canvas);
+            invalidate();
+        }
         canvas.restore();
+    }
+
+    /**
+     * DrGram premium effect: gold spark burst centered on the avatar, fired on
+     * touch-down (equivalent of Telegram's premium emoji interactions).
+     * Gated by SharedConfig.drgramSendSparks.
+     */
+    private void drgramSparkAvatar() {
+        if (!SharedConfig.drgramSendSparks || avatarImageView == null || avatarImageView.getVisibility() != VISIBLE) {
+            return;
+        }
+        if (drgramAvatarSparks == null) {
+            drgramAvatarSparks = new DrGramSparkEffect();
+        }
+        float cx = avatarImageView.getX() + avatarImageView.getMeasuredWidth() / 2.0f;
+        float cy = avatarImageView.getY() + avatarImageView.getMeasuredHeight() / 2.0f;
+        drgramAvatarSparks.burst(cx, cy, 1.35f);
+        invalidate();
     }
 
     @Override

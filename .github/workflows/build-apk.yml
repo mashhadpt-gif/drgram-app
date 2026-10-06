@@ -131,8 +131,11 @@ jobs:
             ### Highlights
             - Black-gold default theme (Red secondary) with metallic gradients
             - Gold default chat wallpaper
-            - Premium sparks animation on message send (toggle: Settings → Chats → DrGram Premium)
+            - Premium sparks on send, reactions and story likes (Settings → DrGram Premium)
+            - Gold spark burst on avatar touch (emoji-interaction style)
+            - Native Explore tab — latest channel media, Instagram-style grid (official MTProto only)
+            - Save to Gallery in the media viewer with auto-download
             - Alternate app icons (Black Gold / Black Red / Onyx / Royal / Crimson / Eclipse)
-            - English default UI with language switcher on the login screen
+            - English + full Persian localization core
           files: ${{ steps.apk.outputs.file }}
           fail_on_unmatched_files: true

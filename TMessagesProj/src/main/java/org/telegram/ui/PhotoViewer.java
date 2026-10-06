@@ -2032,6 +2032,9 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
     private ImageLocation currentFileLocationVideo;
     private SecureDocument currentSecureDocument;
     private String[] currentFileNames = new String[3];
+    // DrGram: set when a save request starts a background download in the
+    // Explore viewer; the save flow is re-run automatically once fileLoaded fires
+    private boolean drgramPendingSave;
     private PlaceProviderObject currentPlaceObject;
     private String currentPathObject;
     private long currentPathVideoOffset;
@@ -4174,6 +4177,16 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
                     if (a == 0 && videoPlayer != null) {
                         currentVideoFinishedLoading = true;
                     }
+                    // DrGram: the file the user asked to save has finished
+                    // downloading — run the save flow again so it lands in the gallery
+                    if (a == 0 && drgramPendingSave) {
+                        drgramPendingSave = false;
+                        AndroidUtilities.runOnUIThread(() -> {
+                            if (parentActivity != null && actionBar != null && actionBar.getActionBarMenuOnItemClick() != null) {
+                                actionBar.getActionBarMenuOnItemClick().onItemClick(gallery_menu_save);
+                            }
+                        });
+                    }
                     break;
                 }
             }
@@ -4596,7 +4609,31 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
         }
     }
 
+    /**
+     * DrGram: in chatless contexts (the Explore viewer) a save request for a
+     * not-yet-downloaded document/video starts the official FileLoader download
+     * immediately and re-runs the save once the file arrives, instead of showing
+     * a dead-end alert. Everything still rides Telegram's own servers.
+     */
+    private boolean drgramCanAutoSave() {
+        return currentMessageObject != null
+                && currentMessageObject.getDocument() != null
+                && parentChatActivity == null
+                && currentDialogId == 0
+                && currentBotInlineResult == null
+                && pageBlocksAdapter == null
+                && currentFileNames[0] != null;
+    }
+
     private void showDownloadAlert() {
+        if (drgramCanAutoSave()) {
+            drgramPendingSave = true;
+            if (!FileLoader.getInstance(currentAccount).isLoadingFile(currentFileNames[0])) {
+                FileLoader.getInstance(currentAccount).loadFile(currentMessageObject.getDocument(), currentMessageObject, FileLoader.PRIORITY_NORMAL, 0);
+            }
+            BulletinFactory.of(containerView, resourcesProvider).createSimpleBulletin(R.drawable.msg_download, getString(R.string.Downloading)).show();
+            return;
+        }
         AlertDialog.Builder builder = new AlertDialog.Builder(parentActivity, resourcesProvider);
         builder.setTitle(getString(R.string.AppName));
         builder.setPositiveButton(getString("OK", R.string.OK), null);
@@ -8961,9 +8998,9 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
         return insets.left;
     }
 
-	private int getRightInset() {
-		return insets.right;
-	}
+        private int getRightInset() {
+                return insets.right;
+        }
 
     private void dismissInternal() {
         if (activityVisibilityController != null) {
