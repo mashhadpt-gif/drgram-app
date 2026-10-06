@@ -182,20 +182,20 @@ public class DefaultThemesPreviewCell extends LinearLayout {
                     int navBarOldColor = Theme.getColor(Theme.key_windowBackgroundGray);
                     DialogsActivity.switchingTheme = true;
                     SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("themeconfig", Activity.MODE_PRIVATE);
-                    String dayThemeName = preferences.getString("lastDayTheme", "Blue");
+                    String dayThemeName = preferences.getString("lastDayTheme", "Gold");
                     if (Theme.getTheme(dayThemeName) == null || Theme.getTheme(dayThemeName).isDark()) {
-                        dayThemeName = "Blue";
+                        dayThemeName = "Gold";
                     }
-                    String nightThemeName = preferences.getString("lastDarkTheme", "Dark Blue");
+                    String nightThemeName = preferences.getString("lastDarkTheme", "Red");
                     if (Theme.getTheme(nightThemeName) == null || !Theme.getTheme(nightThemeName).isDark()) {
-                        nightThemeName = "Dark Blue";
+                        nightThemeName = "Red";
                     }
                     Theme.ThemeInfo themeInfo = Theme.getActiveTheme();
                     if (dayThemeName.equals(nightThemeName)) {
-                        if (themeInfo.isDark() || dayThemeName.equals("Dark Blue") || dayThemeName.equals("Night")) {
-                            dayThemeName = "Blue";
+                        if (themeInfo.isDark() || dayThemeName.equals("Red") || dayThemeName.equals("Night")) {
+                            dayThemeName = "Gold";
                         } else {
-                            nightThemeName = "Dark Blue";
+                            nightThemeName = "Red";
                         }
                     }
 
@@ -353,13 +353,13 @@ public class DefaultThemesPreviewCell extends LinearLayout {
         if (currentType == ThemeActivity.THEME_TYPE_BASIC || currentType == TYPE_CUSTOM_LIST) {
             themeIndex = !Theme.isCurrentThemeDay() ? 2 : 0;
         } else {
-            if (Theme.getActiveTheme().getKey().equals("Blue")) {
+            if (Theme.getActiveTheme().getKey().equals("Gold")) {
                 themeIndex = 0;
             } else if (Theme.getActiveTheme().getKey().equals("Day")) {
                 themeIndex = 1;
             } else if (Theme.getActiveTheme().getKey().equals("Night")) {
                 themeIndex = 2;
-            } else if (Theme.getActiveTheme().getKey().equals("Dark Blue")) {
+            } else if (Theme.getActiveTheme().getKey().equals("Red")) {
                 themeIndex = 3;
             } else {
                 if (Theme.isCurrentThemeDay() && (themeIndex == 2 || themeIndex == 3)) {

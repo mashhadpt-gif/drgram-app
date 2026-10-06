@@ -208,10 +208,10 @@ public class Theme {
                 String key;
                 switch (b) {
                     case 0:
-                        key = "Blue";
+                        key = "Gold";
                         break;
                     case 1:
-                        key = "Dark Blue";
+                        key = "Red";
                         break;
                     case 2:
                         key = "Arctic Blue";
@@ -1520,9 +1520,9 @@ public class Theme {
         }
 
         public String getName() {
-            if ("Blue".equals(name)) {
+            if ("Gold".equals(name)) {
                 return getString(R.string.ThemeClassic);
-            } else if ("Dark Blue".equals(name)) {
+            } else if ("Red".equals(name)) {
                 return getString(R.string.ThemeDark);
             } else if ("Arctic Blue".equals(name)) {
                 return getString(R.string.ThemeArcticBlue);
@@ -1646,9 +1646,9 @@ public class Theme {
             if (isDark != UNKNOWN) {
                 return isDark == DARK;
             }
-            if ("Dark Blue".equals(name) || "Night".equals(name)) {
+            if ("Red".equals(name) || "Night".equals(name)) {
                 isDark = DARK;
-            } else if ("Blue".equals(name) || "Arctic Blue".equals(name) || "Day".equals(name)) {
+            } else if ("Gold".equals(name) || "Arctic Blue".equals(name) || "Day".equals(name)) {
                 isDark = LIGHT;
             }
             if (isDark == UNKNOWN) {
@@ -1772,19 +1772,26 @@ public class Theme {
                     themeAccent.patternSlug = patternSlugs[a];
                 }
 
-                //override default themes
-                if (isHome(themeAccent) && name.equals("Dark Blue") || name.equals("Night")) {
+                //DrGram default themes override
+                if (isHome(themeAccent) && name.equals("Red")) {
+                    themeAccent.myMessagesAccentColor = 0xffE63B52;
+                    themeAccent.myMessagesGradientAccentColor1 = 0xff7e1626;
+                    themeAccent.myMessagesGradientAccentColor2 = 0xffd92c43;
+                    themeAccent.myMessagesGradientAccentColor3 = 0xffff8f9e;
+                    themeAccent.backgroundOverrideColor = 0xff0b0708;
+                    themeAccent.backgroundGradientOverrideColor1 = 0xff170b0c;
+                    themeAccent.backgroundGradientOverrideColor2 = 0xff2e1012;
+                    themeAccent.backgroundGradientOverrideColor3 = 0xff0f0809;
+                } else if (name.equals("Night")) {
                     themeAccent.myMessagesAccentColor = 0xffF5B90D;
                     themeAccent.myMessagesGradientAccentColor1 = 0xff9c6800;
                     themeAccent.myMessagesGradientAccentColor2 = 0xfff5b90d;
                     themeAccent.myMessagesGradientAccentColor3 = 0xffffe47a;
-                    if (name.equals("Night")) {
-                        themeAccent.patternIntensity = -0.57f;
-                        themeAccent.backgroundOverrideColor = 0xff0b0a08;
-                        themeAccent.backgroundGradientOverrideColor1 = 0xff171207;
-                        themeAccent.backgroundGradientOverrideColor2 = 0xff2e220a;
-                        themeAccent.backgroundGradientOverrideColor3 = 0xff0f0c06;
-                    }
+                    themeAccent.patternIntensity = -0.57f;
+                    themeAccent.backgroundOverrideColor = 0xff0b0a08;
+                    themeAccent.backgroundGradientOverrideColor1 = 0xff171207;
+                    themeAccent.backgroundGradientOverrideColor2 = 0xff2e220a;
+                    themeAccent.backgroundGradientOverrideColor3 = 0xff0f0c06;
                 }
                 themeAccentsMap.put(themeAccent.id, themeAccent);
                 themeAccents.add(themeAccent);
@@ -3889,7 +3896,7 @@ public class Theme {
         SharedPreferences themeConfig = ApplicationLoader.applicationContext.getSharedPreferences("themeconfig", Activity.MODE_PRIVATE);
 
         ThemeInfo themeInfo = new ThemeInfo();
-        themeInfo.name = "Blue";
+        themeInfo.name = "Gold";
         themeInfo.assetName = "bluebubbles.attheme";
         themeInfo.previewBackgroundColor = 0xff95beec;
         themeInfo.previewInColor = 0xffffffff;
@@ -3912,17 +3919,17 @@ public class Theme {
                 );
         sortAccents(themeInfo);
         themes.add(currentDayTheme = defaultTheme = themeInfo);
-        themesDict.put("Blue", themeInfo);
+        themesDict.put("Gold", themeInfo);
 
         themeInfo = new ThemeInfo();
-        themeInfo.name = "Dark Blue";
+        themeInfo.name = "Red";
         themeInfo.assetName = "darkblue.attheme";
         themeInfo.previewBackgroundColor = 0xff5f6e82;
         themeInfo.previewInColor = 0xff76869c;
         themeInfo.previewOutColor = 0xff82a8e3;
         themeInfo.sortIndex = 3;
         themeInfo.setAccentColorOptions(
-                new int[]    {                    0xFFF5B90D,                    0xFF698AFB,                    0xFF23A7F0,                    0xFF7B71D1,                    0xFF69B955,                    0xFF2990EA,                    0xFF7082E9,                    0xFF66BAED,                    0xff3685fa,                    0xff46c8ed,                    0xff64AC5F,                    0xffeb7cb1,                    0xffee902a,                    0xffa281f0,                    0xffd34324,                    0xffeebd34,                    0xff7f8fab,                    0xff3581e3 },
+                new int[]    {                    0xFFFF5A70,                    0xFF698AFB,                    0xFF23A7F0,                    0xFF7B71D1,                    0xFF69B955,                    0xFF2990EA,                    0xFF7082E9,                    0xFF66BAED,                    0xffE63B52,                    0xff46c8ed,                    0xff64AC5F,                    0xffeb7cb1,                    0xffee902a,                    0xffa281f0,                    0xffd34324,                    0xffeebd34,                    0xff7f8fab,                    0xff3581e3 },
                 new int[]    {                    0xFF9D5C99,                    0xFF635545,                    0xFF31818B,                    0xFFAD6426,                    0xFF4A7034,                    0xFF335D82,                    0xFF36576F,                    0xFF597563,                    0x00000000,                    0x00000000,                    0x00000000,                    0x00000000,                    0x00000000,                    0x00000000,                    0x00000000,                    0x00000000,                    0x00000000,                    0x00000000 },
                 new int[]    {                    0xFF604DA8,                    0xFF685D4C,                    0xFF1B6080,                    0xFF99354E,                    0xFF275D3B,                    0xFF317A98,                    0xFF376E87,                    0xFF5E7370,                    0x00000000,                    0x00000000,                    0x00000000,                    0x00000000,                    0x00000000,                    0x00000000,                    0x00000000,                    0x00000000,                    0x00000000,                    0x00000000 },
                 new int[]    {                    0xFF271e2e,                    0xFF171a22,                    0xFF071e1f,                    0xFF100f13,                    0xFF0e1811,                    0xFF0b131c,                    0xFF1d2129,                    0xFF202c2a,                    0xff0e141a,                    0xff162325,                    0xff161d15,                    0xff24191e,                    0xff251b13,                    0xff1f1d29,                    0xff22160e,                    0xff272115,                    0xff171a1b,                    0xff0e141a },
@@ -3936,7 +3943,7 @@ public class Theme {
                 );
         sortAccents(themeInfo);
         themes.add(themeInfo);
-        themesDict.put("Dark Blue", currentNightTheme = themeInfo);
+        themesDict.put("Red", currentNightTheme = themeInfo);
 
         themeInfo = new ThemeInfo();
         themeInfo.name = "Arctic Blue";
@@ -4058,11 +4065,11 @@ public class Theme {
         ThemeInfo applyingTheme = null;
         SharedPreferences preferences = MessagesController.getGlobalMainSettings();
         try {
-            final ThemeInfo themeDarkBlue = themesDict.get("Dark Blue");
+            final ThemeInfo themeDarkBlue = themesDict.get("Red");
 
             String theme = preferences.getString("theme", null);
             if ("Default".equals(theme)) {
-                applyingTheme = themesDict.get("Blue");
+                applyingTheme = themesDict.get("Gold");
                 applyingTheme.currentAccentId = DEFALT_THEME_ACCENT_ID;
             } else if ("Dark".equals(theme)) {
                 applyingTheme = themeDarkBlue;
@@ -4078,7 +4085,7 @@ public class Theme {
 
             theme = preferences.getString("nighttheme", null);
             if ("Default".equals(theme)) {
-                applyingTheme = themesDict.get("Blue");
+                applyingTheme = themesDict.get("Gold");
                 applyingTheme.currentAccentId = DEFALT_THEME_ACCENT_ID;
             } else if ("Dark".equals(theme)) {
                 currentNightTheme = themeDarkBlue;
@@ -6359,10 +6366,10 @@ public class Theme {
                 String key;
                 switch (b) {
                     case 0:
-                        key = "Blue";
+                        key = "Gold";
                         break;
                     case 1:
-                        key = "Dark Blue";
+                        key = "Red";
                         break;
                     case 2:
                         key = "Arctic Blue";
@@ -6668,7 +6675,7 @@ public class Theme {
             currentThemeDeleted = true;
         }
         if (themeInfo == currentNightTheme) {
-            currentNightTheme = themesDict.get("Dark Blue");
+            currentNightTheme = themesDict.get("Red");
         }
 
         themeInfo.removeObservers();
@@ -7054,7 +7061,7 @@ public class Theme {
                         if (currentDayTheme == info) {
                             currentDayTheme = defaultTheme;
                         } else if (currentNightTheme == info) {
-                            currentNightTheme = themesDict.get("Dark Blue");
+                            currentNightTheme = themesDict.get("Red");
                             isNightTheme = true;
                         }
                         if (currentTheme == info) {
@@ -7085,11 +7092,11 @@ public class Theme {
         if (settings == null)
             return null;
         if (settings.base_theme instanceof TLRPC.TL_baseThemeClassic) {
-            return "Blue";
+            return "Gold";
         } else if (settings.base_theme instanceof TLRPC.TL_baseThemeDay) {
             return "Day";
         } else if (settings.base_theme instanceof TLRPC.TL_baseThemeTinted) {
-            return "Dark Blue";
+            return "Red";
         } else if (settings.base_theme instanceof TLRPC.TL_baseThemeArctic) {
             return "Arctic Blue";
         } else if (settings.base_theme instanceof TLRPC.TL_baseThemeNight) {
@@ -7099,11 +7106,11 @@ public class Theme {
     }
 
     public static TLRPC.BaseTheme getBaseThemeByKey(String key) {
-        if ("Blue".equals(key)) {
+        if ("Gold".equals(key)) {
             return new TLRPC.TL_baseThemeClassic();
         } else if ("Day".equals(key)) {
             return new TLRPC.TL_baseThemeDay();
-        } else if ("Dark Blue".equals(key)) {
+        } else if ("Red".equals(key)) {
             return new TLRPC.TL_baseThemeTinted();
         } else if ("Arctic Blue".equals(key)) {
             return new TLRPC.TL_baseThemeArctic();
@@ -9997,13 +10004,13 @@ public class Theme {
 
     public static boolean isHome(ThemeAccent accent) {
         if (accent.parentTheme != null) {
-            if (accent.parentTheme.getKey().equals("Blue") && accent.id == 99) {
+            if (accent.parentTheme.getKey().equals("Gold") && accent.id == 99) {
                 return true;
             }
             if (accent.parentTheme.getKey().equals("Day") && accent.id == 9) {
                 return true;
             }
-            if ((accent.parentTheme.getKey().equals("Night") || accent.parentTheme.getKey().equals("Dark Blue")) && accent.id == 0) {
+            if ((accent.parentTheme.getKey().equals("Night") || accent.parentTheme.getKey().equals("Red")) && accent.id == 0) {
                 return true;
             }
         }

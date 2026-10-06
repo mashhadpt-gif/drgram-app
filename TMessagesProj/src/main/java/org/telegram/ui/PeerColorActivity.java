@@ -1451,20 +1451,20 @@ public class PeerColorActivity extends BaseFragment implements NotificationCente
 
     public void updateThemeColors() {
         SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("themeconfig", Activity.MODE_PRIVATE);
-        String dayThemeName = preferences.getString("lastDayTheme", "Blue");
+        String dayThemeName = preferences.getString("lastDayTheme", "Gold");
         if (Theme.getTheme(dayThemeName) == null || Theme.getTheme(dayThemeName).isDark()) {
-            dayThemeName = "Blue";
+            dayThemeName = "Gold";
         }
-        String nightThemeName = preferences.getString("lastDarkTheme", "Dark Blue");
+        String nightThemeName = preferences.getString("lastDarkTheme", "Red");
         if (Theme.getTheme(nightThemeName) == null || !Theme.getTheme(nightThemeName).isDark()) {
-            nightThemeName = "Dark Blue";
+            nightThemeName = "Red";
         }
         Theme.ThemeInfo themeInfo = Theme.getActiveTheme();
         if (dayThemeName.equals(nightThemeName)) {
-            if (themeInfo.isDark() || dayThemeName.equals("Dark Blue") || dayThemeName.equals("Night")) {
-                dayThemeName = "Blue";
+            if (themeInfo.isDark() || dayThemeName.equals("Red") || dayThemeName.equals("Night")) {
+                dayThemeName = "Gold";
             } else {
-                nightThemeName = "Dark Blue";
+                nightThemeName = "Red";
             }
         }
 

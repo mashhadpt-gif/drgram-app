@@ -243,7 +243,7 @@ public class WallpapersListActivity extends BaseFragment implements Notification
     };
 
     private static final String[] searchColorsNames = new String[]{
-            "Blue",
+            "Gold",
             "Red",
             "Orange",
             "Yellow",

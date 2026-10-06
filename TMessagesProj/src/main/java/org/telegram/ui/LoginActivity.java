@@ -361,6 +361,7 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
     private RadialProgressView radialProgressView;
 
     private ImageView proxyButtonView;
+    private ImageView languageButtonView;
     private ProxyDrawable proxyDrawable;
 
     // Open animation stuff
@@ -584,6 +585,10 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                 marginLayoutParams = (MarginLayoutParams) proxyButtonView.getLayoutParams();
                 marginLayoutParams.topMargin = AndroidUtilities.dp(16) + statusBarHeight;
 
+                marginLayoutParams = (MarginLayoutParams) languageButtonView.getLayoutParams();
+                marginLayoutParams.topMargin = AndroidUtilities.dp(16) + statusBarHeight;
+                marginLayoutParams.rightMargin = AndroidUtilities.dp(16) + (proxyButtonView.getVisibility() == View.VISIBLE ? AndroidUtilities.dp(44) : 0);
+
                 marginLayoutParams = (MarginLayoutParams) radialProgressView.getLayoutParams();
                 marginLayoutParams.topMargin = AndroidUtilities.dp(16) + statusBarHeight;
 
@@ -772,6 +777,15 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
         proxyButtonView.setVisibility(View.GONE);
         sizeNotifierFrameLayout.addView(proxyButtonView, LayoutHelper.createFrame(32, 32, Gravity.RIGHT | Gravity.TOP, 16, 16, 16, 16));
         updateProxyButton(false, true);
+
+        //DrGram: language switcher on the login screen
+        languageButtonView = new ImageView(context);
+        languageButtonView.setImageResource(R.drawable.msg_language);
+        languageButtonView.setContentDescription(getString(R.string.Language));
+        int languageButtonPadding = AndroidUtilities.dp(4);
+        languageButtonView.setPadding(languageButtonPadding, languageButtonPadding, languageButtonPadding, languageButtonPadding);
+        languageButtonView.setOnClickListener(v -> presentFragment(new LanguageSelectActivity()));
+        sizeNotifierFrameLayout.addView(languageButtonView, LayoutHelper.createFrame(32, 32, Gravity.RIGHT | Gravity.TOP, 0, 16, 16, 0));
 
         radialProgressView = new RadialProgressView(context);
         radialProgressView.setSize(AndroidUtilities.dp(20));
