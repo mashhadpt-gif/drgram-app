@@ -90,6 +90,7 @@ public class SizeNotifierFrameLayout extends FrameLayout implements Theme.Colora
     private boolean skipBackgroundDrawing;
     SnowflakesEffect snowflakesEffect;
     private DrGramSparkEffect drgramSparkEffect;
+    private DrGramGoldRainEffect drgramGoldRainEffect;
     public View backgroundView;
     boolean attached;
 
@@ -98,13 +99,35 @@ public class SizeNotifierFrameLayout extends FrameLayout implements Theme.Colora
      * Gated by SharedConfig.drgramSendSparks.
      */
     public void startDrgramSparks(float x, float y) {
+        startDrgramSparks(x, y, 1.0f);
+    }
+
+    /**
+     * DrGram premium effect: spark burst with custom intensity (>= 1.5 = grand mode).
+     */
+    public void startDrgramSparks(float x, float y, float intensity) {
         if (!SharedConfig.drgramSendSparks) {
             return;
         }
         if (drgramSparkEffect == null) {
             drgramSparkEffect = new DrGramSparkEffect();
         }
-        drgramSparkEffect.burst(x, y);
+        drgramSparkEffect.burst(x, y, intensity);
+        invalidate();
+    }
+
+    /**
+     * DrGram premium effect: golden dust rain celebrating a reaction on your message.
+     * Gated by SharedConfig.drgramReactionRain.
+     */
+    public void startDrgramGoldRain(float x, float y) {
+        if (!SharedConfig.drgramReactionRain) {
+            return;
+        }
+        if (drgramGoldRainEffect == null) {
+            drgramGoldRainEffect = new DrGramGoldRainEffect();
+        }
+        drgramGoldRainEffect.rain(x, y, getMeasuredWidth());
         invalidate();
     }
 
@@ -857,6 +880,10 @@ public class SizeNotifierFrameLayout extends FrameLayout implements Theme.Colora
         // DrGram premium sparks overlay (above messages, like confetti)
         if (drgramSparkEffect != null && !drgramSparkEffect.isEmpty()) {
             drgramSparkEffect.onDraw(this, canvas);
+        }
+        // DrGram premium golden rain overlay
+        if (drgramGoldRainEffect != null && !drgramGoldRainEffect.isEmpty()) {
+            drgramGoldRainEffect.onDraw(this, canvas);
         }
     }
 

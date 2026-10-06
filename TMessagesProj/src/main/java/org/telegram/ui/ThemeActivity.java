@@ -239,6 +239,7 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
     // DrGram premium effects section
     private int drgramHeaderRow;
     private int drgramSparksRow;
+    private int drgramRainRow;
     private int drgramInfoRow;
 
     private int rowCount;
@@ -616,6 +617,7 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
         appIconShadowRow = -1;
         drgramHeaderRow = -1;
         drgramSparksRow = -1;
+        drgramRainRow = -1;
         drgramInfoRow = -1;
         lastShadowRow = -1;
 
@@ -685,6 +687,7 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
 
             drgramHeaderRow = rowCount++;
             drgramSparksRow = rowCount++;
+            drgramRainRow = rowCount++;
             drgramInfoRow = rowCount++;
 
             swipeGestureHeaderRow = rowCount++;
@@ -1152,6 +1155,11 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
                 SharedConfig.toggleDrgramSendSparks();
                 if (view instanceof TextCheckCell) {
                     ((TextCheckCell) view).setChecked(SharedConfig.drgramSendSparks);
+                }
+            } else if (position == drgramRainRow) {
+                SharedConfig.toggleDrgramReactionRain();
+                if (view instanceof TextCheckCell) {
+                    ((TextCheckCell) view).setChecked(SharedConfig.drgramReactionRain);
                 }
             } else if (position == raiseToListenRow) {
                 SharedConfig.toggleRaiseToListen();
@@ -2643,6 +2651,8 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
                         textCheckCell.setTextAndCheck(getString("BlurInChat", R.string.BlurInChat), SharedConfig.chatBlurEnabled(), true);
                     } else if (position == drgramSparksRow) {
                         textCheckCell.setTextAndValueAndCheck(getString(R.string.SparksOnSend), getString(R.string.SparksOnSendInfo), SharedConfig.drgramSendSparks, true, true);
+                    } else if (position == drgramRainRow) {
+                        textCheckCell.setTextAndValueAndCheck(getString(R.string.GoldRainOnReactions), getString(R.string.GoldRainOnReactionsInfo), SharedConfig.drgramReactionRain, true, true);
                     }
                     break;
                 }
@@ -2777,7 +2787,7 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
             } else if (position == scheduleLocationRow || position == sendByEnterRow ||
                     position == raiseToSpeakRow || position == raiseToListenRow || position == pauseOnRecordRow ||
                     position == directShareRow || position == chatBlurRow || position == pauseOnMediaRow || position == nextMediaTapRow || position == sensitiveContentRow ||
-                    position == drgramSparksRow) {
+                    position == drgramSparksRow || position == drgramRainRow) {
                 return TYPE_TEXT_CHECK;
             } else if (position == textSizeRow) {
                 return TYPE_TEXT_SIZE;

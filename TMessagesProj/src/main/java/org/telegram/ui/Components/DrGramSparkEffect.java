@@ -29,10 +29,13 @@ public class DrGramSparkEffect {
     private static final int GOLD_PALE   = 0xfffff0a0;
     private static final int CRIMSON     = 0xffe63b52;
 
-    private static final int TYPE_DOT    = 0;
-    private static final int TYPE_STAR   = 1;
-    private static final int TYPE_STREAK = 2;
-    private static final int TYPE_FLASH  = 3;
+    private static final int TYPE_DOT     = 0;
+    private static final int TYPE_STAR    = 1;
+    private static final int TYPE_STREAK  = 2;
+    private static final int TYPE_FLASH   = 3;
+    private static final int TYPE_DIAMOND = 4;
+    private static final int TYPE_HEXSTAR = 5;
+    private static final int TYPE_RING    = 6;
 
     private static final int[] PALETTE = { GOLD, GOLD, GOLD_LIGHT, GOLD_LIGHT, GOLD_PALE, GOLD_DEEP, CRIMSON };
 
@@ -58,7 +61,7 @@ public class DrGramSparkEffect {
 
     public DrGramSparkEffect() {
         paint.setStyle(Paint.Style.FILL);
-        for (int a = 0; a < 80; a++) {
+        for (int a = 0; a < 160; a++) {
             freeParticles.add(new Particle());
         }
     }
@@ -83,6 +86,14 @@ public class DrGramSparkEffect {
      * Safe to call repeatedly — bursts simply add more particles.
      */
     public void burst(float cx, float cy) {
+        burst(cx, cy, 1.0f);
+    }
+
+    /**
+     * Spawns a spark burst with a given intensity (1.0 = normal send spark,
+     * >= 1.5 = grand celebration with shockwave ring and extra particles).
+     */
+    public void burst(float cx, float cy, float intensity) {
         // fast expanding glow flash at the origin
         Particle flash = obtain();
         flash.x = cx;
@@ -92,8 +103,8 @@ public class DrGramSparkEffect {
         flash.color = GOLD_PALE;
         flash.alpha = 0.55f;
         flash.currentTime = 0;
-        flash.lifeTime = 320 + Utilities.random.nextInt(120);
-        flash.scale = 1.0f;
+        flash.lifeTime = (int) (320 + Utilities.random.nextInt(120) * intensity);
+        flash.scale = intensity;
         flash.rotation = 0;
         flash.rotationSpeed = 0;
         flash.twinklePhase = 0;
@@ -101,7 +112,27 @@ public class DrGramSparkEffect {
         flash.type = TYPE_FLASH;
         particles.add(flash);
 
-        int count = 24 + Utilities.random.nextInt(14);
+        // grand celebrations get an expanding shockwave ring
+        if (intensity >= 1.5f) {
+            Particle ring = obtain();
+            ring.x = cx;
+            ring.y = cy;
+            ring.vx = 0;
+            ring.vy = 0;
+            ring.color = GOLD;
+            ring.alpha = 0.5f;
+            ring.currentTime = 0;
+            ring.lifeTime = 520;
+            ring.scale = intensity;
+            ring.rotation = 0;
+            ring.rotationSpeed = 0;
+            ring.twinklePhase = 0;
+            ring.twinkleSpeed = 0;
+            ring.type = TYPE_RING;
+            particles.add(ring);
+        }
+
+        int count = (int) ((24 + Utilities.random.nextInt(14)) * intensity);
         for (int a = 0; a < count; a++) {
             Particle p = obtain();
             p.x = cx + (Utilities.random.nextFloat() - 0.5f) * AndroidUtilities.dp(16);
@@ -110,26 +141,30 @@ public class DrGramSparkEffect {
             // upward-biased fan (around -90 degrees), wide spread like confetti
             float angle = (float) (-Math.PI / 2.0 + (Utilities.random.nextFloat() - 0.5f) * Math.PI * 1.4);
             float speed = 1.1f + Utilities.random.nextFloat() * 1.9f;
-            p.vx = (float) Math.cos(angle) * speed * 1.55f;
-            p.vy = (float) Math.sin(angle) * speed * 1.55f;
+            p.vx = (float) Math.cos(angle) * speed * 1.55f * intensity;
+            p.vy = (float) Math.sin(angle) * speed * 1.55f * intensity;
 
             p.color = randomGoldColor();
             p.alpha = 1.0f;
             p.currentTime = 0;
-            p.lifeTime = 650 + Utilities.random.nextInt(750);
-            p.scale = Math.max(1.0f, Utilities.random.nextFloat() * 2.1f);
+            p.lifeTime = (int) ((650 + Utilities.random.nextInt(750)) * Math.min(1.25f, 0.85f + intensity * 0.15f));
+            p.scale = Math.max(1.0f, Utilities.random.nextFloat() * 2.1f) * (0.85f + intensity * 0.15f);
             p.rotation = Utilities.random.nextFloat() * 360.0f;
             p.rotationSpeed = (Utilities.random.nextBoolean() ? -1 : 1) * (120.0f + Utilities.random.nextFloat() * 240.0f);
             p.twinklePhase = Utilities.random.nextFloat() * (float) (Math.PI * 2.0);
             p.twinkleSpeed = 0.008f + Utilities.random.nextFloat() * 0.012f;
 
             int r = Utilities.random.nextInt(100);
-            if (r < 50) {
+            if (r < 38) {
                 p.type = TYPE_DOT;
-            } else if (r < 82) {
+            } else if (r < 62) {
                 p.type = TYPE_STAR;
-            } else {
+            } else if (r < 78) {
                 p.type = TYPE_STREAK;
+            } else if (r < 91) {
+                p.type = TYPE_DIAMOND;
+            } else {
+                p.type = TYPE_HEXSTAR;
             }
             particles.add(p);
         }
@@ -140,7 +175,7 @@ public class DrGramSparkEffect {
         for (int a = 0; a < count; a++) {
             Particle particle = particles.get(a);
             if (particle.currentTime >= particle.lifeTime) {
-                if (freeParticles.size() < 120) {
+                if (freeParticles.size() < 260) {
                     freeParticles.add(particle);
                 }
                 particles.remove(a);
@@ -176,6 +211,71 @@ public class DrGramSparkEffect {
         canvas.restore();
     }
 
+    /** Four-point sparkle star (existing) — kept as drawStar. */
+    private void drawStar(Canvas canvas, float cx, float cy, float r, float rotation) {
+        canvas.save();
+        canvas.rotate(rotation, cx, cy);
+        float k = r * 0.22f;
+        starPath.reset();
+        starPath.moveTo(cx, cy - r);
+        starPath.quadTo(cx + k, cy - k, cx + r, cy);
+        starPath.quadTo(cx + k, cy + k, cx, cy + r);
+        starPath.quadTo(cx - k, cy + k, cx - r, cy);
+        starPath.quadTo(cx - k, cy - k, cx, cy - r);
+        starPath.close();
+        canvas.drawPath(starPath, paint);
+        canvas.restore();
+    }
+
+    /** Six-point brilliant star. */
+    private void drawHexStar(Canvas canvas, float cx, float cy, float r, float rotation) {
+        canvas.save();
+        canvas.rotate(rotation, cx, cy);
+        float inner = r * 0.42f;
+        starPath.reset();
+        for (int a = 0; a < 12; a++) {
+            float radius = (a % 2 == 0) ? r : inner;
+            double angle = Math.PI / 6.0 * a - Math.PI / 2.0;
+            float px = cx + (float) Math.cos(angle) * radius;
+            float py = cy + (float) Math.sin(angle) * radius;
+            if (a == 0) {
+                starPath.moveTo(px, py);
+            } else {
+                starPath.lineTo(px, py);
+            }
+        }
+        starPath.close();
+        canvas.drawPath(starPath, paint);
+        canvas.restore();
+    }
+
+    /** Rotating gem facet (rhombus body + bright inner highlight). */
+    private void drawDiamond(Canvas canvas, float cx, float cy, float r, float rotation, int color, float alpha) {
+        canvas.save();
+        canvas.rotate(rotation, cx, cy);
+        paint.setStyle(Paint.Style.FILL);
+        // body
+        paint.setColor(color);
+        paint.setAlpha((int) (255 * alpha));
+        starPath.reset();
+        starPath.moveTo(cx, cy - r);
+        starPath.lineTo(cx + r * 0.62f, cy);
+        starPath.lineTo(cx, cy + r);
+        starPath.lineTo(cx - r * 0.62f, cy);
+        starPath.close();
+        canvas.drawPath(starPath, paint);
+        // bright facet highlight
+        paint.setColor(GOLD_PALE);
+        paint.setAlpha((int) (255 * alpha * 0.85f));
+        starPath.reset();
+        starPath.moveTo(cx, cy - r);
+        starPath.lineTo(cx, cy + r * 0.15f);
+        starPath.lineTo(cx - r * 0.3f, cy - r * 0.1f);
+        starPath.close();
+        canvas.drawPath(starPath, paint);
+        canvas.restore();
+    }
+
     public void onDraw(View parent, Canvas canvas) {
         if (parent == null || canvas == null || particles.isEmpty()) {
             return;
@@ -196,7 +296,8 @@ public class DrGramSparkEffect {
             float progress = particle.currentTime / particle.lifeTime;
             float fade = 1.0f - AndroidUtilities.decelerateInterpolator.getInterpolation(progress);
             float twinkle = 0.65f + 0.35f * (float) Math.sin(particle.twinklePhase + particle.currentTime * particle.twinkleSpeed);
-            float alpha = particle.alpha * fade * (particle.type == TYPE_STAR ? twinkle : 1.0f);
+            boolean sparkly = particle.type == TYPE_STAR || particle.type == TYPE_HEXSTAR || particle.type == TYPE_DIAMOND;
+            float alpha = particle.alpha * fade * (sparkly ? twinkle : 1.0f);
             if (alpha <= 0.02f) {
                 continue;
             }
@@ -204,11 +305,36 @@ public class DrGramSparkEffect {
             int color = particle.color;
             switch (particle.type) {
                 case TYPE_FLASH: {
-                    float radius = AndroidUtilities.dp(26) * (0.4f + progress * 1.8f);
+                    float radius = AndroidUtilities.dp(26) * particle.scale * (0.4f + progress * 1.8f);
                     paint.setStyle(Paint.Style.FILL);
                     paint.setColor(color);
                     paint.setAlpha((int) (255 * alpha));
                     canvas.drawCircle(particle.x, particle.y, radius, paint);
+                    break;
+                }
+                case TYPE_RING: {
+                    float radius = AndroidUtilities.dp(14) * particle.scale * (0.3f + progress * 3.4f);
+                    paint.setStyle(Paint.Style.STROKE);
+                    paint.setStrokeWidth(AndroidUtilities.dp(1.6f) * (1.0f - progress * 0.6f));
+                    paint.setColor(color);
+                    paint.setAlpha((int) (255 * alpha));
+                    canvas.drawCircle(particle.x, particle.y, radius, paint);
+                    break;
+                }
+                case TYPE_DIAMOND: {
+                    paint.setStyle(Paint.Style.FILL);
+                    paint.setColor(color);
+                    paint.setAlpha((int) (255 * alpha));
+                    float radius = AndroidUtilities.dp(2.4f) * particle.scale;
+                    drawDiamond(canvas, particle.x, particle.y, radius, particle.rotation, color, alpha);
+                    break;
+                }
+                case TYPE_HEXSTAR: {
+                    paint.setStyle(Paint.Style.FILL);
+                    paint.setColor(color);
+                    paint.setAlpha((int) (255 * alpha));
+                    float radius = AndroidUtilities.dp(2.2f) * particle.scale;
+                    drawHexStar(canvas, particle.x, particle.y, radius, particle.rotation);
                     break;
                 }
                 case TYPE_DOT: {

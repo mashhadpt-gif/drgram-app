@@ -23155,6 +23155,46 @@ public class ChatActivity extends BaseFragment implements
                     messageObject.forceUpdate = true;
                     messageObject.reactionsChanged = true;
                     updateMessageAnimated(messageObject, true);
+                    // DrGram premium effects: celebrate reaction updates on visible messages
+                    if (SharedConfig.drgramReactionRain && chatListView != null && contentView != null
+                            && messageObject.messageOwner.reactions != null
+                            && messageObject.messageOwner.reactions.results != null
+                            && !messageObject.messageOwner.reactions.results.isEmpty()) {
+                        View drgramMsgView = null;
+                        for (int i = 0, n = chatListView.getChildCount(); i < n; i++) {
+                            View child = chatListView.getChildAt(i);
+                            if (child instanceof ChatMessageCell && ((ChatMessageCell) child).getMessageObject() == messageObject) {
+                                drgramMsgView = child;
+                                break;
+                            }
+                        }
+                        if (drgramMsgView != null) {
+                            int[] drgramLoc = new int[2];
+                            drgramMsgView.getLocationInWindow(drgramLoc);
+                            float drgramX = drgramLoc[0] + drgramMsgView.getMeasuredWidth() / 2.0f;
+                            float drgramY = drgramLoc[1] + drgramMsgView.getMeasuredHeight() / 2.0f;
+                            if (messageObject.isOutOwner()) {
+                                // someone reacted to our message -> golden dust rain + grand sparks
+                                contentView.startDrgramGoldRain(drgramX, drgramY);
+                                contentView.startDrgramSparks(drgramX, drgramY, 1.6f);
+                            } else {
+                                // we reacted to someone's message -> single spark burst
+                                boolean drgramChosen = false;
+                                TLRPC.TL_messageReactions drgramNewReactions = (TLRPC.TL_messageReactions) args[2];
+                                if (drgramNewReactions != null && drgramNewReactions.results != null) {
+                                    for (int i = 0, n = drgramNewReactions.results.size(); i < n; i++) {
+                                        if (drgramNewReactions.results.get(i).chosen) {
+                                            drgramChosen = true;
+                                            break;
+                                        }
+                                    }
+                                }
+                                if (drgramChosen) {
+                                    contentView.startDrgramSparks(drgramX, drgramY);
+                                }
+                            }
+                        }
+                    }
                 }
             });
         } else if (id == NotificationCenter.savedReactionTagsUpdate) {

@@ -355,6 +355,7 @@ public class SharedConfig {
 
     // DrGram premium effects
     public static boolean drgramSendSparks = true;
+    public static boolean drgramReactionRain = true;
 
     public static boolean isFloatingDebugActive;
     public static LiteMode liteMode;
@@ -669,6 +670,7 @@ public class SharedConfig {
             fastScrollHintCount = preferences.getInt("fastScrollHintCount", 3);
             dontAskManageStorage = preferences.getBoolean("dontAskManageStorage", false);
             drgramSendSparks = preferences.getBoolean("drgramSendSparks", true);
+            drgramReactionRain = preferences.getBoolean("drgramReactionRain", true);
             hasEmailLogin = preferences.getBoolean("hasEmailLogin", false);
             isFloatingDebugActive = preferences.getBoolean("floatingDebugActive", false);
             updateStickersOrderOnSend = preferences.getBoolean("updateStickersOrderOnSend", true);
@@ -1266,6 +1268,12 @@ public class SharedConfig {
         drgramSendSparks = !drgramSendSparks;
         ApplicationLoader.applicationContext.getSharedPreferences("mainconfig", Activity.MODE_PRIVATE)
                 .edit().putBoolean("drgramSendSparks", drgramSendSparks).apply();
+    }
+
+    public static void toggleDrgramReactionRain() {
+        drgramReactionRain = !drgramReactionRain;
+        ApplicationLoader.applicationContext.getSharedPreferences("mainconfig", Activity.MODE_PRIVATE)
+                .edit().putBoolean("drgramReactionRain", drgramReactionRain).apply();
     }
 
     public static void toggleRaiseToListen() {

@@ -16,7 +16,9 @@
     <string name="DrGramPremium">درگرم پریمیوم</string>
     <string name="SparksOnSend">جرقه هنگام ارسال</string>
     <string name="SparksOnSendInfo">انیمیشن جرقه‌های طلایی هنگام ارسال پیام</string>
-    <string name="SparksOnSendHint">افکت‌های پریمیوم درگرم</string>
+    <string name="GoldRainOnReactions">بارش طلایی روی واکنش‌ها</string>
+    <string name="GoldRainOnReactionsInfo">بارش غبار طلا وقتی کسی به پیام شما واکنش نشان می‌دهد</string>
+    <string name="SparksOnSendHint">افکت‌های پریمیوم درگرم: جرقه ارسال و بارش طلایی واکنش‌ها</string>
 
     <!-- Alternate app icons -->
     <string name="AppIcon">آیکون برنامه</string>
