@@ -513,7 +513,7 @@ public class ChatActivity extends BaseFragment implements
     private AlertDialog scheduleNowDialog;
 
     private HintView2 savedMessagesHint;
-	private HintView2 savedMessagesSearchHint;
+        private HintView2 savedMessagesSearchHint;
     private HintView2 savedMessagesTagHint;
     private HintView2 groupEmojiPackHint;
     private HintView2 botMessageHint;
@@ -1985,6 +1985,15 @@ public class ChatActivity extends BaseFragment implements
 
         @Override
         public void onMessageSend(CharSequence message, boolean notify, int scheduleDate, int scheduleRepeatPeriod, long payStars) {
+            // DrGram premium effect: gold sparks burst at the send button on every real send
+            if (scheduleDate == 0 && SharedConfig.drgramSendSparks && contentView != null && chatActivityEnterView != null) {
+                int[] sparkLocation = new int[2];
+                chatActivityEnterView.getLocationInWindow(sparkLocation);
+                boolean sparkRtl = LocaleController.isRTL;
+                float sparkX = sparkLocation[0] + (sparkRtl ? dp(36) : chatActivityEnterView.getMeasuredWidth() - dp(36));
+                float sparkY = sparkLocation[1] + dp(12);
+                contentView.startDrgramSparks(sparkX, sparkY);
+            }
             if (chatListItemAnimator != null) {
                 chatActivityEnterViewAnimateFromTop = chatActivityEnterView.getBackgroundTop();
                 if (chatActivityEnterViewAnimateFromTop != 0) {
@@ -8858,14 +8867,14 @@ public class ChatActivity extends BaseFragment implements
                 savedMessagesHint.setJoint(0.5f, 0);
             }
             savedMessagesHint.setCloseButton(true);
-			savedMessagesHint.setOnHiddenListener(() -> {
+                        savedMessagesHint.setOnHiddenListener(() -> {
                 if (searchContainer == null || searchContainer.getVisibility() != View.VISIBLE) {
                     if (savedMessagesSearchHint != null) {
                         savedMessagesSearchHint.show();
                     }
                 }
-			});
-			savedMessagesHint.setDuration(-1);
+                        });
+                        savedMessagesHint.setDuration(-1);
             savedMessagesHint.setPadding(dp(8), 0, dp(8), 0);
             contentView.addView(savedMessagesHint, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 120, Gravity.TOP | Gravity.FILL_HORIZONTAL, 0, -8, 0, 0));
 
@@ -8878,8 +8887,8 @@ public class ChatActivity extends BaseFragment implements
                     .setCloseButton(true)
                     .setJointPx(1, -dp(56))
                     .setRounding(8);
-			savedMessagesSearchHint.setText(LocaleController.getString(R.string.SavedTagSearchTooltipHint));
-			contentView.addView(savedMessagesSearchHint, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 120, Gravity.TOP | Gravity.FILL_HORIZONTAL, 16, -8, 16, 0));
+                        savedMessagesSearchHint.setText(LocaleController.getString(R.string.SavedTagSearchTooltipHint));
+                        contentView.addView(savedMessagesSearchHint, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 120, Gravity.TOP | Gravity.FILL_HORIZONTAL, 16, -8, 16, 0));
 
             if (getUserConfig().isPremium()) {
                 savedMessagesTagHint = new HintView2(context, HintView2.DIRECTION_BOTTOM)
@@ -38539,7 +38548,7 @@ public class ChatActivity extends BaseFragment implements
             searchingUserMessages = null;
             searchingChatMessages = null;
             searchingHashtag = null;
-			searchItem.setSearchFieldHint(isSupportedTags() ? LocaleController.getString(R.string.SavedTagSearchHint) : LocaleController.getString(R.string.Search));
+                        searchItem.setSearchFieldHint(isSupportedTags() ? LocaleController.getString(R.string.SavedTagSearchHint) : LocaleController.getString(R.string.Search));
             searchItem.setSearchFieldCaption(null);
             animatorSearchFieldVisibility.setValue(false, true);
             animatorSearchHashtagHistoryVisibility.setValue(false, true);
@@ -38813,7 +38822,7 @@ public class ChatActivity extends BaseFragment implements
                     searchingForUser = false;
                     searchItem.setSearchFieldText("", true);
                 }
-				searchItem.setSearchFieldHint(isSupportedTags() ? LocaleController.getString(R.string.SavedTagSearchHint) : LocaleController.getString(R.string.Search));
+                                searchItem.setSearchFieldHint(isSupportedTags() ? LocaleController.getString(R.string.SavedTagSearchHint) : LocaleController.getString(R.string.Search));
                 searchCalendarButton.setVisibility(View.VISIBLE);
                 if (searchUserButton != null) {
                     searchUserButton.setVisibility(View.VISIBLE);
@@ -38841,9 +38850,9 @@ public class ChatActivity extends BaseFragment implements
         return searchItemListener;
     }
 
-	private boolean isSupportedTags() {
-		return getUserConfig().getClientUserId() == getDialogId() && !getMessagesController().getSavedMessagesController().unsupported && getUserConfig().isPremium();
-	}
+        private boolean isSupportedTags() {
+                return getUserConfig().getClientUserId() == getDialogId() && !getMessagesController().getSavedMessagesController().unsupported && getUserConfig().isPremium();
+        }
 
     private ChatMessageCellDelegate chatMessageCellDelegate;
     private ChatMessageCellDelegate getChatMessageCellDelegate() {

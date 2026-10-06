@@ -89,8 +89,24 @@ public class SizeNotifierFrameLayout extends FrameLayout implements Theme.Colora
     private boolean animationInProgress;
     private boolean skipBackgroundDrawing;
     SnowflakesEffect snowflakesEffect;
+    private DrGramSparkEffect drgramSparkEffect;
     public View backgroundView;
     boolean attached;
+
+    /**
+     * DrGram premium effect: spawns a gold spark burst at (x, y) drawn over the chat content.
+     * Gated by SharedConfig.drgramSendSparks.
+     */
+    public void startDrgramSparks(float x, float y) {
+        if (!SharedConfig.drgramSendSparks) {
+            return;
+        }
+        if (drgramSparkEffect == null) {
+            drgramSparkEffect = new DrGramSparkEffect();
+        }
+        drgramSparkEffect.burst(x, y);
+        invalidate();
+    }
 
 
     //blur variables
@@ -838,6 +854,10 @@ public class SizeNotifierFrameLayout extends FrameLayout implements Theme.Colora
             startBlur();
         }
         super.dispatchDraw(canvas);
+        // DrGram premium sparks overlay (above messages, like confetti)
+        if (drgramSparkEffect != null && !drgramSparkEffect.isEmpty()) {
+            drgramSparkEffect.onDraw(this, canvas);
+        }
     }
 
     @Override

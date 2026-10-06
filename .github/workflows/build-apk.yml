@@ -1,0 +1,138 @@
+name: DrGram APK Build (CI/CD)
+
+# DrGram — automated APK builds.
+# - Manual run (workflow_dispatch) with a build-type selector.
+# - Automatic release APK on every version tag (v*).
+#
+# Signed with TMessagesProj/config/release.keystore (credentials in gradle.properties).
+# Output artifact: DrGram-<version>-afat-<type>.apk
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build type (release = installable signed APK)'
+        required: true
+        default: 'release'
+        type: choice
+        options:
+          - release
+          - debug
+  push:
+    tags:
+      - 'v*'
+
+concurrency:
+  group: drgram-apk-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: write
+
+jobs:
+  build-apk:
+    name: Build DrGram APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+
+    steps:
+      - name: Checkout source (with native submodules)
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+          fetch-depth: 1
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install SDK components (platform, build-tools, NDK, CMake)
+        run: |
+          sdkmanager --install "platform-tools" "platforms;android-36" "build-tools;36.0.0" "ndk;27.2.12479018" "cmake;3.22.1"
+          yes | sdkmanager --licenses > /dev/null || true
+
+      - name: Set up Gradle (with caching)
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          cache-read-only: false
+
+      - name: Resolve build parameters
+        id: params
+        run: |
+          set -e
+          VERSION_NAME=$(grep '^APP_VERSION_NAME=' gradle.properties | cut -d= -f2 | tr -d ' \r')
+          VERSION_CODE=$(grep '^APP_VERSION_CODE=' gradle.properties | cut -d= -f2 | tr -d ' \r')
+          if [ "${{ github.event_name }}" = "push" ]; then
+            BUILD_TYPE=release
+          else
+            BUILD_TYPE=${{ inputs.build_type }}
+          fi
+          TASK_SUFFIX="$(echo "${BUILD_TYPE}" | sed 's/^\(.\)/\U\1/')"
+          echo "version_name=${VERSION_NAME}" >> "$GITHUB_OUTPUT"
+          echo "version_code=${VERSION_CODE}" >> "$GITHUB_OUTPUT"
+          echo "build_type=${BUILD_TYPE}" >> "$GITHUB_OUTPUT"
+          echo "task=assembleAfat${TASK_SUFFIX}" >> "$GITHUB_OUTPUT"
+          echo "Building DrGram v${VERSION_NAME} (${VERSION_CODE}) — ${BUILD_TYPE} — task: assembleAfat${TASK_SUFFIX}"
+
+      - name: Gradle wrapper validation
+        uses: gradle/actions/wrapper-validation@v4
+
+      - name: Build APK
+        run: |
+          ./gradlew :TMessagesProj_App:${{ steps.params.outputs.task }} \
+            --no-configuration-cache \
+            --stacktrace
+
+      - name: Collect APK
+        id: apk
+        run: |
+          set -e
+          SRC="TMessagesProj_App/build/outputs/apk/afat/${{ steps.params.outputs.build_type }}/app.apk"
+          if [ ! -f "$SRC" ]; then
+            echo "APK not found at $SRC — searching build outputs..."
+            SRC=$(ls -1 TMessagesProj_App/build/outputs/apk/*/*/*.apk | head -n 1)
+          fi
+          DEST="DrGram-v${{ steps.params.outputs.version_name }}-afat-${{ steps.params.outputs.build_type }}.apk"
+          cp "$SRC" "$DEST"
+          echo "file=$DEST" >> "$GITHUB_OUTPUT"
+          SIZE_MB=$(du -m "$DEST" | cut -f1)
+          echo "size_mb=$SIZE_MB" >> "$GITHUB_OUTPUT"
+          echo "DrGram APK ready: $DEST (${SIZE_MB} MB)"
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: DrGram-v${{ steps.params.outputs.version_name }}-afat-${{ steps.params.outputs.build_type }}
+          path: ${{ steps.apk.outputs.file }}
+          if-no-files-found: error
+          compression-level: 0
+
+      - name: Attach APK to GitHub Release
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: DrGram v${{ steps.params.outputs.version_name }}
+          body: |
+            ## DrGram v${{ steps.params.outputs.version_name }} (build ${{ steps.params.outputs.version_code }})
+
+            Automated black-gold premium build.
+
+            ### Install
+            - Download **${{ steps.apk.outputs.file }}**
+            - Allow "Install from unknown sources" if prompted
+            - Min Android: 5.0 (API 21)
+
+            ### Highlights
+            - Black-gold default theme (Red secondary) with metallic gradients
+            - Gold default chat wallpaper
+            - Premium sparks animation on message send (toggle: Settings → Chats → DrGram Premium)
+            - Alternate app icons (Black Gold / Black Red / Onyx / Royal / Crimson / Eclipse)
+            - English default UI with language switcher on the login screen
+          files: ${{ steps.apk.outputs.file }}
+          fail_on_unmatched_files: true

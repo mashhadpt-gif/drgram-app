@@ -5771,6 +5771,10 @@
     <string name="AppIconPremium">Royal</string>
     <string name="AppIconTurbo">Crimson</string>
     <string name="AppIconNox">Eclipse</string>
+    <string name="DrGramPremium">DrGram Premium</string>
+    <string name="SparksOnSend">Sparks on send</string>
+    <string name="SparksOnSendInfo">Golden spark animation when you send a message</string>
+    <string name="SparksOnSendHint">DrGram premium effects</string>
     <string name="AppIconChangedTo">App icon has been changed to %1$s</string>
     <string name="FileTooLarge">File Too Large</string>
     <string name="PremiumPreviewAppIcon">Premium App Icon</string>

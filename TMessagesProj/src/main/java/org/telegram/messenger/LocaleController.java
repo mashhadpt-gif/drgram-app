@@ -4446,14 +4446,18 @@ public class LocaleController {
         String value;
 
         if (BuildVars.USE_CLOUD_STRINGS) {
-            value = localizationExternal.getByResNameOrResId(context, key, stringRes);
-            if (value != null) {
-                return value;
-            }
+            // DrGram: brand strings always resolve from packaged resources —
+            // cloud translations must never rename the app back to Telegram.
+            if (stringRes != R.string.AppName && stringRes != R.string.AppNameBeta) {
+                value = localizationExternal.getByResNameOrResId(context, key, stringRes);
+                if (value != null) {
+                    return value;
+                }
 
-            value = localizationExternal.getByResName(fallback);
-            if (value != null) {
-                return value;
+                value = localizationExternal.getByResName(fallback);
+                if (value != null) {
+                    return value;
+                }
             }
         }
 

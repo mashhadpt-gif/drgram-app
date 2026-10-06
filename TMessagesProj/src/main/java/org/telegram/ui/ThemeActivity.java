@@ -236,6 +236,11 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
     private int appIconSelectorRow;
     private int appIconShadowRow;
 
+    // DrGram premium effects section
+    private int drgramHeaderRow;
+    private int drgramSparksRow;
+    private int drgramInfoRow;
+
     private int rowCount;
 
     private boolean updatingLocation;
@@ -609,6 +614,9 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
         appIconHeaderRow = -1;
         appIconSelectorRow = -1;
         appIconShadowRow = -1;
+        drgramHeaderRow = -1;
+        drgramSparksRow = -1;
+        drgramInfoRow = -1;
         lastShadowRow = -1;
 
         defaultThemes.clear();
@@ -674,6 +682,10 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
             appIconHeaderRow = rowCount++;
             appIconSelectorRow = rowCount++;
             appIconShadowRow = rowCount++;
+
+            drgramHeaderRow = rowCount++;
+            drgramSparksRow = rowCount++;
+            drgramInfoRow = rowCount++;
 
             swipeGestureHeaderRow = rowCount++;
             swipeGestureRow = rowCount++;
@@ -1024,8 +1036,8 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
                             if (accent != null) {
                                 Theme.OverrideWallpaperInfo info = new Theme.OverrideWallpaperInfo();
                                 info.slug = Theme.DEFAULT_BACKGROUND_SLUG;
-                                info.fileName = "Blue_99_wp.jpg";
-                                info.originalFileName = "Blue_99_wp.jpg";
+                                info.fileName = "Gold_99_wp.jpg";
+                                info.originalFileName = "Gold_99_wp.jpg";
                                 accent.overrideWallpaper = info;
                                 themeInfo.setOverrideWallpaper(info);
                             }
@@ -1135,6 +1147,11 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
                 SharedConfig.toggleNextMediaTap();
                 if (view instanceof TextCheckCell) {
                     ((TextCheckCell) view).setChecked(SharedConfig.nextMediaTap);
+                }
+            } else if (position == drgramSparksRow) {
+                SharedConfig.toggleDrgramSendSparks();
+                if (view instanceof TextCheckCell) {
+                    ((TextCheckCell) view).setChecked(SharedConfig.drgramSendSparks);
                 }
             } else if (position == raiseToListenRow) {
                 SharedConfig.toggleRaiseToListen();
@@ -2530,6 +2547,8 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
                         cell.setText(getLocationSunString());
                     } else if (position == swipeGestureInfoRow) {
                         cell.setText(getString("ChatListSwipeGestureInfo", R.string.ChatListSwipeGestureInfo));
+                    } else if (position == drgramInfoRow) {
+                        cell.setText(getString("SparksOnSendHint", R.string.SparksOnSendHint));
                     } else if (position == liteModeInfoRow) {
                         cell.setText(getString("LiteModeInfo", R.string.LiteModeInfo));
                     } else {
@@ -2582,6 +2601,8 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
                         headerCell.setText(getString("SelectTheme", R.string.SelectTheme));
                     } else if (position == appIconHeaderRow) {
                         headerCell.setText(getString(R.string.AppIcon));
+                    } else if (position == drgramHeaderRow) {
+                        headerCell.setText(getString(R.string.DrGramPremium));
                     } else if (position == otherHeaderRow) {
                         headerCell.setText(getString("OtherSettings", R.string.OtherSettings));
                     } else if (position == mediaSoundHeaderRow) {
@@ -2620,6 +2641,8 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
                         textCheckCell.setTextAndValueAndCheck(getString(R.string.ShowSensitiveContent), getString(R.string.ShowSensitiveContentInfo), getMessagesController().showSensitiveContent(), true, true);
                     } else if (position == chatBlurRow) {
                         textCheckCell.setTextAndCheck(getString("BlurInChat", R.string.BlurInChat), SharedConfig.chatBlurEnabled(), true);
+                    } else if (position == drgramSparksRow) {
+                        textCheckCell.setTextAndValueAndCheck(getString(R.string.SparksOnSend), getString(R.string.SparksOnSendInfo), SharedConfig.drgramSendSparks, true, true);
                     }
                     break;
                 }
@@ -2734,7 +2757,7 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
                     position == contactsReimportRow || position == contactsSortRow ||
                     position == bluetoothScoRow || position == searchEngineRow) {
                 return TYPE_TEXT_SETTING;
-            } else if (position == automaticBrightnessInfoRow || position == scheduleLocationInfoRow || position == swipeGestureInfoRow || position == stickersInfoRow || position == liteModeInfoRow) {
+            } else if (position == automaticBrightnessInfoRow || position == scheduleLocationInfoRow || position == swipeGestureInfoRow || position == stickersInfoRow || position == liteModeInfoRow || position == drgramInfoRow) {
                 return TYPE_TEXT_INFO_PRIVACY;
             } else if (position == themeInfoRow || position == nightTypeInfoRow || position == scheduleFromToInfoRow ||
                     position == settings2Row || position == newThemeInfoRow || position == chatListInfoRow || position == bubbleRadiusInfoRow ||
@@ -2747,13 +2770,14 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
                     position == settingsRow || position == themeHeaderRow || position == textSizeHeaderRow ||
                     position == chatListHeaderRow || position == bubbleRadiusHeaderRow || position == swipeGestureHeaderRow ||
                     position == selectThemeHeaderRow || position == appIconHeaderRow || position == mediaSoundHeaderRow ||
-                    position == otherHeaderRow) {
+                    position == otherHeaderRow || position == drgramHeaderRow) {
                 return TYPE_HEADER;
             } else if (position == automaticBrightnessRow) {
                 return TYPE_BRIGHTNESS;
             } else if (position == scheduleLocationRow || position == sendByEnterRow ||
                     position == raiseToSpeakRow || position == raiseToListenRow || position == pauseOnRecordRow ||
-                    position == directShareRow || position == chatBlurRow || position == pauseOnMediaRow || position == nextMediaTapRow || position == sensitiveContentRow) {
+                    position == directShareRow || position == chatBlurRow || position == pauseOnMediaRow || position == nextMediaTapRow || position == sensitiveContentRow ||
+                    position == drgramSparksRow) {
                 return TYPE_TEXT_CHECK;
             } else if (position == textSizeRow) {
                 return TYPE_TEXT_SIZE;

@@ -1,0 +1,115 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  DrGram Persian (فارسی) localization.
+  Covers DrGram custom strings (brand, premium effects, theme & icon names)
+  plus the most visible UI strings. Official Telegram strings continue to
+  load from cloud translations at runtime; DrGram-specific keys fall back
+  to this file.
+-->
+<resources>
+    <!-- Brand — always resource-resolved (see LocaleController.getStringV2 guard) -->
+    <string name="AppName">درگرم</string>
+    <string name="AppNameBeta">درگرم بتا</string>
+    <string name="LanguageName">فارسی</string>
+
+    <!-- DrGram Premium section (Settings → Chats) -->
+    <string name="DrGramPremium">درگرم پریمیوم</string>
+    <string name="SparksOnSend">جرقه هنگام ارسال</string>
+    <string name="SparksOnSendInfo">انیمیشن جرقه‌های طلایی هنگام ارسال پیام</string>
+    <string name="SparksOnSendHint">افکت‌های پریمیوم درگرم</string>
+
+    <!-- Alternate app icons -->
+    <string name="AppIcon">آیکون برنامه</string>
+    <string name="AppIconDefault">طلایی مشکی</string>
+    <string name="AppIconVintage">قرمز مشکی</string>
+    <string name="AppIconAqua">اونیکس</string>
+    <string name="AppIconPremium">رویال</string>
+    <string name="AppIconTurbo">زرشکی</string>
+    <string name="AppIconNox">کسوف</string>
+
+    <!-- Theme display names -->
+    <string name="Theme">تم</string>
+    <string name="ThemeClassic">طلایی</string>
+    <string name="ThemeDark">قرمز</string>
+    <string name="ThemeDay">روز</string>
+    <string name="ThemeNight">شب</string>
+    <string name="ThemeArcticBlue">قطبی</string>
+
+    <!-- Auth / login -->
+    <string name="YourPhone">شماره شما</string>
+    <string name="Country">کشور</string>
+    <string name="PhoneNumber">شماره تلفن</string>
+    <string name="ChooseCountry">انتخاب کشور</string>
+    <string name="YourCode">تأیید شماره تلفن</string>
+    <string name="Code">کد</string>
+    <string name="YourName">نام شما</string>
+    <string name="RegisterText2">نام خود را وارد کنید و تصویری برای پروفایل انتخاب کنید.</string>
+    <string name="StartMessaging">شروع پیام‌رسانی</string>
+    <string name="LoginPassword">رمز عبور</string>
+
+    <!-- Main tabs & navigation -->
+    <string name="Settings">تنظیمات</string>
+    <string name="Contacts">مخاطبین</string>
+    <string name="Calls">تماس‌ها</string>
+    <string name="Chats">گفتگوها</string>
+    <string name="SavedMessages">پیام‌های ذخیره‌شده</string>
+    <string name="Search">جستجو</string>
+    <string name="ArchivedChats">گفتگوهای بایگانی‌شده</string>
+    <string name="SelectChat">انتخاب گفتگو</string>
+    <string name="SelectChats">انتخاب گفتگوها</string>
+    <string name="NoChats">به درگرم خوش آمدید</string>
+    <string name="NoChatsHelp">برای شروع پیام‌رسانی، روی دکمه مداد در گوشه پایین ضربه بزنید.</string>
+
+    <!-- Common actions -->
+    <string name="OK">باشه</string>
+    <string name="Cancel">لغو</string>
+    <string name="Done">انجام شد</string>
+    <string name="Open">باز کردن</string>
+    <string name="Send">ارسال</string>
+    <string name="Edit">ویرایش</string>
+    <string name="Delete">حذف</string>
+    <string name="Copy">کپی</string>
+    <string name="Forward">بازارسال</string>
+    <string name="Reply">پاسخ</string>
+    <string name="Next">بعدی</string>
+    <string name="Continue">ادامه</string>
+    <string name="AreYouSure">مطمئن هستید؟</string>
+    <string name="DeleteChat">حذف و خروج</string>
+    <string name="LogOut">خروج از حساب</string>
+    <string name="Language">زبان</string>
+    <string name="AskAQuestion">پرسیدن سؤال</string>
+
+    <!-- Chat context menu -->
+    <string name="PinToTop">سنجاق کردن به بالا</string>
+    <string name="UnpinFromTop">برداشتن سنجاق</string>
+    <string name="MarkAsUnread">علامت‌گذاری به عنوان نخوانده</string>
+    <string name="MarkAsRead">علامت‌گذاری به عنوان خوانده‌شده</string>
+    <string name="Archive">بایگانی</string>
+    <string name="Unarchive">خارج کردن از بایگانی</string>
+    <string name="ClearHistory">پاک کردن تاریخچه</string>
+    <string name="MuteNotifications">بی‌صدا کردن دائمی</string>
+    <string name="UnmuteNotifications">فعال کردن صدا</string>
+    <string name="SaveToGallery">ذخیره در گالری</string>
+    <string name="NewGroup">گروه جدید</string>
+    <string name="NewChannel">کانال جدید</string>
+    <string name="NewSecretChat">گفتگوی مخفی جدید</string>
+
+    <!-- Profile -->
+    <string name="AddContact">افزودن به مخاطبین</string>
+    <string name="BlockUser">مسدود کردن کاربر</string>
+    <string name="PhoneMobile">موبایل</string>
+    <string name="Phone">تلفن</string>
+    <string name="Username">نام کاربری</string>
+    <string name="UserBio">بیوگرافی</string>
+    <string name="Online">آنلاین</string>
+    <string name="LastSeen">آخرین بازدید</string>
+
+    <!-- Settings sections -->
+    <string name="Notifications">اعلان‌ها</string>
+    <string name="PrivacySettings">حریم خصوصی و امنیت</string>
+    <string name="DataSettings">داده و ذخیره‌سازی</string>
+    <string name="Passcode">قفل رمز عبور</string>
+    <string name="TwoStepVerification">تأیید دو مرحله‌ای</string>
+    <string name="Proxy">پروکسی</string>
+    <string name="TelegramPremium">درگرم پریمیوم</string>
+</resources>

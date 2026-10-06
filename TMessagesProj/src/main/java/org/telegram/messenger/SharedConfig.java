@@ -353,6 +353,9 @@ public class SharedConfig {
     public static boolean dontAskManageStorage;
     public static boolean multipleReactionsPromoShowed;
 
+    // DrGram premium effects
+    public static boolean drgramSendSparks = true;
+
     public static boolean isFloatingDebugActive;
     public static LiteMode liteMode;
 
@@ -665,6 +668,7 @@ public class SharedConfig {
             storiesColumnsCount = preferences.getInt("storiesColumnsCount", 3);
             fastScrollHintCount = preferences.getInt("fastScrollHintCount", 3);
             dontAskManageStorage = preferences.getBoolean("dontAskManageStorage", false);
+            drgramSendSparks = preferences.getBoolean("drgramSendSparks", true);
             hasEmailLogin = preferences.getBoolean("hasEmailLogin", false);
             isFloatingDebugActive = preferences.getBoolean("floatingDebugActive", false);
             updateStickersOrderOnSend = preferences.getBoolean("updateStickersOrderOnSend", true);
@@ -1256,6 +1260,12 @@ public class SharedConfig {
         SharedPreferences.Editor editor = preferences.edit();
         editor.putBoolean("raise_to_speak", raiseToSpeak);
         editor.apply();
+    }
+
+    public static void toggleDrgramSendSparks() {
+        drgramSendSparks = !drgramSendSparks;
+        ApplicationLoader.applicationContext.getSharedPreferences("mainconfig", Activity.MODE_PRIVATE)
+                .edit().putBoolean("drgramSendSparks", drgramSendSparks).apply();
     }
 
     public static void toggleRaiseToListen() {

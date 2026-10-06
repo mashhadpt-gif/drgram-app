@@ -1782,6 +1782,17 @@ public class Theme {
                     themeAccent.backgroundGradientOverrideColor1 = 0xff170b0c;
                     themeAccent.backgroundGradientOverrideColor2 = 0xff2e1012;
                     themeAccent.backgroundGradientOverrideColor3 = 0xff0f0809;
+                } else if (isHome(themeAccent) && name.equals("Gold")) {
+                    // DrGram: black-gold metallic default chat wallpaper for the default theme
+                    themeAccent.myMessagesAccentColor = 0xffF5B90D;
+                    themeAccent.myMessagesGradientAccentColor1 = 0xff9c6800;
+                    themeAccent.myMessagesGradientAccentColor2 = 0xfff5b90d;
+                    themeAccent.myMessagesGradientAccentColor3 = 0xffffe47a;
+                    themeAccent.patternIntensity = -0.57f;
+                    themeAccent.backgroundOverrideColor = 0xff0b0a08;
+                    themeAccent.backgroundGradientOverrideColor1 = 0xff171207;
+                    themeAccent.backgroundGradientOverrideColor2 = 0xff2e220a;
+                    themeAccent.backgroundGradientOverrideColor3 = 0xff0f0c06;
                 } else if (name.equals("Night")) {
                     themeAccent.myMessagesAccentColor = 0xffF5B90D;
                     themeAccent.myMessagesGradientAccentColor1 = 0xff9c6800;
@@ -3898,16 +3909,16 @@ public class Theme {
         ThemeInfo themeInfo = new ThemeInfo();
         themeInfo.name = "Gold";
         themeInfo.assetName = "bluebubbles.attheme";
-        themeInfo.previewBackgroundColor = 0xff95beec;
-        themeInfo.previewInColor = 0xffffffff;
-        themeInfo.previewOutColor = 0xffd0e6ff;
+        themeInfo.previewBackgroundColor = 0xff0f0d08;
+        themeInfo.previewInColor = 0xff262115;
+        themeInfo.previewOutColor = 0xfff5b90d;
         themeInfo.firstAccentIsDefault = true;
         themeInfo.currentAccentId = DEFALT_THEME_ACCENT_ID;
         themeInfo.sortIndex = 1;
         themeInfo.setAccentColorOptions(
                 new int[]    { 0xFFF5B90D,                     0xFF239853,                    0xFFCE5E82,                    0xFF7F63C3,                    0xFF2491AD,                    0xFF299C2F,                    0xFF8854B4,                    0xFF328ACF,                    0xFF43ACC7,                    0xFF52AC44,                    0xFFCD5F93,                    0xFFD28036,                    0xFF8366CC,                    0xFFCE4E57,                    0xFFD3AE40,                    0xFF7B88AB },
                 new int[]    { 0xFFB8E18D,                     0xFFFAFBCC,                    0xFFFFF9DC,                    0xFFC14F6E,                    0xFFD1BD1B,                    0xFFFFFAC9,                    0xFFFCF6D8,                    0x00000000,                    0x00000000,                    0x00000000,                    0x00000000,                    0x00000000,                    0x00000000,                    0x00000000,                    0x00000000,                    0x00000000 },
-                new int[]    { 0x00000000,                     0xFFF2FBC9,                    0xFFFBF4DF, 	                         0,	                             0,                    0xFFFDEDB4,                    0xFFFCF7B6,                    0x00000000,                    0x00000000,                    0x00000000,                    0x00000000,                    0x00000000,                    0x00000000,                    0x00000000,                    0x00000000,                    0x00000000 },
+                new int[]    { 0x00000000,                     0xFFF2FBC9,                    0xFFFBF4DF,                                0,                                  0,                    0xFFFDEDB4,                    0xFFFCF7B6,                    0x00000000,                    0x00000000,                    0x00000000,                    0x00000000,                    0x00000000,                    0x00000000,                    0x00000000,                    0x00000000,                    0x00000000 },
                 new int[]    { 0x00000000,                     0xFFdfe2a0,                    0xFFf1b290,                    0xFFd7c1e9,                    0xFFd7b89e,                    0xFFec9e73,                    0xFFcbb0e4,                    0xff9bbce7,                    0xff91c5ec,                    0xff9bc982,                    0xffe4a1c1,                    0xffe3ae7d,                    0xffb8aaea,                    0xffeb9c79,                    0xffd3bc74,                    0xffa0aace },
                 new int[]    { 0x00000000,                     0xFFbad89d,                    0xFFeccf94,                    0xFFe8bdd6,                    0xFFe6dec2,                    0xFFe8d085,                    0xFFebc8e9,                    0xffc0d9f3,                    0xffbfdfec,                    0xffe0dd93,                    0xffe9bed6,                    0xffecd5a2,                    0xffc5c9ee,                    0xfff0bd99,                    0xffe9df9e,                    0xffcacedd },
                 new int[]    { 0x00000000,                     0xFFe2dea7,                    0xFFe7b384,                    0xFFd2aee9,                    0xFFdac5ae,                    0xFFeea677,                    0xFFdfa8d1,                    0xff95c3eb,                    0xffb5e1d9,                    0xffbed595,                    0xffcca8e1,                    0xffdfb076,                    0xffb3b1e2,                    0xffe79db4,                    0xffe0c88b,                    0xffa6add2 },
@@ -3924,9 +3935,9 @@ public class Theme {
         themeInfo = new ThemeInfo();
         themeInfo.name = "Red";
         themeInfo.assetName = "darkblue.attheme";
-        themeInfo.previewBackgroundColor = 0xff5f6e82;
-        themeInfo.previewInColor = 0xff76869c;
-        themeInfo.previewOutColor = 0xff82a8e3;
+        themeInfo.previewBackgroundColor = 0xff0e0a0b;
+        themeInfo.previewInColor = 0xff2a1a1d;
+        themeInfo.previewOutColor = 0xffe63b52;
         themeInfo.sortIndex = 3;
         themeInfo.setAccentColorOptions(
                 new int[]    {                    0xFFFF5A70,                    0xFF698AFB,                    0xFF23A7F0,                    0xFF7B71D1,                    0xFF69B955,                    0xFF2990EA,                    0xFF7082E9,                    0xFF66BAED,                    0xffE63B52,                    0xff46c8ed,                    0xff64AC5F,                    0xffeb7cb1,                    0xffee902a,                    0xffa281f0,                    0xffd34324,                    0xffeebd34,                    0xff7f8fab,                    0xff3581e3 },
