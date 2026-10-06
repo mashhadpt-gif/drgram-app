@@ -5777,6 +5777,11 @@
     <string name="GoldRainOnReactions">Gold rain on reactions</string>
     <string name="GoldRainOnReactionsInfo">Golden rain for message reactions, sparks when you react to stories</string>
     <string name="SparksOnSendHint">DrGram premium effects: send sparks &amp; reaction gold rain</string>
+    <string name="Explore">Explore</string>
+    <string name="ExploreFilterAll">All</string>
+    <string name="ExploreLoading">Loading the latest media from your channels…</string>
+    <string name="ExploreEmpty">No photos or videos yet.\nJoin more channels to fill your Explore.</string>
+    <string name="AccDescrExplore">Explore channel media</string>
     <string name="AppIconChangedTo">App icon has been changed to %1$s</string>
     <string name="FileTooLarge">File Too Large</string>
     <string name="PremiumPreviewAppIcon">Premium App Icon</string>

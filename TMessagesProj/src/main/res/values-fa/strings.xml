@@ -20,6 +20,13 @@
     <string name="GoldRainOnReactionsInfo">بارش طلا برای واکنش پیام‌ها، جرقه هنگام واکنش به استوری‌ها</string>
     <string name="SparksOnSendHint">افکت‌های پریمیوم درگرم: جرقه ارسال و بارش طلایی واکنش‌ها</string>
 
+    <!-- DrGram Explore -->
+    <string name="Explore">اکسپلور</string>
+    <string name="ExploreFilterAll">همه</string>
+    <string name="ExploreLoading">در حال بارگذاری آخرین رسانه‌های کانال‌های شما…</string>
+    <string name="ExploreEmpty">هنوز عکس یا ویدیویی نیست.\nبا عضویت در کانال‌های بیشتر، اکسپلور را پر کنید.</string>
+    <string name="AccDescrExplore">مرور رسانه‌های کانال‌ها</string>
+
     <!-- Alternate app icons -->
     <string name="AppIcon">آیکون برنامه</string>
     <string name="AppIconDefault">طلایی مشکی</string>
