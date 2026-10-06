@@ -2389,14 +2389,41 @@ public class AndroidUtilities {
         return result;
     }
 
+    public static String drgramResolveFontPath(String assetPath) {
+        if (assetPath == null || !SharedConfig.drgramVazirFont) {
+            return assetPath;
+        }
+        String lang = java.util.Locale.getDefault().getLanguage();
+        if (lang == null || !(lang.equals("fa") || lang.equals("pes"))) {
+            return assetPath;
+        }
+        switch (assetPath) {
+            case "fonts/rmedium.ttf":
+                return "fonts/vazirmatn_medium.ttf";
+            case "fonts/rmediumitalic.ttf":
+                return "fonts/vazirmatn_regular.ttf";
+            case "fonts/mw_bold.ttf":
+                return "fonts/vazirmatn_bold.ttf";
+            default:
+                return assetPath;
+        }
+    }
+
     public static Typeface getTypeface(String assetPath) {
+        assetPath = drgramResolveFontPath(assetPath);
         synchronized (typefaceCache) {
             if (!typefaceCache.containsKey(assetPath)) {
                 try {
                     Typeface t;
                     if (Build.VERSION.SDK_INT >= 26) {
                         Typeface.Builder builder = new Typeface.Builder(ApplicationLoader.applicationContext.getAssets(), assetPath);
-                        if (assetPath.contains("rextrabold")) {
+                        if (assetPath.contains("vazirmatn_bold")) {
+                            builder.setWeight(700);
+                        } else if (assetPath.contains("vazirmatn_medium")) {
+                            builder.setWeight(500);
+                        } else if (assetPath.contains("vazirmatn")) {
+                            builder.setWeight(400);
+                        } else if (assetPath.contains("rextrabold")) {
                             builder.setWeight(800);
                         }
                         if (assetPath.contains("medium") || assetPath.contains("rbold")) {

@@ -5777,6 +5777,13 @@
     <string name="GoldRainOnReactions">Gold rain on reactions</string>
     <string name="GoldRainOnReactionsInfo">Golden rain for message reactions, sparks when you react to stories</string>
     <string name="SparksOnSendHint">DrGram premium effects: send sparks &amp; reaction gold rain</string>
+    <string name="DrGramGlassUI">Glass UI</string>
+    <string name="DrGramGlassUIInfo">Real blur glass on the action bar and chat panel with golden strokes</string>
+    <string name="DrGramGoldChat">Golden chat</string>
+    <string name="DrGramGoldChatInfo">Black-gold wallpaper and golden message bubbles</string>
+    <string name="DrGramVazirFont">Vazirmatn font</string>
+    <string name="DrGramVazirFontInfo">Vazirmatn font for Persian — full effect after app restart</string>
+    <string name="DrGramAppIcon">App icon</string>
     <string name="Explore">Explore</string>
     <string name="ExploreFilterAll">All</string>
     <string name="ExploreLoading">Loading the latest media from your channels…</string>

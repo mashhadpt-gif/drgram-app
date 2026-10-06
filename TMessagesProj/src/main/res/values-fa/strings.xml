@@ -248,4 +248,11 @@
     <string name="ResetNotificationsAlert">همه تنظیمات اعلان‌ها بازنشانی شود؟</string>
     <string name="ChangePassword">تغییر رمز عبور</string>
     <string name="PasswordHint">سرنخ رمز عبور</string>
+    <string name="DrGramGlassUI">حالت گلس</string>
+    <string name="DrGramGlassUIInfo">شیشه‌ای واقعی با بلور روی نوار بالا و پنل پیام، با خطوط طلایی</string>
+    <string name="DrGramGoldChat">چت طلایی</string>
+    <string name="DrGramGoldChatInfo">والپیپر مشکی-طلایی و حباب‌های پیام طلایی</string>
+    <string name="DrGramVazirFont">فونت وزیرمتن</string>
+    <string name="DrGramVazirFontInfo">فونت وزیرمتن برای فارسی — اعمال کامل بعد از شروع دوباره اپ</string>
+    <string name="DrGramAppIcon">آیکون اپ</string>
 </resources>

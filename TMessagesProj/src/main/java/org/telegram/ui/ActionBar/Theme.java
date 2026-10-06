@@ -1782,7 +1782,7 @@ public class Theme {
                     themeAccent.backgroundGradientOverrideColor1 = 0xff170b0c;
                     themeAccent.backgroundGradientOverrideColor2 = 0xff2e1012;
                     themeAccent.backgroundGradientOverrideColor3 = 0xff0f0809;
-                } else if (isHome(themeAccent) && name.equals("Gold")) {
+                } else if (isHome(themeAccent) && name.equals("Gold") && SharedConfig.drgramGoldChat) {
                     // DrGram: black-gold metallic default chat wallpaper for the default theme
                     themeAccent.myMessagesAccentColor = 0xffF5B90D;
                     themeAccent.myMessagesGradientAccentColor1 = 0xff9c6800;

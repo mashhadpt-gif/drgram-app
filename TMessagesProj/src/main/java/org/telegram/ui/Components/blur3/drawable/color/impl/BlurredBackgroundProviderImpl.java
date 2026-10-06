@@ -158,8 +158,8 @@ public class BlurredBackgroundProviderImpl {
                     final int colorBg = Theme.getColor(Theme.key_chat_messagePanelBackground, r);
                     return Theme.multAlpha(colorBg, alpha);
                 })
-                .setStrokeColorTop(0xFFFFFFFF, 0x28FFFFFF)
-                .setStrokeColorBottom(0xFFFFFFFF, 0x14FFFFFF)
+                .setStrokeColorTop(0xFFFFFFFF, SharedConfig.drgramGlassUI ? 0x54F5B90D : 0x28FFFFFF)
+                .setStrokeColorBottom(0xFFFFFFFF, SharedConfig.drgramGlassUI ? 0x36F5B90D : 0x14FFFFFF)
                 .setShadowColor(0x20000000, 0)
                 //.setShadowLayer(dpf2(10 / 3f), 0, dpf2(2 / 3f))
                 .setStrokeWidth(dpf2(0.5f), dpf2(0.5f))
@@ -178,8 +178,8 @@ public class BlurredBackgroundProviderImpl {
                     final int colorBg = Theme.getColor(Theme.key_chat_topPanelBackground, r);
                     return Theme.multAlpha(colorBg, alpha);
                 })
-                .setStrokeColorTop(0xFFFFFFFF, 0x20FFFFFF)
-                .setStrokeColorBottom(0xFFFFFFFF, 0x14FFFFFF)
+                .setStrokeColorTop(0xFFFFFFFF, SharedConfig.drgramGlassUI ? 0x50F5B90D : 0x20FFFFFF)
+                .setStrokeColorBottom(0xFFFFFFFF, SharedConfig.drgramGlassUI ? 0x34F5B90D : 0x14FFFFFF)
                 .setShadowColor(0x20000000, 0)
                 //.setShadowLayer(dpf2(10 / 3f), 0, dpf2(2 / 3f))
                 .setStrokeWidth(dpf2(0.55f), dpf2(0.55f))

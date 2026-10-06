@@ -356,6 +356,9 @@ public class SharedConfig {
     // DrGram premium effects
     public static boolean drgramSendSparks = true;
     public static boolean drgramReactionRain = true;
+    public static boolean drgramGlassUI = true;
+    public static boolean drgramGoldChat = true;
+    public static boolean drgramVazirFont = true;
 
     public static boolean isFloatingDebugActive;
     public static LiteMode liteMode;
@@ -671,6 +674,9 @@ public class SharedConfig {
             dontAskManageStorage = preferences.getBoolean("dontAskManageStorage", false);
             drgramSendSparks = preferences.getBoolean("drgramSendSparks", true);
             drgramReactionRain = preferences.getBoolean("drgramReactionRain", true);
+            drgramGlassUI = preferences.getBoolean("drgramGlassUI", true);
+            drgramGoldChat = preferences.getBoolean("drgramGoldChat", true);
+            drgramVazirFont = preferences.getBoolean("drgramVazirFont", true);
             hasEmailLogin = preferences.getBoolean("hasEmailLogin", false);
             isFloatingDebugActive = preferences.getBoolean("floatingDebugActive", false);
             updateStickersOrderOnSend = preferences.getBoolean("updateStickersOrderOnSend", true);
@@ -1270,6 +1276,24 @@ public class SharedConfig {
                 .edit().putBoolean("drgramSendSparks", drgramSendSparks).apply();
     }
 
+    public static void toggleDrgramGlassUI() {
+        drgramGlassUI = !drgramGlassUI;
+        ApplicationLoader.applicationContext.getSharedPreferences("mainconfig", Activity.MODE_PRIVATE)
+                .edit().putBoolean("drgramGlassUI", drgramGlassUI).apply();
+    }
+
+    public static void toggleDrgramGoldChat() {
+        drgramGoldChat = !drgramGoldChat;
+        ApplicationLoader.applicationContext.getSharedPreferences("mainconfig", Activity.MODE_PRIVATE)
+                .edit().putBoolean("drgramGoldChat", drgramGoldChat).apply();
+    }
+
+    public static void toggleDrgramVazirFont() {
+        drgramVazirFont = !drgramVazirFont;
+        ApplicationLoader.applicationContext.getSharedPreferences("mainconfig", Activity.MODE_PRIVATE)
+                .edit().putBoolean("drgramVazirFont", drgramVazirFont).apply();
+    }
+
     public static void toggleDrgramReactionRain() {
         drgramReactionRain = !drgramReactionRain;
         ApplicationLoader.applicationContext.getSharedPreferences("mainconfig", Activity.MODE_PRIVATE)
@@ -1746,6 +1770,9 @@ public class SharedConfig {
     }
 
     public static boolean canBlurChat() {
+        if (drgramGlassUI && Build.VERSION.SDK_INT >= 31) {
+            return true;
+        }
         return getDevicePerformanceClass() >= (Build.VERSION.SDK_INT >= 31 ? PERFORMANCE_CLASS_AVERAGE : PERFORMANCE_CLASS_HIGH) || BuildVars.DEBUG_PRIVATE_VERSION;
     }
 

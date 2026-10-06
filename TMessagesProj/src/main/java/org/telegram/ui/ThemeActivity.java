@@ -240,6 +240,10 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
     private int drgramHeaderRow;
     private int drgramSparksRow;
     private int drgramRainRow;
+    private int drgramGlassRow;
+    private int drgramGoldChatRow;
+    private int drgramFontRow;
+    private int drgramIconsRow;
     private int drgramInfoRow;
 
     private int rowCount;
@@ -618,6 +622,10 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
         drgramHeaderRow = -1;
         drgramSparksRow = -1;
         drgramRainRow = -1;
+        drgramGlassRow = -1;
+        drgramGoldChatRow = -1;
+        drgramFontRow = -1;
+        drgramIconsRow = -1;
         drgramInfoRow = -1;
         lastShadowRow = -1;
 
@@ -688,6 +696,10 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
             drgramHeaderRow = rowCount++;
             drgramSparksRow = rowCount++;
             drgramRainRow = rowCount++;
+            drgramGlassRow = rowCount++;
+            drgramGoldChatRow = rowCount++;
+            drgramFontRow = rowCount++;
+            drgramIconsRow = rowCount++;
             drgramInfoRow = rowCount++;
 
             swipeGestureHeaderRow = rowCount++;
@@ -1160,6 +1172,35 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
                 SharedConfig.toggleDrgramReactionRain();
                 if (view instanceof TextCheckCell) {
                     ((TextCheckCell) view).setChecked(SharedConfig.drgramReactionRain);
+                }
+            } else if (position == drgramGlassRow) {
+                SharedConfig.toggleDrgramGlassUI();
+                if (view instanceof TextCheckCell) {
+                    ((TextCheckCell) view).setChecked(SharedConfig.drgramGlassUI);
+                }
+            } else if (position == drgramGoldChatRow) {
+                SharedConfig.toggleDrgramGoldChat();
+                if (view instanceof TextCheckCell) {
+                    ((TextCheckCell) view).setChecked(SharedConfig.drgramGoldChat);
+                }
+            } else if (position == drgramFontRow) {
+                SharedConfig.toggleDrgramVazirFont();
+                if (view instanceof TextCheckCell) {
+                    ((TextCheckCell) view).setChecked(SharedConfig.drgramVazirFont);
+                }
+            } else if (position == drgramIconsRow) {
+                LauncherIconController.LauncherIcon[] icons = LauncherIconController.LauncherIcon.values();
+                LauncherIconController.LauncherIcon current = icons[0];
+                for (LauncherIconController.LauncherIcon icon : icons) {
+                    if (LauncherIconController.isEnabled(icon)) {
+                        current = icon;
+                        break;
+                    }
+                }
+                LauncherIconController.LauncherIcon next = icons[(current.ordinal() + 1) % icons.length];
+                LauncherIconController.setIcon(next);
+                if (adapter != null) {
+                    adapter.notifyItemChanged(position);
                 }
             } else if (position == raiseToListenRow) {
                 SharedConfig.toggleRaiseToListen();
@@ -2653,6 +2694,12 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
                         textCheckCell.setTextAndValueAndCheck(getString(R.string.SparksOnSend), getString(R.string.SparksOnSendInfo), SharedConfig.drgramSendSparks, true, true);
                     } else if (position == drgramRainRow) {
                         textCheckCell.setTextAndValueAndCheck(getString(R.string.GoldRainOnReactions), getString(R.string.GoldRainOnReactionsInfo), SharedConfig.drgramReactionRain, true, true);
+                    } else if (position == drgramGlassRow) {
+                        textCheckCell.setTextAndValueAndCheck(getString(R.string.DrGramGlassUI), getString(R.string.DrGramGlassUIInfo), SharedConfig.drgramGlassUI, true, true);
+                    } else if (position == drgramGoldChatRow) {
+                        textCheckCell.setTextAndValueAndCheck(getString(R.string.DrGramGoldChat), getString(R.string.DrGramGoldChatInfo), SharedConfig.drgramGoldChat, true, true);
+                    } else if (position == drgramFontRow) {
+                        textCheckCell.setTextAndValueAndCheck(getString(R.string.DrGramVazirFont), getString(R.string.DrGramVazirFontInfo), SharedConfig.drgramVazirFont, true, true);
                     }
                     break;
                 }
@@ -2713,6 +2760,15 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
                         cell.setSubtitle(null);
                         cell.setColors(Theme.key_windowBackgroundWhiteBlueText4, Theme.key_windowBackgroundWhiteBlueText4);
                         cell.setTextAndIcon(getString(R.string.CreateNewTheme), R.drawable.msg_colors, false);
+                    } else if (position == drgramIconsRow) {
+                        String iconValue = "";
+                        for (LauncherIconController.LauncherIcon icon : LauncherIconController.LauncherIcon.values()) {
+                            if (LauncherIconController.isEnabled(icon)) {
+                                iconValue = getString(icon.titleRes);
+                                break;
+                            }
+                        }
+                        ((TextCell) itemView).setTextAndValue(getString(R.string.DrGramAppIcon), iconValue, false);
                     } else if (position == liteModeRow) {
                         cell.setColors(Theme.key_dialogIcon, Theme.key_windowBackgroundWhiteBlackText);
                         cell.setTextAndIcon(getString(R.string.LiteMode), R.drawable.msg2_animations, true);
@@ -2787,7 +2843,8 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
             } else if (position == scheduleLocationRow || position == sendByEnterRow ||
                     position == raiseToSpeakRow || position == raiseToListenRow || position == pauseOnRecordRow ||
                     position == directShareRow || position == chatBlurRow || position == pauseOnMediaRow || position == nextMediaTapRow || position == sensitiveContentRow ||
-                    position == drgramSparksRow || position == drgramRainRow) {
+                    position == drgramSparksRow || position == drgramRainRow ||
+                    position == drgramGlassRow || position == drgramGoldChatRow || position == drgramFontRow) {
                 return TYPE_TEXT_CHECK;
             } else if (position == textSizeRow) {
                 return TYPE_TEXT_SIZE;
