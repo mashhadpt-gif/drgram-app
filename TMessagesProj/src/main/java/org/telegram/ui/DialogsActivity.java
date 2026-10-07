@@ -654,6 +654,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     private boolean canSelectTopics;
     private String searchString;
     private String initialSearchString;
+    private boolean drgramStartDownloads;
     private MessagesStorage.TopicKey openedDialogId = new MessagesStorage.TopicKey();
     private boolean cantSendToChannels;
     private boolean allowSwitchAccount;
@@ -2869,6 +2870,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             closeFragment = arguments.getBoolean("closeFragment", true);
             allowGlobalSearch = arguments.getBoolean("allowGlobalSearch", true);
             hasMainTabs = arguments.getBoolean("hasMainTabs", false);
+            drgramStartDownloads = arguments.getBoolean("drgramStartDownloads", false);
 
             byte[] requestPeerTypeBytes = arguments.getByteArray("requestPeerType");
             if (requestPeerTypeBytes != null) {
@@ -5426,6 +5428,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             if (fragmentSearchField != null) {
                 fragmentSearchField.setTranslationY(-dp(FILTER_TABS_HEIGHT) + getSearchFieldAdditionOffset());
             }
+        } else if (drgramStartDownloads) {
+            drgramStartDownloads = false;
+            showSearch(true, true, false);
         } else {
             showSearch(false, false, false);
         }

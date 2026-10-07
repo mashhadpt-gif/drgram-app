@@ -1457,10 +1457,29 @@ public class VideoPlayer implements Player.Listener, VideoListener, AnalyticsLis
         }
     }
 
+    private float drgramPitch = 1.0f;
+
+    /** DrGram Voice FX: re-applies the current playback pitch. */
+    public void setDrgramPitch(float pitch) {
+        drgramPitch = pitch;
+        try {
+            if (player != null) {
+                PlaybackParameters params = player.getPlaybackParameters();
+                float speed = params != null ? params.speed : 1.0f;
+                float target = drgramPitch != 1.0f ? drgramPitch : (speed > 1.0f ? 0.98f : 1.0f);
+                player.setPlaybackParameters(new PlaybackParameters(speed, target));
+            }
+        } catch (Exception ignore) {}
+    }
+
     public void setPlaybackSpeed(float speed) {
         try {
             if (player != null) {
-                player.setPlaybackParameters(new PlaybackParameters(speed, speed > 1.0f ? 0.98f : 1.0f));
+                if (drgramPitch != 1.0f) {
+                    player.setPlaybackParameters(new PlaybackParameters(speed, drgramPitch));
+                } else {
+                    player.setPlaybackParameters(new PlaybackParameters(speed, speed > 1.0f ? 0.98f : 1.0f));
+                }
             }
         } catch (Exception ignore) {}
     }

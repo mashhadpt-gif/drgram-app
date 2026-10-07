@@ -579,7 +579,14 @@ public class StoryViewer implements NotificationCenter.NotificationCenterDelegat
                 @Override
                 protected void dispatchDraw(Canvas canvas) {
                     float blackoutAlpha = getBlackoutAlpha();
-                    canvas.drawColor(ColorUtils.setAlphaComponent(Color.BLACK, (int) (255 * blackoutAlpha)));
+                    android.graphics.drawable.Drawable drgramStoryBg = org.telegram.messenger.DrGramMedia.getStoryBackground();
+                    if (drgramStoryBg != null) {
+                        drgramStoryBg.setBounds(0, 0, getWidth(), getHeight());
+                        drgramStoryBg.setAlpha((int) (255 * blackoutAlpha));
+                        drgramStoryBg.draw(canvas);
+                    } else {
+                        canvas.drawColor(ColorUtils.setAlphaComponent(Color.BLACK, (int) (255 * blackoutAlpha)));
+                    }
 
                     if (ATTACH_TO_FRAGMENT) {
                         boolean localFullyVisible = progressToOpen * (1f - progressToDismiss) == 1f;

@@ -1673,6 +1673,7 @@ public class ChatActivity extends BaseFragment implements
     private final static int drgramSelectMany = 45;
     private final static int drgramHideChat = 46;
     private final static int drgramQuickChats = 47;
+    private final static int drgramDrawSend = 48;
 
     private final static int topic_close = 60;
     private final static int open_forum = 61;
@@ -2009,6 +2010,7 @@ public class ChatActivity extends BaseFragment implements
             if (mentionContainer != null && mentionContainer.getAdapter() != null) {
                 mentionContainer.getAdapter().addHashtagsFromMessage(message);
             }
+            org.telegram.messenger.DrGramHashtags.onOutgoingText(currentAccount, message);
             if (scheduleDate != 0) {
                 if (scheduledMessagesCount == -1) {
                     scheduledMessagesCount = 0;
@@ -3851,6 +3853,10 @@ public class ChatActivity extends BaseFragment implements
                     drgramVaultBuilder.show();
                 } else if (id == drgramQuickChats) {
                     drgramShowQuickChats();
+                } else if (id == drgramDrawSend) {
+                    if (getParentActivity() != null && getDialogId() != 0) {
+                        presentFragment(new org.telegram.ui.DrGramDrawActivity(getDialogId()));
+                    }
                 } else if (id == clear_history || id == delete_chat || id == auto_delete_timer) {
                     if (getParentActivity() == null) {
                         return;
@@ -4478,6 +4484,10 @@ public class ChatActivity extends BaseFragment implements
             if (getDialogId() != 0 && org.telegram.messenger.DrGramChatTools.getInstance(currentAccount).isQuickChatsEnabled()) {
                 headerItem.lazilyAddSubItem(drgramQuickChats, R.drawable.msg_discuss,
                     LocaleController.getString(R.string.DrGramQuickChats));
+            }
+            if (getDialogId() != 0 && org.telegram.messenger.DrGramMedia.isDrawSendEnabled()) {
+                headerItem.lazilyAddSubItem(drgramDrawSend, R.drawable.photo_paint_brush,
+                    LocaleController.getString(R.string.DrGramDrawSend));
             }
             boolean addedSettings = false;
             if (!isTopic) {

@@ -29,6 +29,7 @@ import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.UserObject;
 import org.telegram.messenger.DrGramChatTools;
 import org.telegram.messenger.DrGramFavorites;
+import org.telegram.messenger.DrGramMedia;
 import org.telegram.messenger.DrGramOnlineGuard;
 import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.DrGramSecretary;
@@ -53,6 +54,8 @@ public class DrGramToolsActivity extends BaseFragment {
     private TextView favCountText;
     private Switch collapseSwitch;
     private Switch quickSwitch;
+    private Switch storyGradientSwitch;
+    private Switch drawSendSwitch;
 
     @Override
     public View createView(Context context) {
@@ -79,6 +82,9 @@ public class DrGramToolsActivity extends BaseFragment {
         buildFavoritesSection(context);
         buildChatTweaksSection(context);
         buildIdFinderSection(context);
+        buildMediaSection(context);
+        buildTagsSection(context);
+        buildClogSection(context);
 
         return fragmentView;
     }
@@ -476,6 +482,100 @@ public class DrGramToolsActivity extends BaseFragment {
 
     //endregion
 
+    //region Media & effects
+
+    private void buildMediaSection(Context context) {
+        addHeader(context, LocaleController.getString(R.string.DrGramMediaSection),
+                LocaleController.getString(R.string.DrGramMediaHint));
+
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramVoiceEffect), v -> showVoiceFxDialog(), "media_voice_fx"));
+
+        storyGradientSwitch = new Switch(context);
+        storyGradientSwitch.setChecked(DrGramMedia.isStoryGradientEnabled());
+        LinearLayout storyRow = makeRow(context, LocaleController.getString(R.string.DrGramStoryGradient), storyGradientSwitch);
+        storyRow.setOnClickListener(v -> {
+            boolean newState = !DrGramMedia.isStoryGradientEnabled();
+            DrGramMedia.setStoryGradientEnabled(newState);
+            storyGradientSwitch.setChecked(newState);
+        });
+        contentView.addView(storyRow);
+
+        drawSendSwitch = new Switch(context);
+        drawSendSwitch.setChecked(DrGramMedia.isDrawSendEnabled());
+        LinearLayout drawRow = makeRow(context, LocaleController.getString(R.string.DrGramDrawToggle), drawSendSwitch);
+        drawRow.setOnClickListener(v -> {
+            boolean newState = !DrGramMedia.isDrawSendEnabled();
+            DrGramMedia.setDrawSendEnabled(newState);
+            drawSendSwitch.setChecked(newState);
+        });
+        contentView.addView(drawRow);
+
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramDownloadsEntry), v -> openDownloads()));
+    }
+
+    private void showVoiceFxDialog() {
+        if (getParentActivity() == null) {
+            return;
+        }
+        String[] items = {
+                LocaleController.getString(R.string.DrGramVoiceOff),
+                LocaleController.getString(R.string.DrGramVoiceChipmunk),
+                LocaleController.getString(R.string.DrGramVoiceDeep),
+                LocaleController.getString(R.string.DrGramVoiceBee),
+                LocaleController.getString(R.string.DrGramVoiceGiant)
+        };
+        new AlertDialog.Builder(getParentActivity(), getResourceProvider())
+                .setTitle(LocaleController.getString(R.string.DrGramVoicePick))
+                .setItems(items, (dialog, which) -> {
+                    DrGramMedia.setVoiceFx(which);
+                    drgramApplyVoiceFxNow();
+                    refreshDynamicRows();
+                })
+                .setNegativeButton(LocaleController.getString(R.string.Cancel), null)
+                .show();
+    }
+
+    private void openDownloads() {
+        Bundle args = new Bundle();
+        args.putBoolean("drgramStartDownloads", true);
+        presentFragment(new DialogsActivity(args));
+    }
+
+    private void drgramApplyVoiceFxNow() {
+        try {
+            org.telegram.messenger.MediaController mediaController = org.telegram.messenger.MediaController.getInstance();
+            org.telegram.messenger.MessageObject playing = mediaController.getPlayingMessageObject();
+            if (playing != null && playing.isVoice()) {
+                mediaController.setPlaybackSpeed(false, mediaController.getPlaybackSpeed(false));
+            }
+        } catch (Exception ignore) {
+        }
+    }
+
+    //endregion
+
+    //region Hashtags+
+
+    private void buildTagsSection(Context context) {
+        addHeader(context, LocaleController.getString(R.string.DrGramTagsSection),
+                LocaleController.getString(R.string.DrGramTagsHint));
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramTagsOpen), v ->
+                presentFragment(new DrGramHashtagsActivity())));
+    }
+
+    //endregion
+
+    //region Contact changes
+
+    private void buildClogSection(Context context) {
+        addHeader(context, LocaleController.getString(R.string.DrGramClogSection),
+                LocaleController.getString(R.string.DrGramClogHint));
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramClogOpen), v ->
+                presentFragment(new DrGramContactLogActivity())));
+    }
+
+    //endregion
+
     //region shared row builders
 
     private void addHeader(Context context, String title, String hint) {
@@ -540,6 +640,20 @@ public class DrGramToolsActivity extends BaseFragment {
         }
         if (favCountText != null) {
             favCountText.setText(String.valueOf(DrGramFavorites.getInstance(currentAccount).getCount()));
+        }
+        View voiceFxRow = contentView.findViewWithTag("media_voice_fx");
+        if (voiceFxRow instanceof ViewGroup) {
+            TextView titleView = (TextView) ((ViewGroup) voiceFxRow).getChildAt(0);
+            String[] names = {
+                    LocaleController.getString(R.string.DrGramVoiceOff),
+                    LocaleController.getString(R.string.DrGramVoiceChipmunk),
+                    LocaleController.getString(R.string.DrGramVoiceDeep),
+                    LocaleController.getString(R.string.DrGramVoiceBee),
+                    LocaleController.getString(R.string.DrGramVoiceGiant)
+            };
+            int fx = DrGramMedia.getVoiceFx();
+            titleView.setText(LocaleController.getString(R.string.DrGramVoiceEffect) + ": "
+                    + names[Math.max(0, Math.min(names.length - 1, fx))]);
         }
         if (guardListContainer != null) {
             View groupsRow = contentView.findViewWithTag("secretary_groups");

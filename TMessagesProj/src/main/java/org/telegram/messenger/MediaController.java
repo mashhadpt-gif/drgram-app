@@ -3293,6 +3293,7 @@ public class MediaController implements AudioManager.OnAudioFocusChangeListener,
         }
         if (audioPlayer != null) {
             audioPlayer.setPlaybackSpeed(Math.round(speed * 10f) / 10f);
+            drgramApplyVoiceFx();
         } else if (videoPlayer != null) {
             videoPlayer.setPlaybackSpeed(Math.round(speed * 10f) / 10f);
         }
@@ -3303,6 +3304,18 @@ public class MediaController implements AudioManager.OnAudioFocusChangeListener,
         NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.messagePlayingSpeedChanged);
         if (!ignorePlayerUpdate) {
             CastSync.setSpeed(speed);
+        }
+    }
+
+    private void drgramApplyVoiceFx() {
+        try {
+            if (audioPlayer == null) {
+                return;
+            }
+            float pitch = playingMessageObject != null && playingMessageObject.isVoice()
+                    ? org.telegram.messenger.DrGramMedia.voicePitch() : 1.0f;
+            audioPlayer.setDrgramPitch(pitch);
+        } catch (Exception ignore) {
         }
     }
 
@@ -3953,6 +3966,7 @@ public class MediaController implements AudioManager.OnAudioFocusChangeListener,
                     if (Math.abs(currentPlaybackSpeed - 1.0f) > 0.001f) {
                         audioPlayer.setPlaybackSpeed(Math.round(currentPlaybackSpeed * 10f) / 10f);
                     }
+                    drgramApplyVoiceFx();
                     audioInfo = null;
                     if (!saved) {
                         clearPlaylist();
@@ -3974,6 +3988,7 @@ public class MediaController implements AudioManager.OnAudioFocusChangeListener,
                         if (Math.abs(currentMusicPlaybackSpeed - 1.0f) > 0.001f) {
                             audioPlayer.setPlaybackSpeed(Math.round(currentMusicPlaybackSpeed * 10f) / 10f);
                         }
+                        drgramApplyVoiceFx();
                     }
                 }
                 if (messageObject.forceSeekTo >= 0) {
