@@ -48,6 +48,18 @@ jobs:
           distribution: temurin
           java-version: '17'
 
+      - name: Free disk space (runner tune-up)
+        run: |
+          df -h / | tail -1
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL /usr/local/share/boost || true
+          sudo docker image prune -af >/dev/null 2>&1 || true
+          if [ -d /usr/local/lib/android/sdk/ndk ]; then
+            for d in /usr/local/lib/android/sdk/ndk/*; do
+              case "$d" in *27.2.12479018*) ;; *) sudo rm -rf "$d" ;; esac
+            done
+          fi
+          df -h / | tail -1
+
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
 
