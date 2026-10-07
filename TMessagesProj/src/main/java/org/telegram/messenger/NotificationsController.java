@@ -1024,6 +1024,11 @@ public class NotificationsController extends BaseController implements Notificat
             FileLog.d("NotificationsController: processNewMessages msgs.size()=" + (messageObjects == null ? "null" : messageObjects.size()) + " isLast=" + isLast + " isFcm=" + isFcm + ")");
         }
 
+        try {
+            DrGramSecretary.getInstance(currentAccount).onNewMessages(messageObjects);
+        } catch (Throwable ignore) {
+        }
+
         if (messageObjects != null) {
             for (int i = 0; i < messageObjects.size(); ++i) {
                 final MessageObject messageObject = messageObjects.get(i);

@@ -272,6 +272,7 @@ public class ApplicationLoader extends Application {
             ContactsController.getInstance(a).checkAppAccount();
             DownloadController.getInstance(a);
         }
+        DrGramOnlineGuard.onAppReady();
         BillingController.getInstance().startConnection();
     }
 

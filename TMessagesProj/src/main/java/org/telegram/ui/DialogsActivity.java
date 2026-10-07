@@ -3397,6 +3397,12 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             @Override
             public void onTextChanged(EditText editText) {
                 String text = editText.getText().toString();
+                if (org.telegram.messenger.DrGramVault.getInstance(currentAccount).matchesRevealCode(text)) {
+                    editText.setText("");
+                    closeSearch();
+                    presentFragment(new DrGramVaultActivity());
+                    return;
+                }
                 if (!text.isEmpty() || (searchViewPager != null && searchViewPager.dialogsSearchAdapter != null && searchViewPager.dialogsSearchAdapter.hasRecentSearch()) || searchFiltersWasShowed || hasStories) {
                     searchWas = true;
                     if (!searchIsShowed) {
@@ -10997,9 +11003,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         }
         MessagesController messagesController = AccountInstance.getInstance(currentAccount).getMessagesController();
         if (dialogsType == DIALOGS_TYPE_DEFAULT) {
-            return messagesController.getDialogs(folderId);
+            return org.telegram.messenger.DrGramVault.getInstance(currentAccount).filterDialogs(messagesController.getDialogs(folderId));
         } else if (dialogsType == DIALOGS_TYPE_WIDGET || dialogsType == DIALOGS_TYPE_IMPORT_HISTORY) {
-            return messagesController.dialogsServerOnly;
+            return org.telegram.messenger.DrGramVault.getInstance(currentAccount).filterDialogs(messagesController.dialogsServerOnly);
         } else if (dialogsType == DIALOGS_TYPE_ADD_USERS_TO) {
             ArrayList<TLRPC.Dialog> dialogs = new ArrayList<>(messagesController.dialogsCanAddUsers.size() + messagesController.dialogsMyChannels.size() + messagesController.dialogsMyGroups.size() + 2);
             if (messagesController.dialogsMyChannels.size() > 0 && allowChannels) {
@@ -13724,6 +13730,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         });
         io.addGap();
         io.add(R.drawable.drgram_explore, getString(R.string.Explore), () -> presentFragment(new DrGramExploreActivity()));
+        io.add(R.drawable.msg_secret, getString(R.string.DrGramToolsDrawer), () -> presentFragment(new DrGramToolsActivity()));
         io.add(R.drawable.outline_groups_24, getString(R.string.NewGroup), () -> {
             Bundle args = new Bundle();
             presentFragment(new GroupCreateActivity(args));

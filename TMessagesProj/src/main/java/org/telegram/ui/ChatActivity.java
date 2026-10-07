@@ -1667,6 +1667,8 @@ public class ChatActivity extends BaseFragment implements
     private final static int view_as_topics = 59;
 
     private final static int search = 40;
+    private final static int drgramSelectMany = 45;
+    private final static int drgramHideChat = 46;
 
     private final static int topic_close = 60;
     private final static int open_forum = 61;
@@ -3761,6 +3763,8 @@ public class ChatActivity extends BaseFragment implements
                     createDeleteMessagesAlert(null, null);
                 } else if (id == forward) {
                     openForward(true);
+                } else if (id == drgramSelectMany) {
+                    drgramSelectRecentMessages();
                 } else if (id == share) {
                     share();
                 } else if (id == open_direct) {
@@ -3828,6 +3832,19 @@ public class ChatActivity extends BaseFragment implements
                         return;
                     }
                     showDialog(AlertsCreator.createTTLAlert(getParentActivity(), currentEncryptedChat, themeDelegate).create());
+                } else if (id == drgramHideChat) {
+                    if (getParentActivity() == null) {
+                        return;
+                    }
+                    AlertDialog.Builder drgramVaultBuilder = new AlertDialog.Builder(getParentActivity(), themeDelegate);
+                    drgramVaultBuilder.setTitle(LocaleController.getString(R.string.DrGramVaultHide));
+                    drgramVaultBuilder.setMessage(LocaleController.getString(R.string.DrGramVaultHideConfirm));
+                    drgramVaultBuilder.setPositiveButton(LocaleController.getString(R.string.DrGramVaultHide), (dialog2, which2) -> {
+                        org.telegram.messenger.DrGramVault.getInstance(currentAccount).hide(getDialogId());
+                        finishFragment();
+                    });
+                    drgramVaultBuilder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
+                    drgramVaultBuilder.show();
                 } else if (id == clear_history || id == delete_chat || id == auto_delete_timer) {
                     if (getParentActivity() == null) {
                         return;
@@ -4447,6 +4464,10 @@ public class ChatActivity extends BaseFragment implements
             if (!isTopic && !ChatObject.isMonoForum(currentChat)) {
                 clearHistoryItem = headerItem.lazilyAddSubItem(clear_history, R.drawable.msg_clear,
                     LocaleController.getString(UserObject.isBotForum(currentUser) ? R.string.ClearAllHistory : R.string.ClearHistory));
+            }
+            if (getDialogId() != 0 && (currentUser == null || !UserObject.isUserSelf(currentUser))) {
+                headerItem.lazilyAddSubItem(drgramHideChat, R.drawable.msg_secret,
+                    LocaleController.getString(R.string.DrGramVaultHide));
             }
             boolean addedSettings = false;
             if (!isTopic) {
@@ -10333,6 +10354,7 @@ public class ChatActivity extends BaseFragment implements
             actionModeViews.add(actionMode.addItemWithWidth(copy, R.drawable.msg_copy, dp(48), LocaleController.getString(R.string.Copy)));
             actionModeViews.add(actionMode.addItemWithWidth(delete, R.drawable.msg_delete, dp(48), LocaleController.getString(R.string.Delete)));
         }
+        actionModeViews.add(actionMode.addItemWithWidth(drgramSelectMany, R.drawable.ic_ab_done, dp(48), LocaleController.getString(R.string.DrGramSelectMany)));
         actionMode.setItemVisibility(edit, canEditMessagesCount == 1 && selectedMessagesIds[0].size() + selectedMessagesIds[1].size() == 1 ? View.VISIBLE : View.GONE);
         actionMode.setItemVisibility(copy, !isPeerNoForwards() && selectedMessagesCanCopyIds[0].size() + selectedMessagesCanCopyIds[1].size() != 0 ? View.VISIBLE : View.GONE);
         actionMode.setItemVisibility(star, selectedMessagesCanStarIds[0].size() + selectedMessagesCanStarIds[1].size() != 0 ? View.VISIBLE : View.GONE);
@@ -19062,6 +19084,29 @@ public class ChatActivity extends BaseFragment implements
                 }
                 return 2;
             }
+        }
+    }
+
+    private void drgramSelectRecentMessages() {
+        boolean hitLimit = false;
+        for (int i = messages.size() - 1; i >= 0; i--) {
+            if (selectedMessagesIds[0].size() + selectedMessagesIds[1].size() >= 100) {
+                hitLimit = true;
+                break;
+            }
+            MessageObject messageObject = messages.get(i);
+            if (messageObject == null || messageObject.contentType != 0) {
+                continue;
+            }
+            if (selectedMessagesIds[0].indexOfKey(messageObject.getId()) >= 0 || selectedMessagesIds[1].indexOfKey(messageObject.getId()) >= 0) {
+                continue;
+            }
+            addToSelectedMessages(messageObject, false);
+        }
+        updateActionModeTitle();
+        updateVisibleRows();
+        if (hitLimit && getParentActivity() != null) {
+            android.widget.Toast.makeText(getParentActivity(), LocaleController.getString(R.string.DrGramSelectManyLimit), android.widget.Toast.LENGTH_SHORT).show();
         }
     }
 
