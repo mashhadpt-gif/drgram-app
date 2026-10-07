@@ -60,6 +60,17 @@ jobs:
           fi
           df -h / | tail -1
 
+      - name: Setup ccache for native builds (big speedup on repeat runs)
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: drgram-ccache-${{ runner.os }}
+          max-size: 2G
+
+      - name: Route NDK compiles through ccache
+        run: |
+          which ccache || sudo apt-get install -y ccache
+          echo "NDK_CCACHE=ccache" >> "$GITHUB_ENV"
+
       - name: Install SDK components (platform, build-tools, NDK, CMake)
         run: |
           SDKM="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
