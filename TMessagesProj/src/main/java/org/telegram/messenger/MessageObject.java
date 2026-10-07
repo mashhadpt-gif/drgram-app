@@ -6786,6 +6786,8 @@ public class MessageObject {
         }
     }
 
+    public boolean drgramExpanded;
+
     public boolean checkLayout() {
         if (type != TYPE_TEXT && type != TYPE_EMOJIS && type != TYPE_ARTICLE || messageOwner.peer_id == null || messageText == null || messageText.length() == 0 && !isBotPendingDraft) {
             return false;
@@ -9085,6 +9087,8 @@ public class MessageObject {
 
         hasWideCode = hasCode && textWidth > generatedWithMinSize - dp(80 + (needDrawAvatarInternal() && !isOutOwner() && !messageOwner.isThreadMessage ? 52 : 0));
         factCheckText = null;
+        textLayoutBlocks = org.telegram.messenger.DrGramChatTools.trimBlocks(currentAccount, this, textLayoutBlocks);
+        cachedTextHeight = null;
     }
 
     private Integer cachedTextHeight;

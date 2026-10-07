@@ -1247,6 +1247,9 @@ public class ChatActivity extends BaseFragment implements
 
     public final static int OPTION_VIEW_STATISTICS = 115;
     public final static int OPTION_WELCOME_REVERT = 116;
+    public final static int OPTION_DRGRAM_FAVORITE = 117;
+    public final static int OPTION_DRGRAM_DETAILS = 118;
+    public final static int OPTION_DRGRAM_EXPAND = 119;
 
     private final static int[] allowedNotificationsDuringChatListAnimations = new int[]{
             NotificationCenter.messagesRead,
@@ -1669,6 +1672,7 @@ public class ChatActivity extends BaseFragment implements
     private final static int search = 40;
     private final static int drgramSelectMany = 45;
     private final static int drgramHideChat = 46;
+    private final static int drgramQuickChats = 47;
 
     private final static int topic_close = 60;
     private final static int open_forum = 61;
@@ -3845,6 +3849,8 @@ public class ChatActivity extends BaseFragment implements
                     });
                     drgramVaultBuilder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
                     drgramVaultBuilder.show();
+                } else if (id == drgramQuickChats) {
+                    drgramShowQuickChats();
                 } else if (id == clear_history || id == delete_chat || id == auto_delete_timer) {
                     if (getParentActivity() == null) {
                         return;
@@ -4468,6 +4474,10 @@ public class ChatActivity extends BaseFragment implements
             if (getDialogId() != 0 && (currentUser == null || !UserObject.isUserSelf(currentUser))) {
                 headerItem.lazilyAddSubItem(drgramHideChat, R.drawable.msg_secret,
                     LocaleController.getString(R.string.DrGramVaultHide));
+            }
+            if (getDialogId() != 0 && org.telegram.messenger.DrGramChatTools.getInstance(currentAccount).isQuickChatsEnabled()) {
+                headerItem.lazilyAddSubItem(drgramQuickChats, R.drawable.msg_discuss,
+                    LocaleController.getString(R.string.DrGramQuickChats));
             }
             boolean addedSettings = false;
             if (!isTopic) {
@@ -19110,6 +19120,159 @@ public class ChatActivity extends BaseFragment implements
         }
     }
 
+    private void drgramShowQuickChats() {
+        if (getParentActivity() == null) {
+            return;
+        }
+        android.content.Context drgramCtx = getParentActivity();
+        ArrayList<TLRPC.Dialog> drgramDialogs = org.telegram.messenger.DrGramVault.getInstance(currentAccount).filterDialogs(getMessagesController().getDialogs(0));
+        ArrayList<TLRPC.Dialog> drgramPicked = new ArrayList<>();
+        for (int drgramI = 0; drgramI < drgramDialogs.size() && drgramPicked.size() < 14; drgramI++) {
+            TLRPC.Dialog drgramDialog = drgramDialogs.get(drgramI);
+            if (drgramDialog == null || drgramDialog.id == getDialogId() || drgramDialog instanceof TLRPC.TL_dialogFolder) {
+                continue;
+            }
+            drgramPicked.add(drgramDialog);
+        }
+        if (drgramPicked.isEmpty()) {
+            android.widget.Toast.makeText(getParentActivity(), LocaleController.getString(R.string.DrGramQuickEmpty), android.widget.Toast.LENGTH_SHORT).show();
+            return;
+        }
+        final org.telegram.ui.ActionBar.BottomSheet[] drgramSheetHolder = new org.telegram.ui.ActionBar.BottomSheet[1];
+        LinearLayout drgramStrip = new LinearLayout(drgramCtx);
+        drgramStrip.setOrientation(LinearLayout.HORIZONTAL);
+        int drgramPad = AndroidUtilities.dp(14);
+        drgramStrip.setPadding(drgramPad, AndroidUtilities.dp(6), drgramPad, drgramPad);
+        for (int drgramI = 0; drgramI < drgramPicked.size(); drgramI++) {
+            TLRPC.Dialog drgramDialog = drgramPicked.get(drgramI);
+            TLRPC.User drgramUser = drgramDialog.id > 0 ? getMessagesController().getUser(drgramDialog.id) : null;
+            TLRPC.Chat drgramChat = drgramDialog.id < 0 ? getMessagesController().getChat(-drgramDialog.id) : null;
+            if (drgramUser == null && drgramChat == null) {
+                continue;
+            }
+            String drgramName = drgramUser != null ? UserObject.getUserName(drgramUser) : drgramChat.title;
+            LinearLayout drgramItem = new LinearLayout(drgramCtx);
+            drgramItem.setOrientation(LinearLayout.VERTICAL);
+            drgramItem.setGravity(Gravity.CENTER_HORIZONTAL);
+            drgramItem.setBackgroundDrawable(Theme.getSelectorDrawable(false));
+            org.telegram.ui.Components.BackupImageView drgramAvatar = new org.telegram.ui.Components.BackupImageView(drgramCtx);
+            org.telegram.ui.Components.AvatarDrawable drgramAvatarDrawable = new org.telegram.ui.Components.AvatarDrawable();
+            drgramAvatar.setForUserOrChat(drgramUser != null ? drgramUser : drgramChat, drgramAvatarDrawable);
+            drgramItem.addView(drgramAvatar, LayoutHelper.createLinear(46, 46, Gravity.CENTER_HORIZONTAL, 4, 6, 4, 4));
+            TextView drgramNameView = new TextView(drgramCtx);
+            drgramNameView.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 11);
+            drgramNameView.setMaxLines(1);
+            drgramNameView.setEllipsize(TextUtils.TruncateAt.END);
+            drgramNameView.setTextColor(Theme.getColor(Theme.key_dialogTextBlack));
+            drgramNameView.setText(drgramName);
+            drgramItem.addView(drgramNameView, LayoutHelper.createLinear(AndroidUtilities.dp(64), LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL, 0, 3, 0, 2));
+            drgramItem.setOnClickListener(v -> {
+                try {
+                    if (drgramSheetHolder[0] != null) {
+                        drgramSheetHolder[0].dismiss();
+                    }
+                } catch (Exception ignore) {
+                }
+                Bundle drgramArgs = new Bundle();
+                drgramArgs.putLong("dialog_id", drgramDialog.id);
+                presentFragment(new ChatActivity(drgramArgs), true, false);
+            });
+            drgramStrip.addView(drgramItem);
+        }
+        LinearLayout drgramContent = new LinearLayout(drgramCtx);
+        drgramContent.setOrientation(LinearLayout.VERTICAL);
+        TextView drgramTitle = new TextView(drgramCtx);
+        drgramTitle.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 16);
+        drgramTitle.setTypeface(AndroidUtilities.bold());
+        drgramTitle.setTextColor(Theme.getColor(Theme.key_dialogTextBlack));
+        drgramTitle.setPadding(AndroidUtilities.dp(18), AndroidUtilities.dp(14), AndroidUtilities.dp(18), 0);
+        drgramTitle.setText(LocaleController.getString(R.string.DrGramQuickChats));
+        drgramContent.addView(drgramTitle);
+        android.widget.HorizontalScrollView drgramScroll = new android.widget.HorizontalScrollView(drgramCtx);
+        drgramScroll.addView(drgramStrip);
+        drgramContent.addView(drgramScroll, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+        org.telegram.ui.ActionBar.BottomSheet drgramSheet = new org.telegram.ui.ActionBar.BottomSheet(getParentActivity(), false);
+        drgramSheet.setCustomView(drgramContent);
+        drgramSheetHolder[0] = drgramSheet;
+        showDialog(drgramSheet);
+    }
+
+    private void drgramShowMessageDetails(MessageObject mo) {
+        if (mo == null || mo.messageOwner == null || getParentActivity() == null) {
+            return;
+        }
+        StringBuilder drgramBuilder = new StringBuilder();
+        drgramBuilder.append(LocaleController.getString(R.string.DrGramMsgId)).append(": ").append(mo.getId()).append('\n');
+        java.text.SimpleDateFormat drgramFormat = new java.text.SimpleDateFormat("yyyy/MM/dd  HH:mm:ss", java.util.Locale.US);
+        drgramFormat.setTimeZone(java.util.TimeZone.getDefault());
+        drgramBuilder.append(LocaleController.getString(R.string.DrGramMsgDate)).append(": ").append(drgramFormat.format(new java.util.Date(mo.messageOwner.date * 1000L)));
+        TLRPC.Document drgramDoc = mo.getDocument();
+        if (drgramDoc != null && drgramDoc.size > 0) {
+            drgramBuilder.append('\n').append(LocaleController.getString(R.string.DrGramMsgSize)).append(": ").append(AndroidUtilities.formatFileSize(drgramDoc.size));
+        }
+        if (mo.messageOwner.views > 0) {
+            drgramBuilder.append('\n').append(LocaleController.getString(R.string.DrGramMsgViews)).append(": ").append(mo.messageOwner.views);
+        }
+        if (mo.messageOwner.forwards > 0) {
+            drgramBuilder.append('\n').append(LocaleController.getString(R.string.DrGramMsgForwards)).append(": ").append(mo.messageOwner.forwards);
+        }
+        if (mo.messageOwner.edit_date > 0) {
+            drgramBuilder.append('\n').append(LocaleController.getString(R.string.DrGramMsgEdited)).append(": ").append(drgramFormat.format(new java.util.Date(mo.messageOwner.edit_date * 1000L)));
+        }
+        AlertDialog.Builder drgramDialog = new AlertDialog.Builder(getParentActivity(), themeDelegate);
+        drgramDialog.setTitle(LocaleController.getString(R.string.DrGramMsgDetails));
+        drgramDialog.setMessage(drgramBuilder.toString());
+        drgramDialog.setPositiveButton(LocaleController.getString(R.string.DrGramCopyId), (dialog, which) -> {
+            try {
+                android.content.ClipboardManager drgramClipboard = (android.content.ClipboardManager) getParentActivity().getSystemService(android.content.Context.CLIPBOARD_SERVICE);
+                if (drgramClipboard != null) {
+                    drgramClipboard.setPrimaryClip(android.content.ClipData.newPlainText("id", String.valueOf(mo.getId())));
+                    android.widget.Toast.makeText(getParentActivity(), LocaleController.getString(R.string.TextCopied), android.widget.Toast.LENGTH_SHORT).show();
+                }
+            } catch (Exception ignore) {
+            }
+        });
+        drgramDialog.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
+        drgramDialog.show();
+    }
+
+    private void drgramExpandSelected() {
+        if (selectedObject == null) {
+            return;
+        }
+        selectedObject.drgramExpanded = true;
+        selectedObject.resetLayout();
+        updateVisibleRows();
+    }
+
+    private void drgramToggleFavoriteSelected() {
+        MessageObject drgramMo = selectedObject;
+        if (drgramMo == null || drgramMo.getId() <= 0 || getParentActivity() == null) {
+            return;
+        }
+        String drgramTitle;
+        if (currentChat != null) {
+            drgramTitle = currentChat.title;
+        } else if (currentUser != null) {
+            drgramTitle = UserObject.getUserName(currentUser);
+        } else {
+            drgramTitle = "";
+        }
+        String drgramSnippet = "";
+        CharSequence drgramText = drgramMo.messageText;
+        if (drgramText == null || drgramText.length() == 0) {
+            drgramText = drgramMo.caption;
+        }
+        if (drgramText != null) {
+            drgramSnippet = drgramText.toString();
+        }
+        if (drgramSnippet.length() > 160) {
+            drgramSnippet = drgramSnippet.substring(0, 160);
+        }
+        boolean drgramAdded = org.telegram.messenger.DrGramFavorites.getInstance(currentAccount).toggle(getDialogId(), drgramMo.getId(), drgramTitle, drgramSnippet);
+        android.widget.Toast.makeText(getParentActivity(), LocaleController.getString(drgramAdded ? R.string.DrGramFavAdded : R.string.DrGramFavRemoved), android.widget.Toast.LENGTH_SHORT).show();
+    }
+
     private void addToSelectedMessages(MessageObject messageObject, boolean outside) {
         addToSelectedMessages(messageObject, outside, true);
     }
@@ -33444,6 +33607,18 @@ public class ChatActivity extends BaseFragment implements
                 createDeleteMessagesAlert(selectedObject, selectedObjectGroup, true);
                 break;
             }
+            case OPTION_DRGRAM_FAVORITE: {
+                drgramToggleFavoriteSelected();
+                break;
+            }
+            case OPTION_DRGRAM_DETAILS: {
+                drgramShowMessageDetails(selectedObject);
+                break;
+            }
+            case OPTION_DRGRAM_EXPAND: {
+                drgramExpandSelected();
+                break;
+            }
             case OPTION_FORWARD: {
                 if (getMessagesController().isFrozen()) {
                     AccountFrozenAlert.show(currentAccount);
@@ -46256,6 +46431,24 @@ public class ChatActivity extends BaseFragment implements
                     items.add(LocaleController.getString(R.string.Forward));
                     options.add(OPTION_FORWARD);
                     icons.add(R.drawable.msg_forward);
+                }
+                if (selectedObject != null && selectedObject.getId() > 0 && selectedObject.contentType == 0 && !selectedObject.isSponsored()) {
+                    items.add(LocaleController.getString(org.telegram.messenger.DrGramFavorites.getInstance(currentAccount).isFavorite(getDialogId(), selectedObject.getId()) ? R.string.DrGramFavRemove : R.string.DrGramFavAdd));
+                    options.add(OPTION_DRGRAM_FAVORITE);
+                    icons.add(R.drawable.msg_fave);
+                }
+                if (selectedObject != null && selectedObject.getId() > 0 && selectedObject.contentType == 0) {
+                    items.add(LocaleController.getString(R.string.DrGramMsgDetails));
+                    options.add(OPTION_DRGRAM_DETAILS);
+                    icons.add(R.drawable.msg_info);
+                }
+                if (selectedObject != null && !selectedObject.drgramExpanded && selectedObject.type == MessageObject.TYPE_TEXT
+                    && selectedObject.messageText != null && selectedObject.messageText.length() >= org.telegram.messenger.DrGramChatTools.COLLAPSE_MIN_CHARS
+                    && !selectedObject.hasCode && !selectedObject.hasQuote && !selectedObject.hasSingleQuote
+                    && org.telegram.messenger.DrGramChatTools.getInstance(currentAccount).isCollapseEnabled()) {
+                    items.add(LocaleController.getString(R.string.DrGramShowFull));
+                    options.add(OPTION_DRGRAM_EXPAND);
+                    icons.add(R.drawable.msg_zoomin);
                 }
                 if (allowUnpin) {
                     items.add(LocaleController.getString(R.string.UnpinMessage));

@@ -27,7 +27,10 @@ import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.R;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.UserObject;
+import org.telegram.messenger.DrGramChatTools;
+import org.telegram.messenger.DrGramFavorites;
 import org.telegram.messenger.DrGramOnlineGuard;
+import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.DrGramSecretary;
 import org.telegram.messenger.DrGramVault;
 import org.telegram.tgnet.TLRPC;
@@ -47,6 +50,9 @@ public class DrGramToolsActivity extends BaseFragment {
     private Switch guardSwitch;
     private TextView vaultCountText;
     private LinearLayout guardListContainer;
+    private TextView favCountText;
+    private Switch collapseSwitch;
+    private Switch quickSwitch;
 
     @Override
     public View createView(Context context) {
@@ -70,6 +76,9 @@ public class DrGramToolsActivity extends BaseFragment {
         buildSecretarySection(context);
         buildVaultSection(context);
         buildGuardSection(context);
+        buildFavoritesSection(context);
+        buildChatTweaksSection(context);
+        buildIdFinderSection(context);
 
         return fragmentView;
     }
@@ -243,6 +252,230 @@ public class DrGramToolsActivity extends BaseFragment {
 
     //endregion
 
+    //region Favorites
+
+    private void buildFavoritesSection(Context context) {
+        addHeader(context, LocaleController.getString(R.string.DrGramFavSection),
+                LocaleController.getString(R.string.DrGramFavHint));
+
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramFavOpen), v ->
+                presentFragment(new DrGramFavoritesActivity())));
+        favCountText = new TextView(context);
+        favCountText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+        favCountText.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));
+        LinearLayout row = makeRow(context, LocaleController.getString(R.string.DrGramFavCount), favCountText);
+        contentView.addView(row);
+    }
+
+    //endregion
+
+    //region Chat tweaks
+
+    private void buildChatTweaksSection(Context context) {
+        addHeader(context, LocaleController.getString(R.string.DrGramChatSection),
+                LocaleController.getString(R.string.DrGramChatHint));
+
+        collapseSwitch = new Switch(context);
+        collapseSwitch.setChecked(DrGramChatTools.getInstance(currentAccount).isCollapseEnabled());
+        LinearLayout collapseRow = makeRow(context, LocaleController.getString(R.string.DrGramCollapse), collapseSwitch);
+        collapseRow.setOnClickListener(v -> {
+            boolean newState = !DrGramChatTools.getInstance(currentAccount).isCollapseEnabled();
+            DrGramChatTools.getInstance(currentAccount).setCollapseEnabled(newState);
+            collapseSwitch.setChecked(newState);
+        });
+        contentView.addView(collapseRow);
+
+        quickSwitch = new Switch(context);
+        quickSwitch.setChecked(DrGramChatTools.getInstance(currentAccount).isQuickChatsEnabled());
+        LinearLayout quickRow = makeRow(context, LocaleController.getString(R.string.DrGramQuickChats), quickSwitch);
+        quickRow.setOnClickListener(v -> {
+            boolean newState = !DrGramChatTools.getInstance(currentAccount).isQuickChatsEnabled();
+            DrGramChatTools.getInstance(currentAccount).setQuickChatsEnabled(newState);
+            quickSwitch.setChecked(newState);
+        });
+        contentView.addView(quickRow);
+    }
+
+    //endregion
+
+    //region ID tracker
+
+    private void buildIdFinderSection(Context context) {
+        addHeader(context, LocaleController.getString(R.string.DrGramIdSection),
+                LocaleController.getString(R.string.DrGramIdHint));
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramIdAction), v -> showIdFinderDialog()));
+    }
+
+    private void showIdFinderDialog() {
+        if (getParentActivity() == null) {
+            return;
+        }
+        Context context = getParentActivity();
+        AlertDialog.Builder builder = new AlertDialog.Builder(context, getResourceProvider());
+        builder.setTitle(LocaleController.getString(R.string.DrGramIdAction));
+
+        EditText input = new EditText(context);
+        input.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
+        input.setInputType(InputType.TYPE_CLASS_TEXT);
+        input.setHint(LocaleController.getString(R.string.DrGramIdInputHint));
+        int pad = AndroidUtilities.dp(20);
+        input.setPadding(pad, pad / 2, pad, pad / 2);
+        FrameLayout container = new FrameLayout(context);
+        container.addView(input, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP, 8, 8, 8, 0));
+        builder.setView(container);
+
+        builder.setPositiveButton(LocaleController.getString(R.string.DrGramIdOpenBtn), (dialog, which) ->
+                drgramResolveId(input.getText().toString()));
+        builder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
+        builder.show();
+    }
+
+    private void drgramResolveId(String raw) {
+        String query = raw == null ? "" : raw.trim();
+        if (query.isEmpty()) {
+            return;
+        }
+        String[] prefixes = {"https://t.me/", "http://t.me/", "https://telegram.me/", "telegram.me/", "t.me/", "tg://resolve?domain=", "@"};
+        boolean changed = true;
+        while (changed) {
+            changed = false;
+            for (String prefix : prefixes) {
+                if (query.startsWith(prefix)) {
+                    query = query.substring(prefix.length());
+                    changed = true;
+                    break;
+                }
+            }
+        }
+        int slash = query.indexOf('/');
+        if (slash > 0) {
+            query = query.substring(0, slash);
+        }
+        query = query.trim();
+        if (query.isEmpty()) {
+            return;
+        }
+        if (query.matches("\\d+")) {
+            drgramOpenById(Long.parseLong(query));
+        } else {
+            drgramResolveUsername(query);
+        }
+    }
+
+    private void drgramOpenById(long id) {
+        MessagesController messagesController = getMessagesController();
+        if (id > 0) {
+            TLRPC.User user = messagesController.getUser(id);
+            if (user != null) {
+                drgramOpenProfile(user.id);
+                return;
+            }
+            TLRPC.TL_users_getUsers req = new TLRPC.TL_users_getUsers();
+            TLRPC.TL_inputUser inputUser = new TLRPC.TL_inputUser();
+            inputUser.user_id = id;
+            inputUser.access_hash = 0;
+            req.id.add(inputUser);
+            getConnectionsManager().sendRequest(req, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
+                TLRPC.User found = null;
+                if (response instanceof org.telegram.tgnet.Vector) {
+                    ArrayList<Object> objects = ((org.telegram.tgnet.Vector) response).objects;
+                    for (int i = 0; i < objects.size(); i++) {
+                        if (objects.get(i) instanceof TLRPC.User) {
+                            TLRPC.User candidate = (TLRPC.User) objects.get(i);
+                            if (candidate.id == id) {
+                                found = candidate;
+                            }
+                        }
+                    }
+                }
+                if (found != null) {
+                    messagesController.putUser(found, false);
+                    drgramOpenProfile(found.id);
+                } else {
+                    drgramToastNotFound();
+                }
+            }));
+        } else {
+            long chatId = id <= -1000000000000L ? -(id + 1000000000000L) : -id;
+            TLRPC.Chat chat = messagesController.getChat(chatId);
+            if (chat != null) {
+                drgramOpenChat(chat.id);
+                return;
+            }
+            TLRPC.TL_channels_getChannels req = new TLRPC.TL_channels_getChannels();
+            TLRPC.TL_inputChannel inputChannel = new TLRPC.TL_inputChannel();
+            inputChannel.channel_id = chatId;
+            inputChannel.access_hash = 0;
+            req.id.add(inputChannel);
+            getConnectionsManager().sendRequest(req, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
+                TLRPC.Chat found = null;
+                if (response instanceof TLRPC.TL_messages_chats) {
+                    TLRPC.TL_messages_chats chats = (TLRPC.TL_messages_chats) response;
+                    for (int i = 0; i < chats.chats.size(); i++) {
+                        TLRPC.Chat candidate = chats.chats.get(i);
+                        if (candidate.id == chatId) {
+                            found = candidate;
+                        }
+                    }
+                }
+                if (found != null) {
+                    messagesController.putChat(found, false);
+                    drgramOpenChat(found.id);
+                } else {
+                    drgramToastNotFound();
+                }
+            }));
+        }
+    }
+
+    private void drgramResolveUsername(String username) {
+        TLRPC.TL_contacts_resolveUsername req = new TLRPC.TL_contacts_resolveUsername();
+        req.username = username;
+        getConnectionsManager().sendRequest(req, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
+            TLRPC.User user = null;
+            TLRPC.Chat chat = null;
+            if (response instanceof TLRPC.TL_contacts_resolvedPeer) {
+                TLRPC.TL_contacts_resolvedPeer resolvedPeer = (TLRPC.TL_contacts_resolvedPeer) response;
+                getMessagesController().putUsers(resolvedPeer.users, false);
+                getMessagesController().putChats(resolvedPeer.chats, false);
+                long dialogId = org.telegram.messenger.DialogObject.getPeerDialogId(resolvedPeer.peer);
+                if (dialogId > 0) {
+                    user = getMessagesController().getUser(dialogId);
+                } else if (dialogId < 0) {
+                    chat = getMessagesController().getChat(-dialogId);
+                }
+            }
+            if (user != null) {
+                drgramOpenProfile(user.id);
+            } else if (chat != null) {
+                drgramOpenChat(chat.id);
+            } else {
+                drgramToastNotFound();
+            }
+        }));
+    }
+
+    private void drgramOpenProfile(long userId) {
+        Bundle args = new Bundle();
+        args.putLong("user_id", userId);
+        presentFragment(new ProfileActivity(args));
+    }
+
+    private void drgramOpenChat(long chatId) {
+        Bundle args = new Bundle();
+        args.putLong("chat_id", chatId);
+        presentFragment(new ChatActivity(args));
+    }
+
+    private void drgramToastNotFound() {
+        if (getParentActivity() == null) {
+            return;
+        }
+        android.widget.Toast.makeText(getParentActivity(), LocaleController.getString(R.string.DrGramIdNotFound), android.widget.Toast.LENGTH_SHORT).show();
+    }
+
+    //endregion
+
     //region shared row builders
 
     private void addHeader(Context context, String title, String hint) {
@@ -304,6 +537,9 @@ public class DrGramToolsActivity extends BaseFragment {
         }
         if (vaultCountText != null) {
             vaultCountText.setText(String.valueOf(DrGramVault.getInstance(currentAccount).getHiddenCount()));
+        }
+        if (favCountText != null) {
+            favCountText.setText(String.valueOf(DrGramFavorites.getInstance(currentAccount).getCount()));
         }
         if (guardListContainer != null) {
             View groupsRow = contentView.findViewWithTag("secretary_groups");
