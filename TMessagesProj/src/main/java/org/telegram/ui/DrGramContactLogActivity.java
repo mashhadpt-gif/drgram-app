@@ -27,6 +27,7 @@ import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.R;
 import org.telegram.messenger.DrGramContactHistory;
 import org.telegram.ui.ActionBar.ActionBar;
+import org.telegram.ui.ActionBar.ActionBarMenu;
 import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
@@ -52,7 +53,7 @@ public class DrGramContactLogActivity extends BaseFragment {
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
         actionBar.setAllowOverlayTitle(true);
         actionBar.setTitle(LocaleController.getString(R.string.DrGramClogTitle));
-        ActionBar.ActionBarMenu menu = actionBar.createMenu();
+        ActionBarMenu menu = actionBar.createMenu();
         menu.addItemWithWidth(1, R.drawable.msg_delete, AndroidUtilities.dp(48), LocaleController.getString(R.string.DrGramClogClear));
         actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
             @Override

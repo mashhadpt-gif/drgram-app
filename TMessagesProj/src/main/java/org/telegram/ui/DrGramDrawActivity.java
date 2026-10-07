@@ -146,7 +146,7 @@ public class DrGramDrawActivity extends BaseFragment {
 
         TextView clearButton = new TextView(context);
         clearButton.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
-        clearButton.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteRedText));
+        clearButton.setTextColor(getThemedColor(Theme.key_text_RedRegular));
         clearButton.setPadding(AndroidUtilities.dp(18), AndroidUtilities.dp(8), AndroidUtilities.dp(18), AndroidUtilities.dp(8));
         clearButton.setText(LocaleController.getString(R.string.DrGramDrawClear));
         clearButton.setOnClickListener(v -> drawingView.clearAll());

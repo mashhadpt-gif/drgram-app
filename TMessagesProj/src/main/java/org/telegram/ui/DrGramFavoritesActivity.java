@@ -28,6 +28,7 @@ import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.R;
 import org.telegram.messenger.DrGramFavorites;
+import org.telegram.tgnet.TLObject;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.AlertDialog;
@@ -191,7 +192,7 @@ public class DrGramFavoritesActivity extends BaseFragment {
             DrGramFavorites.Entry entry = items.get(position);
             MessagesController messagesController = MessagesController.getInstance(currentAccount);
             AvatarDrawable avatarDrawable = new AvatarDrawable();
-            Object avatarObject = null;
+            TLObject avatarObject = null;
             if (entry.dialogId > 0) {
                 TLRPC.User user = messagesController.getUser(entry.dialogId);
                 if (user != null) {

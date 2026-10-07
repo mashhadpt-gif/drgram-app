@@ -28,6 +28,7 @@ import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.R;
 import org.telegram.messenger.UserObject;
 import org.telegram.messenger.DrGramVault;
+import org.telegram.tgnet.TLObject;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.AlertDialog;
@@ -212,7 +213,7 @@ public class DrGramVaultActivity extends BaseFragment {
             long dialogId = dialogIds.get(position);
             MessagesController messagesController = MessagesController.getInstance(currentAccount);
             AvatarDrawable avatarDrawable;
-            Object avatarObject = null;
+            TLObject avatarObject = null;
             String name = titles.get(position);
             String subtitle = LocaleController.getString(R.string.DrGramVaultRowHint);
             if (dialogId > 0) {
