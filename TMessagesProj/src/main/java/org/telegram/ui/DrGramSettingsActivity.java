@@ -1,0 +1,613 @@
+/*
+ * This is the source code of DrGram, a Telegram fork.
+ * It is licensed under GNU GPL v. 2 or later.
+ *
+ * DrGramSettingsActivity — the DrGram control center.
+ * One page that gathers every DrGram capability plus fast shortcuts to the
+ * native Telegram screens, organized as cards. Original layout and wording,
+ * written for DrGram from scratch.
+ */
+package org.telegram.ui;
+
+import android.content.Context;
+import android.os.Bundle;
+import android.text.InputType;
+import android.util.TypedValue;
+import android.view.Gravity;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.EditText;
+import android.widget.LinearLayout;
+import android.widget.Switch;
+import android.widget.TextView;
+
+import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.ContactsController;
+import org.telegram.messenger.DialogObject;
+import org.telegram.messenger.DrGramAutoForward;
+import org.telegram.messenger.DrGramFavorites;
+import org.telegram.messenger.DrGramQuickReplies;
+import org.telegram.messenger.LocaleController;
+import org.telegram.messenger.MessagesController;
+import org.telegram.messenger.R;
+import org.telegram.messenger.SharedConfig;
+import org.telegram.messenger.UserConfig;
+import org.telegram.messenger.UserObject;
+import org.telegram.tgnet.TLRPC;
+import org.telegram.ui.ActionBar.AlertDialog;
+import org.telegram.ui.ActionBar.BaseFragment;
+import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.Components.LayoutHelper;
+
+import java.util.ArrayList;
+import java.util.List;
+
+public class DrGramSettingsActivity extends BaseFragment {
+
+    private LinearLayout contentView;
+    private Switch autoForwardSwitch;
+    private Switch hideAdsSwitch;
+    private Switch declineSecretSwitch;
+    private LinearLayout rulesContainer;
+    private LinearLayout repliesContainer;
+    private TextView specialContactText;
+
+    @Override
+    public View createView(Context context) {
+        actionBar.setBackButtonImage(R.drawable.ic_ab_back);
+        actionBar.setAllowOverlayTitle(true);
+        actionBar.setTitle(LocaleController.getString(R.string.DrGramSettingsCenter));
+        actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
+            @Override
+            public void onItemClick(int id) {
+                if (id == -1) {
+                    finishFragment();
+                }
+            }
+        });
+
+        contentView = new LinearLayout(context);
+        contentView.setOrientation(LinearLayout.VERTICAL);
+        contentView.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
+        contentView.setScrollbarFadingEnabled(true);
+        fragmentView = new android.widget.ScrollView(context);
+        ((android.widget.ScrollView) fragmentView).addView(contentView, new android.widget.FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        buildGeneralSection(context);
+        buildChatSection(context);
+        buildAutoForwardSection(context);
+        buildQuickRepliesSection(context);
+        buildSpecialSection(context);
+        buildPrivacySection(context);
+        buildMediaSection(context);
+        buildNotifySection(context);
+        buildAccountsSection(context);
+        buildContactsSection(context);
+        buildFavTagsSection(context);
+
+        return fragmentView;
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        refreshDynamicRows();
+    }
+
+    //region 1. General
+
+    private void buildGeneralSection(Context context) {
+        addHeader(context, LocaleController.getString(R.string.DrGramSetGeneral),
+                LocaleController.getString(R.string.DrGramSetGeneralHint));
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSetMyProfile), v -> {
+            Bundle args = new Bundle();
+            args.putLong("user_id", getUserConfig().clientUserId);
+            presentFragment(new ProfileActivity(args));
+        }));
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSetAppearance), v ->
+                presentFragment(new ThemeActivity(ThemeActivity.THEME_TYPE_BASIC))));
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSetLanguage), v ->
+                presentFragment(new LanguageSelectActivity())));
+    }
+
+    //endregion
+
+    //region 2. Chat feel
+
+    private void buildChatSection(Context context) {
+        addHeader(context, LocaleController.getString(R.string.DrGramSetChat),
+                LocaleController.getString(R.string.DrGramSetChatHint));
+
+        Switch goldSwitch = new Switch(context);
+        goldSwitch.setChecked(SharedConfig.drgramGoldChat);
+        contentView.addView(makeToggleRow(context, LocaleController.getString(R.string.DrGramSetGoldChats), goldSwitch, () -> {
+            SharedConfig.toggleDrgramGoldChat();
+            goldSwitch.setChecked(SharedConfig.drgramGoldChat);
+        }));
+
+        Switch sparksSwitch = new Switch(context);
+        sparksSwitch.setChecked(SharedConfig.drgramSendSparks);
+        contentView.addView(makeToggleRow(context, LocaleController.getString(R.string.DrGramSetSparks), sparksSwitch, () -> {
+            SharedConfig.toggleDrgramSendSparks();
+            sparksSwitch.setChecked(SharedConfig.drgramSendSparks);
+        }));
+
+        Switch glassSwitch = new Switch(context);
+        glassSwitch.setChecked(SharedConfig.drgramGlassUI);
+        contentView.addView(makeToggleRow(context, LocaleController.getString(R.string.DrGramSetGlass), glassSwitch, () -> {
+            SharedConfig.toggleDrgramGlassUI();
+            glassSwitch.setChecked(SharedConfig.drgramGlassUI);
+        }));
+
+        Switch rainSwitch = new Switch(context);
+        rainSwitch.setChecked(SharedConfig.drgramReactionRain);
+        contentView.addView(makeToggleRow(context, LocaleController.getString(R.string.DrGramSetRain), rainSwitch, () -> {
+            SharedConfig.toggleDrgramReactionRain();
+            rainSwitch.setChecked(SharedConfig.drgramReactionRain);
+        }));
+    }
+
+    //endregion
+
+    //region 3. Auto relay
+
+    private void buildAutoForwardSection(Context context) {
+        addHeader(context, LocaleController.getString(R.string.DrGramSetRelay),
+                LocaleController.getString(R.string.DrGramSetRelayHint));
+
+        autoForwardSwitch = new Switch(context);
+        autoForwardSwitch.setChecked(SharedConfig.drgramAutoForward);
+        contentView.addView(makeToggleRow(context, LocaleController.getString(R.string.DrGramSetRelayOn), autoForwardSwitch, () -> {
+            SharedConfig.toggleDrgramAutoForward();
+            autoForwardSwitch.setChecked(SharedConfig.drgramAutoForward);
+        }));
+
+        rulesContainer = new LinearLayout(context);
+        rulesContainer.setOrientation(LinearLayout.VERTICAL);
+        contentView.addView(rulesContainer);
+
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSetRelayAdd), v ->
+                drgramStartAddRule()));
+    }
+
+    private void drgramStartAddRule() {
+        if (getParentActivity() == null) {
+            return;
+        }
+        drgramPickDialog(LocaleController.getString(R.string.DrGramSetRelayPickSource), 0L, dialogId ->
+                drgramPickDialog(LocaleController.getString(R.string.DrGramSetRelayPickTarget), dialogId, targetId -> {
+                    if (targetId == dialogId) {
+                        android.widget.Toast.makeText(getParentActivity(), LocaleController.getString(R.string.DrGramSetRelaySame), android.widget.Toast.LENGTH_SHORT).show();
+                        return;
+                    }
+                    drgramAskMedia(media -> {
+                        DrGramAutoForward.addRule(currentAccount, dialogId, targetId, media);
+                        refreshDynamicRows();
+                        android.widget.Toast.makeText(getParentActivity(), LocaleController.getString(R.string.DrGramSetRelayAdded), android.widget.Toast.LENGTH_SHORT).show();
+                    });
+                }));
+    }
+
+    private void drgramAskMedia(java.util.function.Consumer<Boolean> callback) {
+        if (getParentActivity() == null) {
+            return;
+        }
+        String[] items = {
+                LocaleController.getString(R.string.DrGramSetRelayTextOnly),
+                LocaleController.getString(R.string.DrGramSetRelayWithMedia)
+        };
+        new AlertDialog.Builder(getParentActivity())
+                .setTitle(LocaleController.getString(R.string.DrGramSetRelayWhat))
+                .setItems(items, (dialog, which) -> callback.accept(which == 1))
+                .setNegativeButton(LocaleController.getString(R.string.Cancel), null)
+                .show();
+    }
+
+    //endregion
+
+    //region 4. Quick replies
+
+    private void buildQuickRepliesSection(Context context) {
+        addHeader(context, LocaleController.getString(R.string.DrGramSetReplies),
+                LocaleController.getString(R.string.DrGramSetRepliesHint));
+        repliesContainer = new LinearLayout(context);
+        repliesContainer.setOrientation(LinearLayout.VERTICAL);
+        contentView.addView(repliesContainer);
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSetRepliesAdd), v ->
+                drgramEditReplyDialog(0, "", "")));
+    }
+
+    private void drgramEditReplyDialog(long id, String presetTitle, String presetText) {
+        if (getParentActivity() == null) {
+            return;
+        }
+        Context context = getParentActivity();
+        LinearLayout box = new LinearLayout(context);
+        box.setOrientation(LinearLayout.VERTICAL);
+        EditText titleField = new EditText(context);
+        titleField.setHint(LocaleController.getString(R.string.DrGramSetRepliesName));
+        titleField.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        titleField.setText(presetTitle);
+        EditText textField = new EditText(context);
+        textField.setHint(LocaleController.getString(R.string.DrGramSetRepliesText));
+        textField.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        textField.setMinLines(2);
+        textField.setText(presetText);
+        box.addView(titleField);
+        box.addView(textField);
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(context)
+                .setTitle(id == 0 ? LocaleController.getString(R.string.DrGramSetRepliesAdd) : LocaleController.getString(R.string.DrGramSetRepliesEdit))
+                .setView(box)
+                .setPositiveButton(LocaleController.getString(R.string.Save), (dialog, which) -> {
+                    String title = titleField.getText().toString().trim();
+                    String text = textField.getText().toString().trim();
+                    if (text.isEmpty()) {
+                        return;
+                    }
+                    if (id == 0) {
+                        DrGramQuickReplies.add(title, text);
+                    } else {
+                        DrGramQuickReplies.update(id, title, text);
+                    }
+                    refreshDynamicRows();
+                })
+                .setNegativeButton(LocaleController.getString(R.string.Cancel), null);
+        if (id != 0) {
+            builder.setNeutralButton(LocaleController.getString(R.string.Delete), (dialog, which) -> {
+                DrGramQuickReplies.remove(id);
+                refreshDynamicRows();
+            });
+        }
+        builder.show();
+    }
+
+    //endregion
+
+    //region 5. Pinned contact
+
+    private void buildSpecialSection(Context context) {
+        addHeader(context, LocaleController.getString(R.string.DrGramSetSpecial),
+                LocaleController.getString(R.string.DrGramSetSpecialHint));
+        specialContactText = new TextView(context);
+        specialContactText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+        specialContactText.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));
+        LinearLayout row = makeRow(context, LocaleController.getString(R.string.DrGramSetSpecialPick), specialContactText);
+        row.setOnClickListener(v -> {
+            if (SharedConfig.drgramSpecialContact != 0) {
+                Bundle args = new Bundle();
+                args.putLong("dialog_id", SharedConfig.drgramSpecialContact);
+                presentFragment(new ChatActivity(args));
+            } else {
+                drgramPickSpecialContact();
+            }
+        });
+        contentView.addView(row);
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSetSpecialChange), v ->
+                drgramPickSpecialContact()));
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSetSpecialClear), v -> {
+            SharedConfig.setDrgramSpecialContact(0);
+            refreshDynamicRows();
+        }));
+    }
+
+    private void drgramPickSpecialContact() {
+        drgramPickDialog(LocaleController.getString(R.string.DrGramSetSpecialPick), 0, dialogId -> {
+            SharedConfig.setDrgramSpecialContact(dialogId);
+            refreshDynamicRows();
+        });
+    }
+
+    //endregion
+
+    //region 6. Privacy
+
+    private void buildPrivacySection(Context context) {
+        addHeader(context, LocaleController.getString(R.string.DrGramSetPrivacy),
+                LocaleController.getString(R.string.DrGramSetPrivacyHint));
+
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSetPasscode), v ->
+                presentFragment(new PasscodeActivity(PasscodeActivity.TYPE_MANAGE_CODE_SETTINGS))));
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSetPrivacyNative), v ->
+                presentFragment(new PrivacySettingsActivity())));
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSetVault), v ->
+                presentFragment(new DrGramVaultActivity())));
+
+        hideAdsSwitch = new Switch(context);
+        hideAdsSwitch.setChecked(SharedConfig.drgramHideChannelAds);
+        contentView.addView(makeToggleRow(context, LocaleController.getString(R.string.DrGramSetNoAds), hideAdsSwitch, () -> {
+            SharedConfig.toggleDrgramHideChannelAds();
+            hideAdsSwitch.setChecked(SharedConfig.drgramHideChannelAds);
+        }));
+
+        declineSecretSwitch = new Switch(context);
+        declineSecretSwitch.setChecked(SharedConfig.drgramDeclineSecretChats);
+        contentView.addView(makeToggleRow(context, LocaleController.getString(R.string.DrGramSetNoSecret), declineSecretSwitch, () -> {
+            SharedConfig.toggleDrgramDeclineSecretChats();
+            declineSecretSwitch.setChecked(SharedConfig.drgramDeclineSecretChats);
+        }));
+    }
+
+    //endregion
+
+    //region 7. Files and media
+
+    private void buildMediaSection(Context context) {
+        addHeader(context, LocaleController.getString(R.string.DrGramSetMedia),
+                LocaleController.getString(R.string.DrGramSetMediaHint));
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSetDownloads), v -> {
+            Bundle args = new Bundle();
+            args.putBoolean("drgramStartDownloads", true);
+            presentFragment(new DialogsActivity(args));
+        }));
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSetStorage), v ->
+                presentFragment(new CacheControlActivity())));
+    }
+
+    //endregion
+
+    //region 8. Notifications
+
+    private void buildNotifySection(Context context) {
+        addHeader(context, LocaleController.getString(R.string.DrGramSetNotify),
+                LocaleController.getString(R.string.DrGramSetNotifyHint));
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSetNotifyOpen), v ->
+                presentFragment(new NotificationsSettingsActivity())));
+    }
+
+    //endregion
+
+    //region 9. Accounts
+
+    private void buildAccountsSection(Context context) {
+        addHeader(context, LocaleController.getString(R.string.DrGramSetAccounts),
+                LocaleController.getString(R.string.DrGramSetAccountsHint));
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSetAccountsSwitch), v ->
+                drgramShowAccountSwitcher()));
+    }
+
+    private void drgramShowAccountSwitcher() {
+        if (getParentActivity() == null) {
+            return;
+        }
+        ArrayList<String> names = new ArrayList<>();
+        final ArrayList<Integer> accounts = new ArrayList<>();
+        for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++) {
+            UserConfig config = UserConfig.getInstance(a);
+            if (config.isClientActivated()) {
+                names.add(ContactsController.formatName(config.getCurrentUser() == null ? "" : config.getCurrentUser().first_name,
+                        config.getCurrentUser() == null ? "" : config.getCurrentUser().last_name)
+                        + (a == currentAccount ? " ●" : ""));
+                accounts.add(a);
+            }
+        }
+        if (accounts.size() < 2) {
+            android.widget.Toast.makeText(getParentActivity(), LocaleController.getString(R.string.DrGramSetAccountsOne), android.widget.Toast.LENGTH_SHORT).show();
+            return;
+        }
+        new AlertDialog.Builder(getParentActivity())
+                .setTitle(LocaleController.getString(R.string.DrGramSetAccountsSwitch))
+                .setItems(names.toArray(new String[0]), (dialog, which) -> {
+                    if (which >= 0 && which < accounts.size()) {
+                        int target = accounts.get(which);
+                        if (target != currentAccount && getParentActivity() instanceof LaunchActivity) {
+                            ((LaunchActivity) getParentActivity()).switchToAccount(target, true);
+                        }
+                    }
+                })
+                .setNegativeButton(LocaleController.getString(R.string.Cancel), null)
+                .show();
+    }
+
+    //endregion
+
+    //region 10. Contacts
+
+    private void buildContactsSection(Context context) {
+        addHeader(context, LocaleController.getString(R.string.DrGramSetContacts),
+                LocaleController.getString(R.string.DrGramSetContactsHint));
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSetContactsOpen), v ->
+                presentFragment(new ContactsActivity(new Bundle()))));
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSetClogOpen), v ->
+                presentFragment(new DrGramContactLogActivity())));
+    }
+
+    //endregion
+
+    //region 11. Favorites and hashtags
+
+    private void buildFavTagsSection(Context context) {
+        addHeader(context, LocaleController.getString(R.string.DrGramSetFavTags),
+                LocaleController.getString(R.string.DrGramSetFavTagsHint));
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSetFavOpen), v ->
+                presentFragment(new DrGramFavoritesActivity())));
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSetTagsOpen), v ->
+                presentFragment(new DrGramHashtagsActivity())));
+    }
+
+    //endregion
+
+    //region shared builders + dynamic refresh
+
+    private void refreshDynamicRows() {
+        if (autoForwardSwitch != null) {
+            autoForwardSwitch.setChecked(SharedConfig.drgramAutoForward);
+        }
+        if (hideAdsSwitch != null) {
+            hideAdsSwitch.setChecked(SharedConfig.drgramHideChannelAds);
+        }
+        if (declineSecretSwitch != null) {
+            declineSecretSwitch.setChecked(SharedConfig.drgramDeclineSecretChats);
+        }
+        if (rulesContainer != null) {
+            rebuildRules();
+        }
+        if (repliesContainer != null) {
+            rebuildReplies();
+        }
+        if (specialContactText != null) {
+            long id = SharedConfig.drgramSpecialContact;
+            specialContactText.setText(id == 0 ? LocaleController.getString(R.string.DrGramSetSpecialNone)
+                    : DrGramAutoForward.describe(currentAccount, id));
+        }
+    }
+
+    private void rebuildRules() {
+        rulesContainer.removeAllViews();
+        Context context = rulesContainer.getContext();
+        ArrayList<DrGramAutoForward.Rule> rules = DrGramAutoForward.getRules(currentAccount);
+        for (int a = 0; a < rules.size(); a++) {
+            DrGramAutoForward.Rule rule = rules.get(a);
+            String label = DrGramAutoForward.describe(currentAccount, rule.source)
+                    + "  ⬅  " + DrGramAutoForward.describe(currentAccount, rule.target)
+                    + (rule.includeMedia ? "" : "  · " + LocaleController.getString(R.string.DrGramSetRelayTextOnly));
+            LinearLayout row = makeActionRow(context, label, v -> {
+                if (getParentActivity() == null) {
+                    return;
+                }
+                new AlertDialog.Builder(getParentActivity())
+                        .setTitle(LocaleController.getString(R.string.DrGramSetRelayRemove))
+                        .setMessage(label)
+                        .setPositiveButton(LocaleController.getString(R.string.Delete), (dialog, which) -> {
+                            DrGramAutoForward.removeRule(currentAccount, rule.id);
+                            rebuildRules();
+                        })
+                        .setNegativeButton(LocaleController.getString(R.string.Cancel), null)
+                        .show();
+            });
+            rulesContainer.addView(row);
+        }
+        if (rules.isEmpty()) {
+            rulesContainer.addView(makeStaticRow(context, LocaleController.getString(R.string.DrGramSetRelayEmpty)));
+        }
+    }
+
+    private void rebuildReplies() {
+        repliesContainer.removeAllViews();
+        Context context = repliesContainer.getContext();
+        ArrayList<DrGramQuickReplies.Item> items = DrGramQuickReplies.getAll();
+        for (int a = 0; a < items.size(); a++) {
+            DrGramQuickReplies.Item item = items.get(a);
+            String label = item.title + "  —  " + item.text;
+            if (label.length() > 60) {
+                label = label.substring(0, 60) + "…";
+            }
+            final long id = item.id;
+            final String title = item.title;
+            final String text = item.text;
+            repliesContainer.addView(makeActionRow(context, label, v -> drgramEditReplyDialog(id, title, text)));
+        }
+        if (items.isEmpty()) {
+            repliesContainer.addView(makeStaticRow(context, LocaleController.getString(R.string.DrGramSetRepliesEmpty)));
+        }
+    }
+
+    private void drgramPickDialog(String title, long exclude, java.util.function.Consumer<Long> callback) {
+        if (getParentActivity() == null) {
+            return;
+        }
+        ArrayList<TLRPC.Dialog> dialogs = getMessagesController().getAllDialogs();
+        ArrayList<String> names = new ArrayList<>();
+        final ArrayList<Long> ids = new ArrayList<>();
+        for (int a = 0; a < dialogs.size() && ids.size() < 40; a++) {
+            TLRPC.Dialog dialog = dialogs.get(a);
+            if (dialog == null || dialog.id == exclude || dialog instanceof TLRPC.TL_dialogFolder) {
+                continue;
+            }
+            String name;
+            if (dialog.id > 0) {
+                TLRPC.User user = getMessagesController().getUser(dialog.id);
+                if (user == null || UserObject.isUserSelf(user)) {
+                    continue;
+                }
+                name = ContactsController.formatName(user.first_name, user.last_name);
+            } else if (DialogObject.isEncryptedDialog(dialog.id)) {
+                name = LocaleController.getString(R.string.DrGramSetRelaySecret);
+            } else {
+                TLRPC.Chat chat = getMessagesController().getChat(-dialog.id);
+                if (chat == null || chat.left || chat.kicked) {
+                    continue;
+                }
+                name = chat.title;
+            }
+            if (name == null || name.trim().isEmpty()) {
+                continue;
+            }
+            names.add(name);
+            ids.add(dialog.id);
+        }
+        if (ids.isEmpty()) {
+            android.widget.Toast.makeText(getParentActivity(), LocaleController.getString(R.string.DrGramSetRelayNoChats), android.widget.Toast.LENGTH_SHORT).show();
+            return;
+        }
+        new AlertDialog.Builder(getParentActivity())
+                .setTitle(title)
+                .setItems(names.toArray(new String[0]), (dialog, which) -> {
+                    if (which >= 0 && which < ids.size()) {
+                        callback.accept(ids.get(which));
+                    }
+                })
+                .setNegativeButton(LocaleController.getString(R.string.Cancel), null)
+                .show();
+    }
+
+    private TextView makeStaticRow(Context context, String text) {
+        TextView view = new TextView(context);
+        view.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
+        view.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));
+        view.setPadding(AndroidUtilities.dp(21), AndroidUtilities.dp(6), AndroidUtilities.dp(21), AndroidUtilities.dp(6));
+        view.setText(text);
+        return view;
+    }
+
+    private void addHeader(Context context, String title, String hint) {
+        TextView header = new TextView(context);
+        header.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
+        header.setTypeface(AndroidUtilities.bold());
+        header.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlueHeader));
+        header.setPadding(AndroidUtilities.dp(21), AndroidUtilities.dp(22), AndroidUtilities.dp(21), AndroidUtilities.dp(4));
+        header.setText(title);
+        contentView.addView(header);
+
+        TextView hintView = new TextView(context);
+        hintView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+        hintView.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));
+        hintView.setPadding(AndroidUtilities.dp(21), 0, AndroidUtilities.dp(21), AndroidUtilities.dp(8));
+        hintView.setText(hint);
+        contentView.addView(hintView);
+    }
+
+    private LinearLayout makeRow(Context context, String title, View valueView) {
+        LinearLayout row = new LinearLayout(context);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        row.setBackgroundDrawable(Theme.getSelectorDrawable(false));
+        row.setPadding(AndroidUtilities.dp(21), AndroidUtilities.dp(11), AndroidUtilities.dp(21), AndroidUtilities.dp(11));
+
+        TextView titleView = new TextView(context);
+        titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
+        titleView.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
+        titleView.setText(title);
+        titleView.setGravity(Gravity.LEFT);
+        row.addView(titleView, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1f));
+
+        LinearLayout.LayoutParams valueParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        valueView.setLayoutParams(valueParams);
+        row.addView(valueView);
+        return row;
+    }
+
+    private LinearLayout makeActionRow(Context context, String title, View.OnClickListener listener) {
+        LinearLayout row = makeRow(context, title, new TextView(context));
+        row.setOnClickListener(listener);
+        return row;
+    }
+
+    private LinearLayout makeToggleRow(Context context, String title, Switch toggle, Runnable action) {
+        LinearLayout row = makeRow(context, title, toggle);
+        row.setOnClickListener(v -> action.run());
+        return row;
+    }
+
+    //endregion
+}

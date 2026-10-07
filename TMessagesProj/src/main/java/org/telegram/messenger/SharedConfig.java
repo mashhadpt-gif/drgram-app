@@ -360,6 +360,12 @@ public class SharedConfig {
     public static boolean drgramGoldChat = true;
     public static boolean drgramVazirFont = true;
 
+    // DrGram settings center
+    public static boolean drgramAutoForward = true;
+    public static boolean drgramHideChannelAds = true;
+    public static boolean drgramDeclineSecretChats = false;
+    public static long drgramSpecialContact = 0;
+
     public static boolean isFloatingDebugActive;
     public static LiteMode liteMode;
 
@@ -677,6 +683,10 @@ public class SharedConfig {
             drgramGlassUI = preferences.getBoolean("drgramGlassUI", true);
             drgramGoldChat = preferences.getBoolean("drgramGoldChat", true);
             drgramVazirFont = preferences.getBoolean("drgramVazirFont", true);
+            drgramAutoForward = preferences.getBoolean("drgramAutoForward", true);
+            drgramHideChannelAds = preferences.getBoolean("drgramHideChannelAds", true);
+            drgramDeclineSecretChats = preferences.getBoolean("drgramDeclineSecretChats", false);
+            drgramSpecialContact = preferences.getLong("drgramSpecialContact", 0);
             hasEmailLogin = preferences.getBoolean("hasEmailLogin", false);
             isFloatingDebugActive = preferences.getBoolean("floatingDebugActive", false);
             updateStickersOrderOnSend = preferences.getBoolean("updateStickersOrderOnSend", true);
@@ -1292,6 +1302,30 @@ public class SharedConfig {
         drgramVazirFont = !drgramVazirFont;
         ApplicationLoader.applicationContext.getSharedPreferences("mainconfig", Activity.MODE_PRIVATE)
                 .edit().putBoolean("drgramVazirFont", drgramVazirFont).apply();
+    }
+
+    public static void toggleDrgramAutoForward() {
+        drgramAutoForward = !drgramAutoForward;
+        ApplicationLoader.applicationContext.getSharedPreferences("mainconfig", Activity.MODE_PRIVATE)
+                .edit().putBoolean("drgramAutoForward", drgramAutoForward).apply();
+    }
+
+    public static void toggleDrgramHideChannelAds() {
+        drgramHideChannelAds = !drgramHideChannelAds;
+        ApplicationLoader.applicationContext.getSharedPreferences("mainconfig", Activity.MODE_PRIVATE)
+                .edit().putBoolean("drgramHideChannelAds", drgramHideChannelAds).apply();
+    }
+
+    public static void toggleDrgramDeclineSecretChats() {
+        drgramDeclineSecretChats = !drgramDeclineSecretChats;
+        ApplicationLoader.applicationContext.getSharedPreferences("mainconfig", Activity.MODE_PRIVATE)
+                .edit().putBoolean("drgramDeclineSecretChats", drgramDeclineSecretChats).apply();
+    }
+
+    public static void setDrgramSpecialContact(long dialogId) {
+        drgramSpecialContact = dialogId;
+        ApplicationLoader.applicationContext.getSharedPreferences("mainconfig", Activity.MODE_PRIVATE)
+                .edit().putLong("drgramSpecialContact", drgramSpecialContact).apply();
     }
 
     public static void toggleDrgramReactionRain() {

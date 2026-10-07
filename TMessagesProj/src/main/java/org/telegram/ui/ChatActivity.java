@@ -1674,6 +1674,7 @@ public class ChatActivity extends BaseFragment implements
     private final static int drgramHideChat = 46;
     private final static int drgramQuickChats = 47;
     private final static int drgramDrawSend = 48;
+    private final static int drgramQuickReplies = 49;
 
     private final static int topic_close = 60;
     private final static int open_forum = 61;
@@ -3857,6 +3858,8 @@ public class ChatActivity extends BaseFragment implements
                     if (getParentActivity() != null && getDialogId() != 0) {
                         presentFragment(new org.telegram.ui.DrGramDrawActivity(getDialogId()));
                     }
+                } else if (id == drgramQuickReplies) {
+                    drgramShowQuickReplies();
                 } else if (id == clear_history || id == delete_chat || id == auto_delete_timer) {
                     if (getParentActivity() == null) {
                         return;
@@ -4488,6 +4491,10 @@ public class ChatActivity extends BaseFragment implements
             if (getDialogId() != 0 && org.telegram.messenger.DrGramMedia.isDrawSendEnabled()) {
                 headerItem.lazilyAddSubItem(drgramDrawSend, R.drawable.photo_paint_brush,
                     LocaleController.getString(R.string.DrGramDrawSend));
+            }
+            if (getDialogId() != 0 && !isSecretChat() && org.telegram.messenger.DrGramQuickReplies.getCount() > 0) {
+                headerItem.lazilyAddSubItem(drgramQuickReplies, R.drawable.msg_add,
+                    LocaleController.getString(R.string.DrGramSetRepliesUse));
             }
             boolean addedSettings = false;
             if (!isTopic) {
@@ -19130,6 +19137,41 @@ public class ChatActivity extends BaseFragment implements
         }
     }
 
+    private void drgramShowQuickReplies() {
+        if (getParentActivity() == null) {
+            return;
+        }
+        ArrayList<org.telegram.messenger.DrGramQuickReplies.Item> drgramReplies = org.telegram.messenger.DrGramQuickReplies.getAll();
+        if (drgramReplies.isEmpty()) {
+            android.widget.Toast.makeText(getParentActivity(), LocaleController.getString(R.string.DrGramSetRepliesEmpty), android.widget.Toast.LENGTH_SHORT).show();
+            return;
+        }
+        String[] drgramLabels = new String[drgramReplies.size()];
+        for (int drgramI = 0; drgramI < drgramReplies.size(); drgramI++) {
+            String label = drgramReplies.get(drgramI).text;
+            if (label != null && label.length() > 80) {
+                label = label.substring(0, 80) + "…";
+            }
+            drgramLabels[drgramI] = label;
+        }
+        new org.telegram.ui.ActionBar.AlertDialog.Builder(getParentActivity())
+            .setTitle(LocaleController.getString(R.string.DrGramSetReplies))
+            .setItems(drgramLabels, (dialog, which) -> {
+                if (which < 0 || which >= drgramReplies.size() || chatActivityEnterView == null) {
+                    return;
+                }
+                String insert = drgramReplies.get(which).text;
+                CharSequence existing = chatActivityEnterView.getFieldText();
+                if (android.text.TextUtils.isEmpty(existing)) {
+                    chatActivityEnterView.setFieldText(insert);
+                } else {
+                    chatActivityEnterView.setFieldText(existing + " " + insert);
+                }
+            })
+            .setNegativeButton(LocaleController.getString(R.string.Cancel), null)
+            .show();
+    }
+
     private void drgramShowQuickChats() {
         if (getParentActivity() == null) {
             return;
@@ -25184,7 +25226,7 @@ public class ChatActivity extends BaseFragment implements
     private Pattern sponsoredUrlPattern;
     private MessageObject botSponsoredMessage;
     private void addSponsoredMessages(boolean animated) {
-        if (sponsoredMessagesAdded || chatMode != 0 || !ChatObject.isChannel(currentChat) && !UserObject.isBot(currentUser) || !forwardEndReached[0] || getUserConfig().isPremium() && getMessagesController().isSponsoredDisabled() || isReport()) {
+        if (SharedConfig.drgramHideChannelAds || sponsoredMessagesAdded || chatMode != 0 || !ChatObject.isChannel(currentChat) && !UserObject.isBot(currentUser) || !forwardEndReached[0] || getUserConfig().isPremium() && getMessagesController().isSponsoredDisabled() || isReport()) {
             return;
         }
         MessagesController.SponsoredMessagesInfo res = getMessagesController().getSponsoredMessages(dialog_id);

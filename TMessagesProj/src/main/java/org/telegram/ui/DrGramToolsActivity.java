@@ -76,6 +76,7 @@ public class DrGramToolsActivity extends BaseFragment {
         contentView.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
         fragmentView = contentView;
 
+        buildSettingsCenterSection(context);
         buildSecretarySection(context);
         buildVaultSection(context);
         buildGuardSection(context);
@@ -94,6 +95,17 @@ public class DrGramToolsActivity extends BaseFragment {
         super.onResume();
         refreshDynamicRows();
     }
+
+    //region Settings center
+
+    private void buildSettingsCenterSection(Context context) {
+        addHeader(context, LocaleController.getString(R.string.DrGramSettingsCenter),
+                LocaleController.getString(R.string.DrGramSettingsCenterHint));
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSettingsCenterOpen), v ->
+                presentFragment(new DrGramSettingsActivity())));
+    }
+
+    //endregion
 
     //region Secretary
 

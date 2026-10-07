@@ -184,6 +184,9 @@ public class SecretChatHelper extends BaseController {
 
     protected void processUpdateEncryption(TL_update.TL_updateEncryption update, ConcurrentHashMap<Long, TLRPC.User> usersDict) {
         TLRPC.EncryptedChat newChat = update.chat;
+        if (SharedConfig.drgramDeclineSecretChats && newChat instanceof TLRPC.TL_encryptedChatRequested) {
+            return; // DrGram: new secret-chat requests stay unprocessed while the gate is on
+        }
         long dialog_id = DialogObject.makeEncryptedDialogId(newChat.id);
         TLRPC.EncryptedChat existingChat = getMessagesController().getEncryptedChatDB(newChat.id, false);
 
