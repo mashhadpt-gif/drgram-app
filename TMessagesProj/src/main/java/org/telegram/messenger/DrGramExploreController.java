@@ -87,7 +87,7 @@ public class DrGramExploreController extends BaseController {
         for (int a = 0; a < dialogs.size() && result.size() < MAX_CHANNELS; a++) {
             TLRPC.Dialog dialog = dialogs.get(a);
             TLRPC.Chat chat = messagesController.getChat(-dialog.id);
-            if (chat == null || chat.left || chat.kicked || chat.deleted || chat.deactivated) {
+            if (chat == null || chat.left || chat.kicked || chat instanceof TLRPC.TL_channelForbidden || chat.deactivated) {
                 continue;
             }
             if (!ChatObject.isChannelAndNotMegaGroup(chat)) {
@@ -163,7 +163,7 @@ public class DrGramExploreController extends BaseController {
         }
         notifyExploreUpdated();
         if (refreshQueue.isEmpty()) {
-            // Dialogs might not be in cache yet; dialogsDidLoad will bring the UI here again.
+            // Dialogs might not be in cache yet; dialogsNeedReload will bring the UI here again.
             // Do not mark the (empty) cache fresh, so a retry happens once dialogs arrive.
             loading = false;
             if (!channels.isEmpty()) {
@@ -300,8 +300,8 @@ public class DrGramExploreController extends BaseController {
 
     //region Merge / dedupe helpers
 
-    private long oldestMessageId(ArrayList<TLRPC.Message> messages) {
-        long minId = 0;
+    private int oldestMessageId(ArrayList<TLRPC.Message> messages) {
+        int minId = 0;
         for (int a = 0; a < messages.size(); a++) {
             TLRPC.Message message = messages.get(a);
             if (message != null && (minId == 0 || message.id < minId)) {

@@ -1199,8 +1199,8 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
                 }
                 LauncherIconController.LauncherIcon next = icons[(current.ordinal() + 1) % icons.length];
                 LauncherIconController.setIcon(next);
-                if (adapter != null) {
-                    adapter.notifyItemChanged(position);
+                if (listAdapter != null) {
+                    listAdapter.notifyItemChanged(position);
                 }
             } else if (position == raiseToListenRow) {
                 SharedConfig.toggleRaiseToListen();
@@ -2764,11 +2764,11 @@ public class ThemeActivity extends BaseFragment implements NotificationCenter.No
                         String iconValue = "";
                         for (LauncherIconController.LauncherIcon icon : LauncherIconController.LauncherIcon.values()) {
                             if (LauncherIconController.isEnabled(icon)) {
-                                iconValue = getString(icon.titleRes);
+                                iconValue = getString(icon.title);
                                 break;
                             }
                         }
-                        ((TextCell) itemView).setTextAndValue(getString(R.string.DrGramAppIcon), iconValue, false);
+                        cell.setTextAndValue(getString(R.string.DrGramAppIcon), iconValue, false);
                     } else if (position == liteModeRow) {
                         cell.setColors(Theme.key_dialogIcon, Theme.key_windowBackgroundWhiteBlackText);
                         cell.setTextAndIcon(getString(R.string.LiteMode), R.drawable.msg2_animations, true);

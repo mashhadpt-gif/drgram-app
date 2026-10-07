@@ -72,7 +72,7 @@ public class DrGramExploreActivity extends BaseFragment implements NotificationC
     @Override
     public boolean onFragmentCreate() {
         super.onFragmentCreate();
-        getNotificationCenter().addObserver(this, NotificationCenter.dialogsDidLoad);
+        getNotificationCenter().addObserver(this, NotificationCenter.dialogsNeedReload);
         getNotificationCenter().addObserver(this, NotificationCenter.drgramExploreUpdated);
         exploreController = DrGramExploreController.getInstance(currentAccount);
         exploreController.refreshIfNeeded(false);
@@ -83,7 +83,7 @@ public class DrGramExploreActivity extends BaseFragment implements NotificationC
     @Override
     public void onFragmentDestroy() {
         super.onFragmentDestroy();
-        getNotificationCenter().removeObserver(this, NotificationCenter.dialogsDidLoad);
+        getNotificationCenter().removeObserver(this, NotificationCenter.dialogsNeedReload);
         getNotificationCenter().removeObserver(this, NotificationCenter.drgramExploreUpdated);
     }
 
@@ -389,7 +389,7 @@ public class DrGramExploreActivity extends BaseFragment implements NotificationC
     public void didReceivedNotification(int id, int account, Object... args) {
         if (id == NotificationCenter.drgramExploreUpdated) {
             updateUIState();
-        } else if (id == NotificationCenter.dialogsDidLoad) {
+        } else if (id == NotificationCenter.dialogsNeedReload) {
             rebuildChips();
             exploreController.refreshIfNeeded(false);
         }

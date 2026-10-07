@@ -211,22 +211,6 @@ public class DrGramSparkEffect {
         canvas.restore();
     }
 
-    /** Four-point sparkle star (existing) — kept as drawStar. */
-    private void drawStar(Canvas canvas, float cx, float cy, float r, float rotation) {
-        canvas.save();
-        canvas.rotate(rotation, cx, cy);
-        float k = r * 0.22f;
-        starPath.reset();
-        starPath.moveTo(cx, cy - r);
-        starPath.quadTo(cx + k, cy - k, cx + r, cy);
-        starPath.quadTo(cx + k, cy + k, cx, cy + r);
-        starPath.quadTo(cx - k, cy + k, cx - r, cy);
-        starPath.quadTo(cx - k, cy - k, cx, cy - r);
-        starPath.close();
-        canvas.drawPath(starPath, paint);
-        canvas.restore();
-    }
-
     /** Six-point brilliant star. */
     private void drawHexStar(Canvas canvas, float cx, float cy, float r, float rotation) {
         canvas.save();
