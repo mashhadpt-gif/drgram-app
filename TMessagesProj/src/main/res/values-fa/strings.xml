@@ -22,6 +22,15 @@
     <string name="DrGramSetThemeRed">مشکی-قرمز</string>
     <string name="YourNumber">شماره تلفن خود را وارد کنید</string>
 
+    <!-- DrGram Fix 9: full Persian branding -->
+    <string name="Page2Message">**DrGram** پیام‌ها را سریع‌تر از\nهر اپلیکیشن دیگری می‌رساند.</string>
+    <string name="Page3Message">**DrGram** فضای ابری نامحدود و رایگان برای چت‌ها و رسانه‌ها فراهم می‌کند.</string>
+    <string name="Page4Message">**DrGram** پیام‌های شما را از حمله‌ی هکرها محافظت می‌کند.</string>
+    <string name="Page5Message">**DrGram** هیچ محدودیتی روی\nحجم رسانه‌ها و چت‌های شما ندارد.</string>
+    <string name="Page6Message">**DrGram** اجازه می‌دهد از چند دستگاه\nهم‌زمان به پیام‌هایتان دسترسی داشته باشید.</string>
+    <string name="PermissionXiaomiLockscreen">لطفاً به DrGram اجازه دهید روی صفحه‌ی قفل نمایش داده شود تا تماس‌ها به‌درستی کار کنند.</string>
+    <string name="PermissionFSILockscreen">لطفاً به DrGram اجازه دهید روی صفحه‌ی قفل نمایش داده شود تا تماس‌ها به‌درستی کار کنند.</string>
+
     <!-- DrGram Premium section (Settings → Chats) -->
     <string name="DrGramPremium">درگرم پریمیوم</string>
     <string name="SparksOnSend">جرقه هنگام ارسال</string>
