@@ -591,16 +591,17 @@ public class DrGramToolsActivity extends BaseFragment {
     //region shared row builders
 
     private void addHeader(Context context, String title, String hint) {
+        // DrGram Fix 8: luxury section header — gold diamond + bold gold title
         TextView header = new TextView(context);
-        header.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
+        header.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
         header.setTypeface(AndroidUtilities.bold());
         header.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlueHeader));
-        header.setPadding(AndroidUtilities.dp(21), AndroidUtilities.dp(22), AndroidUtilities.dp(21), AndroidUtilities.dp(4));
-        header.setText(title);
+        header.setText("💎  " + title);
+        header.setPadding(AndroidUtilities.dp(21), AndroidUtilities.dp(22), AndroidUtilities.dp(21), AndroidUtilities.dp(2));
         contentView.addView(header);
 
         TextView hintView = new TextView(context);
-        hintView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+        hintView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
         hintView.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));
         hintView.setPadding(AndroidUtilities.dp(21), 0, AndroidUtilities.dp(21), AndroidUtilities.dp(8));
         hintView.setText(hint);
@@ -608,20 +609,29 @@ public class DrGramToolsActivity extends BaseFragment {
     }
 
     private LinearLayout makeRow(Context context, String title, View valueView) {
+        // DrGram Fix 8: luxury card row — rounded dark card, RTL-safe start alignment
         LinearLayout row = new LinearLayout(context);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        row.setBackgroundDrawable(Theme.getSelectorDrawable(false));
-        row.setPadding(AndroidUtilities.dp(21), AndroidUtilities.dp(11), AndroidUtilities.dp(21), AndroidUtilities.dp(11));
+        android.graphics.drawable.GradientDrawable card = new android.graphics.drawable.GradientDrawable();
+        card.setCornerRadius(AndroidUtilities.dp(16));
+        card.setColor(getThemedColor(Theme.key_dialogBackground));
+        card.setStroke(1, getThemedColor(Theme.key_divider));
+        row.setBackgroundDrawable(card);
+        row.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(13), AndroidUtilities.dp(16), AndroidUtilities.dp(13));
+        LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        rowParams.setMargins(AndroidUtilities.dp(16), AndroidUtilities.dp(4), AndroidUtilities.dp(16), AndroidUtilities.dp(4));
+        row.setLayoutParams(rowParams);
 
         TextView titleView = new TextView(context);
-        titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
+        titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
         titleView.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
         titleView.setText(title);
-        titleView.setGravity(Gravity.LEFT);
+        titleView.setGravity(Gravity.START);
         row.addView(titleView, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1f));
 
         LinearLayout.LayoutParams valueParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        valueParams.setMargins(AndroidUtilities.dp(8), 0, 0, 0);
         valueView.setLayoutParams(valueParams);
         row.addView(valueView);
         return row;
