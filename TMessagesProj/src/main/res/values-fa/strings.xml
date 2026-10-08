@@ -12,6 +12,16 @@
     <string name="AppNameBeta">درگرم بتا</string>
     <string name="LanguageName">فارسی</string>
 
+    <!-- DrGram Fix 8: luxury intro & branding -->
+    <string name="Page1Title">درگرم</string>
+    <string name="Page1Message">پیام‌رسان **لوکس**.\nساخته‌شده برای **خاص‌ها**.</string>
+    <string name="DrGramTagline">پیام‌رسان لوکس</string>
+    <string name="DrGramSetTheme">تم لوکس</string>
+    <string name="DrGramSetThemeHint">مشکی-طلایی یا مشکی-قرمز — همون طرح تاییدشده. آنی اعمال میشه.</string>
+    <string name="DrGramSetThemeGold">مشکی-طلایی</string>
+    <string name="DrGramSetThemeRed">مشکی-قرمز</string>
+    <string name="YourNumber">شماره تلفن خود را وارد کنید</string>
+
     <!-- DrGram Premium section (Settings → Chats) -->
     <string name="DrGramPremium">درگرم پریمیوم</string>
     <string name="SparksOnSend">جرقه هنگام ارسال</string>
@@ -53,7 +63,7 @@
     <string name="Code">کد</string>
     <string name="YourName">نام شما</string>
     <string name="RegisterText2">نام خود را وارد کنید و تصویری برای پروفایل انتخاب کنید.</string>
-    <string name="StartMessaging">شروع پیام‌رسانی</string>
+    <string name="StartMessaging">ورود به دنیای لوکس</string>
     <string name="LoginPassword">رمز عبور</string>
 
     <!-- Main tabs & navigation -->
