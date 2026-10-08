@@ -4230,6 +4230,16 @@
     <string name="DrGramQuickLinksSaved">Quick link saved.</string>
     <string name="DrGramQuickLinksActions">Edit or delete this link?</string>
     <string name="DrGramQuickLinksOpenFailed">This link could not be opened.</string>
+    <string name="DrGramHiddenAccountsTitle">Hidden accounts</string>
+    <string name="DrGramHiddenAccountsActive">active</string>
+    <string name="DrGramHiddenAccountsVisible">visible in switchers</string>
+    <string name="DrGramHiddenAccountsHidden">hidden from switchers</string>
+    <string name="DrGramHiddenAccountsActiveWarning">The account you are using cannot be hidden.</string>
+    <string name="DrGramHiddenAccountsHiddenResult">Account hidden from account pickers. Manage hidden accounts here to restore it.</string>
+    <string name="DrGramHiddenAccountsVisibleResult">Account is visible in account pickers again.</string>
+    <string name="DrGramOpenToolsTitle">Auto reply &amp; advanced tools</string>
+    <string name="DrGramOpenToolsHint">Automatic replies, presence alerts, hidden chats and other DrGram tools.</string>
+    <string name="DrGramSetExploreOpen">Explore media from joined channels</string>
     <!-- VoIP -->
     <string name="AccountSettings">Account Settings</string>
     <string name="VoipUseLessData">Use less data for calls</string>

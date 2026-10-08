@@ -31,6 +31,16 @@
     <string name="DrGramQuickLinksSaved">لینک سریع ذخیره شد.</string>
     <string name="DrGramQuickLinksActions">ویرایش یا حذف این لینک؟</string>
     <string name="DrGramQuickLinksOpenFailed">باز کردن این لینک ناموفق بود.</string>
+    <string name="DrGramHiddenAccountsTitle">حساب‌های پنهان</string>
+    <string name="DrGramHiddenAccountsActive">فعال</string>
+    <string name="DrGramHiddenAccountsVisible">نمایش در فهرست حساب‌ها</string>
+    <string name="DrGramHiddenAccountsHidden">پنهان از فهرست حساب‌ها</string>
+    <string name="DrGramHiddenAccountsActiveWarning">حسابی که اکنون در حال استفاده از آن هستی قابل پنهان‌کردن نیست.</string>
+    <string name="DrGramHiddenAccountsHiddenResult">حساب از فهرست‌های انتخاب حساب پنهان شد. از همین بخش می‌توانی دوباره نمایش آن را فعال کنی.</string>
+    <string name="DrGramHiddenAccountsVisibleResult">حساب دوباره در فهرست انتخاب حساب نمایش داده می‌شود.</string>
+    <string name="DrGramOpenToolsTitle">پاسخ‌گوی خودکار و ابزارهای پیشرفته</string>
+    <string name="DrGramOpenToolsHint">پاسخ خودکار، هشدار آنلاین‌شدن، گفتگوهای پنهان و ابزارهای دیگر DrGram.</string>
+    <string name="DrGramSetExploreOpen">کاوش رسانه‌های کانال‌های عضو‌شده</string>
     <string name="YourNumber">شماره تلفن خود را وارد کنید</string>
 
     <!-- DrGram Fix 9: full Persian branding -->

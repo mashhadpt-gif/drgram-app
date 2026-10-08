@@ -80,6 +80,7 @@ public class DrGramSettingsActivity extends BaseFragment {
         buildChatSection(context);
         buildAutoForwardSection(context);
         buildQuickRepliesSection(context);
+        buildAutoReplySection(context);
         buildSpecialSection(context);
         buildPrivacySection(context);
         buildMediaSection(context);
@@ -111,6 +112,8 @@ public class DrGramSettingsActivity extends BaseFragment {
                 chooseBrandMode()));
         contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramQuickLinksTitle), v ->
                 presentFragment(new DrGramQuickLinksActivity())));
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramOpenToolsTitle), v ->
+                presentFragment(new DrGramToolsActivity())));
         contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSetLanguage), v ->
                 presentFragment(new LanguageSelectActivity())));
     }
@@ -375,6 +378,13 @@ public class DrGramSettingsActivity extends BaseFragment {
         builder.show();
     }
 
+    private void buildAutoReplySection(Context context) {
+        addHeader(context, LocaleController.getString(R.string.DrGramOpenToolsTitle),
+                LocaleController.getString(R.string.DrGramOpenToolsHint));
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSecretaryTitle), v ->
+                presentFragment(new DrGramToolsActivity())));
+    }
+
     //endregion
 
     //region 5. Pinned contact
@@ -477,6 +487,8 @@ public class DrGramSettingsActivity extends BaseFragment {
                 LocaleController.getString(R.string.DrGramSetAccountsHint));
         contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSetAccountsSwitch), v ->
                 drgramShowAccountSwitcher()));
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramHiddenAccountsTitle), v ->
+                drgramManageHiddenAccounts()));
     }
 
     private void drgramShowAccountSwitcher() {
@@ -487,7 +499,7 @@ public class DrGramSettingsActivity extends BaseFragment {
         final ArrayList<Integer> accounts = new ArrayList<>();
         for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++) {
             UserConfig config = UserConfig.getInstance(a);
-            if (config.isClientActivated()) {
+            if (config.isClientActivated() && !DrGramHiddenAccounts.isHidden(a)) {
                 names.add(ContactsController.formatName(config.getCurrentUser() == null ? "" : config.getCurrentUser().first_name,
                         config.getCurrentUser() == null ? "" : config.getCurrentUser().last_name)
                         + (a == currentAccount ? " ●" : ""));
@@ -506,6 +518,57 @@ public class DrGramSettingsActivity extends BaseFragment {
                         if (target != currentAccount && getParentActivity() instanceof LaunchActivity) {
                             ((LaunchActivity) getParentActivity()).switchToAccount(target, true);
                         }
+                    }
+                })
+                .setNegativeButton(LocaleController.getString(R.string.Cancel), null)
+                .show();
+    }
+
+    private void drgramManageHiddenAccounts() {
+        if (getParentActivity() == null) {
+            return;
+        }
+        ArrayList<Integer> accounts = new ArrayList<>();
+        ArrayList<String> names = new ArrayList<>();
+        for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++) {
+            UserConfig config = UserConfig.getInstance(a);
+            if (!config.isClientActivated() || config.getCurrentUser() == null) {
+                continue;
+            }
+            accounts.add(a);
+            String name = ContactsController.formatName(
+                    config.getCurrentUser().first_name, config.getCurrentUser().last_name);
+            if (a == currentAccount) {
+                name += " ●  " + LocaleController.getString(R.string.DrGramHiddenAccountsActive);
+            } else {
+                name += DrGramHiddenAccounts.isHidden(a)
+                        ? " — " + LocaleController.getString(R.string.DrGramHiddenAccountsHidden)
+                        : " — " + LocaleController.getString(R.string.DrGramHiddenAccountsVisible);
+            }
+            names.add(name);
+        }
+        if (accounts.isEmpty()) {
+            return;
+        }
+        new AlertDialog.Builder(getParentActivity())
+                .setTitle(LocaleController.getString(R.string.DrGramHiddenAccountsTitle))
+                .setItems(names.toArray(new String[0]), (dialog, which) -> {
+                    if (which < 0 || which >= accounts.size()) {
+                        return;
+                    }
+                    int target = accounts.get(which);
+                    if (target == currentAccount) {
+                        android.widget.Toast.makeText(getParentActivity(),
+                                LocaleController.getString(R.string.DrGramHiddenAccountsActiveWarning),
+                                android.widget.Toast.LENGTH_LONG).show();
+                        return;
+                    }
+                    boolean hide = !DrGramHiddenAccounts.isHidden(target);
+                    if (DrGramHiddenAccounts.setHidden(target, hide)) {
+                        android.widget.Toast.makeText(getParentActivity(),
+                                LocaleController.getString(hide ? R.string.DrGramHiddenAccountsHiddenResult
+                                        : R.string.DrGramHiddenAccountsVisibleResult),
+                                android.widget.Toast.LENGTH_SHORT).show();
                     }
                 })
                 .setNegativeButton(LocaleController.getString(R.string.Cancel), null)
@@ -532,6 +595,8 @@ public class DrGramSettingsActivity extends BaseFragment {
     private void buildFavTagsSection(Context context) {
         addHeader(context, LocaleController.getString(R.string.DrGramSetFavTags),
                 LocaleController.getString(R.string.DrGramSetFavTagsHint));
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSetExploreOpen), v ->
+                presentFragment(new DrGramExploreActivity())));
         contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSetFavOpen), v ->
                 presentFragment(new DrGramFavoritesActivity())));
         contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSetTagsOpen), v ->
