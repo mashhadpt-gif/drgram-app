@@ -34,15 +34,15 @@ import java.util.regex.Pattern;
 
 public class DrGramLinkExtractorActivity extends BaseFragment {
     private static final Pattern URL_PATTERN = Pattern.compile(
-            "(?i)(?:https?://|tg://)[^\\\\s<>\\\\\\\"']+|(?:www\\\\.)[^\\\\s<>\\\\\\\"']+|(?:t\\\\.me|telegram\\\\.me)/[^\\\\s<>\\\\\\\"']+");
+            "(?i)(?:https?://|tg://)[^\\s<>\\\"']+|(?:www\\.)[^\\s<>\\\"']+|(?:t\\.me|telegram\\.me)/[^\\s<>\\\"']+");
     private static final Pattern EMAIL_PATTERN = Pattern.compile(
-            "(?i)[a-z0-9._%+\\\\-]+@[a-z0-9.\\\\-]+\\\\.[a-z]{2,}");
+            "(?i)[a-z0-9._%+\\-]+@[a-z0-9.\\-]+\\.[a-z]{2,}");
     private static final Pattern USERNAME_PATTERN = Pattern.compile(
-            "(?<![\\\\p{L}\\\\p{N}_])@[a-zA-Z][a-zA-Z0-9_]{4,31}");
+            "(?<![\\p{L}\\p{N}_])@[a-zA-Z][a-zA-Z0-9_]{4,31}");
     private static final Pattern PHONE_PATTERN = Pattern.compile(
-            "(?<![\\\\p{L}\\\\p{N}])\\\\+?\\\\d[\\\\d ()\\\\-.]{5,}\\\\d(?![\\\\p{L}\\\\p{N}])");
+            "(?<![\\p{L}\\p{N}])\\+?\\d[\\d ()\\-.]{5,}\\d(?![\\p{L}\\p{N}])");
     private static final Pattern HASHTAG_PATTERN = Pattern.compile(
-            "(?<![\\\\p{L}\\\\p{N}_])#[\\\\p{L}\\\\p{N}_]{2,}");
+            "(?<![\\p{L}\\p{N}_])#[\\p{L}\\p{N}_]{2,}");
 
     private EditText inputField;
     private LinearLayout resultsContainer;
@@ -168,7 +168,9 @@ public class DrGramLinkExtractorActivity extends BaseFragment {
 
         for (Map.Entry<String, String> entry : items.entrySet()) {
             TextView item = new TextView(getParentActivity());
-            item.setText(entry.getKey() + "  ·  " + entry.getValue());
+            int separator = entry.getKey().indexOf("::");
+            String type = separator < 0 ? entry.getKey() : entry.getKey().substring(0, separator);
+            item.setText(type + "  ·  " + entry.getValue());
             item.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
             item.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
             item.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12), AndroidUtilities.dp(12));
@@ -204,13 +206,12 @@ public class DrGramLinkExtractorActivity extends BaseFragment {
                     }
                 }
                 if (!exists) {
-                    items.put(type, value);
-                    if (items.size() > 250) {
-                        return;
-                    }
-                    // Distinct values with the same type need a unique map key.
-                    if (items.containsKey(type) && !items.get(type).equals(value)) {
-                        items.put(type + " " + (items.size() + 1), value);
+                    String itemKey = type + "::" + normalized;
+                    if (!items.containsKey(itemKey)) {
+                        if (items.size() >= 250) {
+                            return;
+                        }
+                        items.put(itemKey, value);
                     }
                 }
             }

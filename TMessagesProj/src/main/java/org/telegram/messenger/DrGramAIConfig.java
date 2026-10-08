@@ -6,6 +6,7 @@ package org.telegram.messenger;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.os.Build;
 import android.security.keystore.KeyGenParameterSpec;
 import android.security.keystore.KeyProperties;
 import android.text.TextUtils;
@@ -57,6 +58,9 @@ public final class DrGramAIConfig {
     }
 
     public static String getApiKey() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            return "";
+        }
         try {
             String encrypted = prefs().getString(KEY_API_KEY, "");
             return TextUtils.isEmpty(encrypted) ? "" : decrypt(encrypted);
@@ -71,6 +75,9 @@ public final class DrGramAIConfig {
      * key untouched, which lets users change model/endpoint without retyping it.
      */
     public static void save(String endpoint, String model, String apiKey) throws Exception {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M && !TextUtils.isEmpty(apiKey == null ? "" : apiKey.trim())) {
+            throw new IllegalStateException("Secure AI key storage requires Android 6 or later");
+        }
         String cleanEndpoint = endpoint == null ? "" : endpoint.trim();
         URL url = new URL(cleanEndpoint);
         if (!"https".equalsIgnoreCase(url.getProtocol()) || TextUtils.isEmpty(url.getHost())) {
@@ -94,6 +101,9 @@ public final class DrGramAIConfig {
     }
 
     private static SecretKey getOrCreateKey() throws Exception {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) {
+            throw new IllegalStateException("Android Keystore AES-GCM requires Android 6 or later");
+        }
         KeyStore keyStore = KeyStore.getInstance("AndroidKeyStore");
         keyStore.load(null);
         if (keyStore.containsAlias(KEY_ALIAS)) {
