@@ -3524,12 +3524,24 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             } else {
                 statusDrawable = new AnimatedEmojiDrawable.SwapAnimatedEmojiDrawable(null, dp(26));
                 statusDrawable.center = true;
-                logoDrawable = context.getResources().getDrawable(R.drawable.telegram_logo_2).mutate();
-                logoDrawable.setBounds(0, dp(2), logoDrawable.getIntrinsicWidth(), dp(2) + logoDrawable.getIntrinsicHeight());
-                logoDrawable.setColorFilter(getThemedColor(Theme.key_telegram_color_dialogsLogo), PorterDuff.Mode.MULTIPLY);
-                SpannableStringBuilder ssb = new SpannableStringBuilder(getString(R.string.AppName));
-                ssb.setSpan(new ImageSpan(logoDrawable), 0, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                // DrGram Fix 8: luxury branding — gold (or red) "DrGram" wordmark text + Persian tagline,
+                // replacing the upstream "Telegram" wordmark image span
+                SpannableStringBuilder ssb = new SpannableStringBuilder(LocaleController.getString(R.string.AppName));
+                ssb.setSpan(new android.text.style.ForegroundColorSpan(org.telegram.messenger.DrGramThemeInstaller.accentColor()), 0, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+                ssb.setSpan(new android.text.style.MetricAffectingSpan() {
+                    @Override
+                    public void updateMeasureState(@NonNull android.text.TextPaint p) {
+                        p.setTextSize(AndroidUtilities.dp(20));
+                        p.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+                    }
+                    @Override
+                    public void updateDrawState(@NonNull android.text.TextPaint p) {
+                        p.setTextSize(AndroidUtilities.dp(20));
+                        p.setTypeface(android.graphics.Typeface.DEFAULT_BOLD);
+                    }
+                }, 0, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                 actionBar.setTitle(ssb, statusDrawable);
+                actionBar.setSubtitle(LocaleController.getString(R.string.DrGramTagline));
                 updateStatus(UserConfig.getInstance(currentAccount).getCurrentUser(), false);
             }
             if (folderId == 0) {
