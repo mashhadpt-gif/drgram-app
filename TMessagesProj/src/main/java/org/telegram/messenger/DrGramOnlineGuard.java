@@ -32,7 +32,7 @@ public class DrGramOnlineGuard {
     private static final String CHANNEL_ID = "drgram_online_guard";
 
     private static volatile boolean started;
-    private static final HashSet<Long> knownOnline = new HashSet<>();
+    private static final HashSet<String> knownOnline = new HashSet<>();
 
     public static void onAppReady() {
         if (started) {
@@ -79,7 +79,7 @@ public class DrGramOnlineGuard {
         Set<String> watched = new HashSet<>(getWatchedIds(account));
         watched.remove(String.valueOf(userId));
         prefs(account).edit().putStringSet("watched", watched).apply();
-        knownOnline.remove(userId);
+        knownOnline.remove(statusKey(account, userId));
     }
 
     //endregion
@@ -145,15 +145,20 @@ public class DrGramOnlineGuard {
         if (user == null || user.bot) {
             return;
         }
-        boolean wasOnline = knownOnline.contains(user.id);
+        String key = statusKey(account, user.id);
+        boolean wasOnline = knownOnline.contains(key);
         if (onlineNow) {
-            knownOnline.add(user.id);
+            knownOnline.add(key);
             if (!wasOnline && isWatched(account, user.id)) {
                 postNotification(account, user);
             }
         } else {
-            knownOnline.remove(user.id);
+            knownOnline.remove(key);
         }
+    }
+
+    private static String statusKey(int account, long userId) {
+        return account + ":" + userId;
     }
 
     private static void postNotification(int account, TLRPC.User user) {
