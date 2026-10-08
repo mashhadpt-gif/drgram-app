@@ -4,6 +4,9 @@ apply plugin: 'com.android.library'
 apply plugin: 'org.telegram.build-plugin'
 apply plugin: 'idea'
 
+// DrGram Fix 6: ABI set is configurable via -PAPP_ABIS (comma-separated). Default: all four.
+def GRAM_ABIS = (project.findProperty('APP_ABIS') ?: 'armeabi-v7a,arm64-v8a,x86,x86_64').split(',').collect { it.trim() }
+
 idea {
     module {
         excludeDirs += [
@@ -152,6 +155,7 @@ android {
                 version '3.22.1'
                 arguments '-DANDROID_STL=c++_static', '-DANDROID_PLATFORM=android-21' //, '-DANDROID_SUPPORT_FLEXIBLE_PAGE_SIZES=ON'
                 targets 'tmessages.49'
+                GRAM_ABIS.each { abiFilters(it) }
             }
         }
     }
