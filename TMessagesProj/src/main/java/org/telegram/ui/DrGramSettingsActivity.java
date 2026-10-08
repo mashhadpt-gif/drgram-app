@@ -209,31 +209,31 @@ public class DrGramSettingsActivity extends BaseFragment {
                 LocaleController.getString(R.string.DrGramSetChatHint));
 
         Switch goldSwitch = new Switch(context);
-        goldSwitch.setChecked(SharedConfig.drgramGoldChat);
+        goldSwitch.setChecked(SharedConfig.drgramGoldChat, false);
         contentView.addView(makeToggleRow(context, LocaleController.getString(R.string.DrGramSetGoldChats), goldSwitch, () -> {
             SharedConfig.toggleDrgramGoldChat();
-            goldSwitch.setChecked(SharedConfig.drgramGoldChat);
+            goldSwitch.setChecked(SharedConfig.drgramGoldChat, false);
         }));
 
         Switch sparksSwitch = new Switch(context);
-        sparksSwitch.setChecked(SharedConfig.drgramSendSparks);
+        sparksSwitch.setChecked(SharedConfig.drgramSendSparks, false);
         contentView.addView(makeToggleRow(context, LocaleController.getString(R.string.DrGramSetSparks), sparksSwitch, () -> {
             SharedConfig.toggleDrgramSendSparks();
-            sparksSwitch.setChecked(SharedConfig.drgramSendSparks);
+            sparksSwitch.setChecked(SharedConfig.drgramSendSparks, false);
         }));
 
         Switch glassSwitch = new Switch(context);
-        glassSwitch.setChecked(SharedConfig.drgramGlassUI);
+        glassSwitch.setChecked(SharedConfig.drgramGlassUI, false);
         contentView.addView(makeToggleRow(context, LocaleController.getString(R.string.DrGramSetGlass), glassSwitch, () -> {
             SharedConfig.toggleDrgramGlassUI();
-            glassSwitch.setChecked(SharedConfig.drgramGlassUI);
+            glassSwitch.setChecked(SharedConfig.drgramGlassUI, false);
         }));
 
         Switch rainSwitch = new Switch(context);
-        rainSwitch.setChecked(SharedConfig.drgramReactionRain);
+        rainSwitch.setChecked(SharedConfig.drgramReactionRain, false);
         contentView.addView(makeToggleRow(context, LocaleController.getString(R.string.DrGramSetRain), rainSwitch, () -> {
             SharedConfig.toggleDrgramReactionRain();
-            rainSwitch.setChecked(SharedConfig.drgramReactionRain);
+            rainSwitch.setChecked(SharedConfig.drgramReactionRain, false);
         }));
     }
 
@@ -246,10 +246,10 @@ public class DrGramSettingsActivity extends BaseFragment {
                 LocaleController.getString(R.string.DrGramSetRelayHint));
 
         autoForwardSwitch = new Switch(context);
-        autoForwardSwitch.setChecked(SharedConfig.drgramAutoForward);
+        autoForwardSwitch.setChecked(SharedConfig.drgramAutoForward, false);
         contentView.addView(makeToggleRow(context, LocaleController.getString(R.string.DrGramSetRelayOn), autoForwardSwitch, () -> {
             SharedConfig.toggleDrgramAutoForward();
-            autoForwardSwitch.setChecked(SharedConfig.drgramAutoForward);
+            autoForwardSwitch.setChecked(SharedConfig.drgramAutoForward, false);
         }));
 
         rulesContainer = new LinearLayout(context);
@@ -404,17 +404,17 @@ public class DrGramSettingsActivity extends BaseFragment {
                 presentFragment(new DrGramVaultActivity())));
 
         hideAdsSwitch = new Switch(context);
-        hideAdsSwitch.setChecked(SharedConfig.drgramHideChannelAds);
+        hideAdsSwitch.setChecked(SharedConfig.drgramHideChannelAds, false);
         contentView.addView(makeToggleRow(context, LocaleController.getString(R.string.DrGramSetNoAds), hideAdsSwitch, () -> {
             SharedConfig.toggleDrgramHideChannelAds();
-            hideAdsSwitch.setChecked(SharedConfig.drgramHideChannelAds);
+            hideAdsSwitch.setChecked(SharedConfig.drgramHideChannelAds, false);
         }));
 
         declineSecretSwitch = new Switch(context);
-        declineSecretSwitch.setChecked(SharedConfig.drgramDeclineSecretChats);
+        declineSecretSwitch.setChecked(SharedConfig.drgramDeclineSecretChats, false);
         contentView.addView(makeToggleRow(context, LocaleController.getString(R.string.DrGramSetNoSecret), declineSecretSwitch, () -> {
             SharedConfig.toggleDrgramDeclineSecretChats();
-            declineSecretSwitch.setChecked(SharedConfig.drgramDeclineSecretChats);
+            declineSecretSwitch.setChecked(SharedConfig.drgramDeclineSecretChats, false);
         }));
     }
 
@@ -521,13 +521,13 @@ public class DrGramSettingsActivity extends BaseFragment {
 
     private void refreshDynamicRows() {
         if (autoForwardSwitch != null) {
-            autoForwardSwitch.setChecked(SharedConfig.drgramAutoForward);
+            autoForwardSwitch.setChecked(SharedConfig.drgramAutoForward, false);
         }
         if (hideAdsSwitch != null) {
-            hideAdsSwitch.setChecked(SharedConfig.drgramHideChannelAds);
+            hideAdsSwitch.setChecked(SharedConfig.drgramHideChannelAds, false);
         }
         if (declineSecretSwitch != null) {
-            declineSecretSwitch.setChecked(SharedConfig.drgramDeclineSecretChats);
+            declineSecretSwitch.setChecked(SharedConfig.drgramDeclineSecretChats, false);
         }
         if (rulesContainer != null) {
             rebuildRules();
