@@ -365,6 +365,9 @@ public class SharedConfig {
     public static boolean drgramHideChannelAds = true;
     public static boolean drgramDeclineSecretChats = false;
     public static long drgramSpecialContact = 0;
+    // DrGram luxury theme (Fix 8)
+    public static boolean drgramThemeApplied = false;
+    public static boolean drgramThemeRed = false;
 
     public static boolean isFloatingDebugActive;
     public static LiteMode liteMode;
@@ -687,6 +690,8 @@ public class SharedConfig {
             drgramHideChannelAds = preferences.getBoolean("drgramHideChannelAds", true);
             drgramDeclineSecretChats = preferences.getBoolean("drgramDeclineSecretChats", false);
             drgramSpecialContact = preferences.getLong("drgramSpecialContact", 0);
+            drgramThemeApplied = preferences.getBoolean("drgramThemeApplied", false);
+            drgramThemeRed = preferences.getBoolean("drgramThemeRed", false);
             hasEmailLogin = preferences.getBoolean("hasEmailLogin", false);
             isFloatingDebugActive = preferences.getBoolean("floatingDebugActive", false);
             updateStickersOrderOnSend = preferences.getBoolean("updateStickersOrderOnSend", true);
@@ -1296,6 +1301,18 @@ public class SharedConfig {
         drgramGoldChat = !drgramGoldChat;
         ApplicationLoader.applicationContext.getSharedPreferences("mainconfig", Activity.MODE_PRIVATE)
                 .edit().putBoolean("drgramGoldChat", drgramGoldChat).apply();
+    }
+
+    public static void setDrgramThemeApplied(boolean value) {
+        drgramThemeApplied = value;
+        ApplicationLoader.applicationContext.getSharedPreferences("mainconfig", Activity.MODE_PRIVATE)
+                .edit().putBoolean("drgramThemeApplied", value).apply();
+    }
+
+    public static void setDrgramThemeRed(boolean value) {
+        drgramThemeRed = value;
+        ApplicationLoader.applicationContext.getSharedPreferences("mainconfig", Activity.MODE_PRIVATE)
+                .edit().putBoolean("drgramThemeRed", value).apply();
     }
 
     public static void toggleDrgramVazirFont() {
