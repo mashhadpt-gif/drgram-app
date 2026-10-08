@@ -275,6 +275,7 @@ public class ApplicationLoader extends Application {
         DrGramOnlineGuard.onAppReady();
         DrGramContactHistory.onAppReady();
         DrGramAutoForward.onAppReady();
+        DrGramThemeInstaller.onAppReady();
         BillingController.getInstance().startConnection();
     }
 
