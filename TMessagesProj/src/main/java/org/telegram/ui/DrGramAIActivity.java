@@ -231,9 +231,9 @@ public class DrGramAIActivity extends BaseFragment {
         return params;
     }
 
-    private void saveConfiguration(boolean showToast) {
+    private boolean saveConfiguration(boolean showToast) {
         if (endpointField == null || modelField == null || keyField == null) {
-            return;
+            return false;
         }
         try {
             DrGramAIConfig.save(endpointField.getText().toString(), modelField.getText().toString(), keyField.getText().toString());
@@ -241,10 +241,13 @@ public class DrGramAIActivity extends BaseFragment {
             if (showToast && getParentActivity() != null) {
                 android.widget.Toast.makeText(getParentActivity(), LocaleController.getString(R.string.DrGramAiSaved), android.widget.Toast.LENGTH_SHORT).show();
             }
+            return true;
         } catch (Exception e) {
+            FileLog.e("DrGram AI settings could not be saved: " + e.getClass().getSimpleName());
             if (getParentActivity() != null) {
                 android.widget.Toast.makeText(getParentActivity(), LocaleController.getString(R.string.DrGramAiBadSettings), android.widget.Toast.LENGTH_LONG).show();
             }
+            return false;
         }
     }
 
@@ -262,7 +265,9 @@ public class DrGramAIActivity extends BaseFragment {
             }
             return;
         }
-        saveConfiguration(false);
+        if (!saveConfiguration(false)) {
+            return;
+        }
         String apiKey = DrGramAIConfig.getApiKey();
         if (apiKey == null || apiKey.isEmpty()) {
             if (getParentActivity() != null) {

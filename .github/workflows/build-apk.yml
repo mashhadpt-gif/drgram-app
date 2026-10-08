@@ -163,6 +163,22 @@ jobs:
           echo "size_mb=$SIZE_MB" >> "$GITHUB_OUTPUT"
           echo "DrGram APK ready: $DEST (${SIZE_MB} MB)"
 
+      - name: Verify FileProvider paths are restricted
+        shell: bash
+        run: |
+          set -euo pipefail
+          PATHS="TMessagesProj/src/main/res/xml/provider_paths.xml"
+          if grep -q '<root-path' "$PATHS"; then
+            echo "::error::Insecure FileProvider root-path is forbidden"
+            exit 1
+          fi
+          if grep -Eq '<external-path[^>]*path="\."' "$PATHS"; then
+            echo "::error::Broad external-path is forbidden"
+            exit 1
+          fi
+          grep -q 'path="Telegram/"' "$PATHS"
+          grep -q '<external-cache-path' "$PATHS"
+
       - name: Verify Google Play release manifest hardening
         shell: bash
         run: |

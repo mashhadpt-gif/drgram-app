@@ -5867,7 +5867,11 @@ public class AndroidUtilities {
                 return null;
             }
         }
-        File file = new File(cachePath, fileName);
+        File sharePath = new File(cachePath, "share");
+        if (!sharePath.isDirectory() && !sharePath.mkdirs()) {
+            return null;
+        }
+        File file = new File(sharePath, fileName);
         try (FileOutputStream out = new FileOutputStream(file)) {
             bitmap.compress(format, 87, out);
             out.close();

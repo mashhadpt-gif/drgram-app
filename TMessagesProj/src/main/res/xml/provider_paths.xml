@@ -1,7 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
-    <external-path name="media" path="."/>
-    <files-path name="logs" path="/logs/"/>
-    <files-path name="cache" path="/cache/"/>
-    <root-path name="external_files" path="/storage/" />
+    <!-- Legacy public media folders, limited to DrGram's Telegram directory. -->
+    <external-path name="telegram_media" path="Telegram/" />
+    <!-- Android 11+ may store app-managed media in app-specific external folders. -->
+    <external-files-path name="telegram_app_media" path="Telegram/" />
+    <external-media-path name="telegram_public_media" path="Telegram/" />
+    <!-- MediaController/FileLoader cache is app-specific and is shared one URI at a time. -->
+    <external-cache-path name="app_cache" path="." />
+    <!-- Only app-owned internal directories; paths stay relative to the files root. -->
+    <files-path name="logs" path="logs/" />
+    <files-path name="files_cache" path="cache/" />
 </paths>
