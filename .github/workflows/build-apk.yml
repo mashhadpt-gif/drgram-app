@@ -24,7 +24,7 @@ on:
 
 concurrency:
   group: drgram-apk-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -52,6 +52,8 @@ jobs:
         run: |
           df -h / | tail -1
           sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL /usr/local/share/boost || true
+          sudo rm -rf /usr/local/lib/android/sdk/system-images /usr/local/lib/android/sdk/emulator /usr/local/lib/android/sdk/extras || true
+          sudo rm -rf /usr/share/swift /opt/microsoft /opt/az /opt/pipx /usr/local/tools || true
           sudo docker image prune -af >/dev/null 2>&1 || true
           if [ -d /usr/local/lib/android/sdk/ndk ]; then
             for d in /usr/local/lib/android/sdk/ndk/*; do
@@ -106,7 +108,22 @@ jobs:
       - name: Gradle wrapper validation
         uses: gradle/actions/wrapper-validation@v4
 
-      - name: Build APK
+      - name: Build APK (phase 1/2 — native + all compiles)
+        run: |
+          ./gradlew :TMessagesProj:copyReleaseJniLibsProjectOnly \
+            --no-configuration-cache \
+            --stacktrace \
+            --continue
+
+      - name: Free disk before packaging (objects are pure intermediates)
+        run: |
+          df -h / | tail -1
+          rm -rf TMessagesProj/.cxx || true
+          find TMessagesProj -name "*.o" -type f -delete || true
+          find TMessagesProj -name "*.obj" -type f -delete || true
+          df -h / | tail -1
+
+      - name: Build APK (phase 2/2 — dex, package, sign)
         run: |
           ./gradlew :TMessagesProj_App:${{ steps.params.outputs.task }} \
             --no-configuration-cache \
