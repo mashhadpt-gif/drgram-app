@@ -153,10 +153,13 @@ public class IntroActivity extends BaseFragment implements NotificationCenter.No
 
     @Override
     public View createView(Context context) {
-        logoDrawable = context.getResources().getDrawable(R.drawable.telegram_logo).mutate();
+        logoDrawable = context.getResources().getDrawable(R.drawable.drgram_intro_logo).mutate();
         logoDrawable.setBounds(0, dp(8.666f), dp(115), dp(35));
+        // DrGram Fix 8: luxury intro — bold gold "DrGram" wordmark text instead of the
+        // upstream white "Telegram" wordmark image span
         SpannableStringBuilder ssb = new SpannableStringBuilder(LocaleController.getString(R.string.Page1Title));
-        ssb.setSpan(new ImageSpan(logoDrawable), 0, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        ssb.setSpan(new android.text.style.ForegroundColorSpan(org.telegram.messenger.DrGramThemeInstaller.accentColor()), 0, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
+        ssb.setSpan(new android.text.style.RelativeSizeSpan(1.18f), 0, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
         titles[0] = ssb;
 
 
@@ -218,8 +221,11 @@ public class IntroActivity extends BaseFragment implements NotificationCenter.No
             DialogsActivity.switchingTheme = true;
 
             // TODO: Generify this part, currently it's a clone of another theme switch toggle
-            String dayThemeName = "Gold";
-            String nightThemeName = "Night";
+            // DrGram Fix 8: switch between the two luxury file themes (black-gold / black-red)
+            String dayThemeName = org.telegram.messenger.Theme.getTheme(org.telegram.messenger.DrGramThemeInstaller.GOLD_THEME_NAME) != null
+                    ? org.telegram.messenger.DrGramThemeInstaller.GOLD_THEME_NAME : "Gold";
+            String nightThemeName = org.telegram.messenger.Theme.getTheme(org.telegram.messenger.DrGramThemeInstaller.RED_THEME_NAME) != null
+                    ? org.telegram.messenger.DrGramThemeInstaller.RED_THEME_NAME : "Night";
 
             Theme.ThemeInfo themeInfo;
             boolean toDark;
