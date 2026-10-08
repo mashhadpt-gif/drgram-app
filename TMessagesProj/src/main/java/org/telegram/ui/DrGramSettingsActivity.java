@@ -504,7 +504,7 @@ public class DrGramSettingsActivity extends BaseFragment {
     private void buildHotNotificationsSection(Context context) {
         addHeader(context, LocaleController.getString(R.string.DrGramSetHotNotifications),
                 LocaleController.getString(R.string.DrGramSetHotNotificationsHint));
-        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramOnlineGuardTitle), v ->
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramToolsTitle), v ->
                 presentFragment(new DrGramToolsActivity())));
     }
 
