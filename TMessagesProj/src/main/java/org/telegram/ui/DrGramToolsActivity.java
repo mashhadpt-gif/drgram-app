@@ -19,7 +19,7 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.LinearLayout;
-import android.widget.Switch;
+import org.telegram.ui.Components.Switch;
 import android.widget.TextView;
 
 import org.telegram.messenger.AndroidUtilities;
