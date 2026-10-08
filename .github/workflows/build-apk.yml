@@ -18,6 +18,14 @@ on:
         options:
           - release
           - debug
+      abi_mode:
+        description: 'ABI set: arm64 = fast build + small APK (modern phones) | all = universal (4 ABIs, slow)'
+        required: true
+        default: 'arm64'
+        type: choice
+        options:
+          - arm64
+          - all
   push:
     tags:
       - 'v*'
@@ -103,7 +111,13 @@ jobs:
           echo "version_code=${VERSION_CODE}" >> "$GITHUB_OUTPUT"
           echo "build_type=${BUILD_TYPE}" >> "$GITHUB_OUTPUT"
           echo "task=assembleAfat${TASK_SUFFIX}" >> "$GITHUB_OUTPUT"
-          echo "Building DrGram v${VERSION_NAME} (${VERSION_CODE}) — ${BUILD_TYPE} — task: assembleAfat${TASK_SUFFIX}"
+          if [ "${{ inputs.abi_mode }}" = "all" ]; then
+            ABIS="armeabi-v7a,arm64-v8a,x86,x86_64"
+          else
+            ABIS="arm64-v8a"
+          fi
+          echo "abis=$ABIS" >> "$GITHUB_OUTPUT"
+          echo "Building DrGram v${VERSION_NAME} (${VERSION_CODE}) — ${BUILD_TYPE} — task: assembleAfat${TASK_SUFFIX} — ABIs: $ABIS"
 
       - name: Gradle wrapper validation
         uses: gradle/actions/wrapper-validation@v4
@@ -111,6 +125,7 @@ jobs:
       - name: Build APK (phase 1/2 — native + all compiles)
         run: |
           ./gradlew :TMessagesProj:copyReleaseJniLibsProjectOnly \
+            -PAPP_ABIS="${{ steps.params.outputs.abis }}" \
             --no-configuration-cache \
             --stacktrace \
             --continue
@@ -126,6 +141,7 @@ jobs:
       - name: Build APK (phase 2/2 — dex, package, sign)
         run: |
           ./gradlew :TMessagesProj_App:${{ steps.params.outputs.task }} \
+            -PAPP_ABIS="${{ steps.params.outputs.abis }}" \
             --no-configuration-cache \
             --stacktrace
 
