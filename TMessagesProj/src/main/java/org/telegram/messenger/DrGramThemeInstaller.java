@@ -63,22 +63,70 @@ public class DrGramThemeInstaller {
      */
     public static void ensureDrGramTheme() {
         try {
-            boolean red = SharedConfig.drgramThemeRed;
-            String wantKey = red ? RED_KEY : GOLD_KEY;
-            Theme.ThemeInfo active = Theme.getActiveTheme();
-            if (active != null && wantKey.equals(active.name)) {
-                File f = active.pathToFile != null ? new File(active.pathToFile) : null;
-                if (f != null && f.exists() && f.length() > 1024) {
-                    pinBrandedTheme(active);
-                    return; // already installed and healthy
-                }
+            ensureThemeAsset(false);
+            ensureThemeAsset(true);
+
+            Theme.ThemeInfo gold = Theme.getTheme(GOLD_KEY);
+            Theme.ThemeInfo red = Theme.getTheme(RED_KEY);
+            if (gold == null || red == null) {
+                return;
             }
-            if (!applyVariant(red)) {
-                // fall back to the other variant if the primary asset is broken
-                applyVariant(!red);
+
+            // DrGram brand policy:
+            // Day   = black + gold
+            // Night = black + red
+            // Use Android/system mode to choose the palette, never Telegram stock.
+            MessagesController.getGlobalMainSettings().edit()
+                    .putString("theme", GOLD_KEY)
+                    .putString("nighttheme", RED_KEY)
+                    .putInt("selectedAutoNightType", Theme.AUTO_NIGHT_TYPE_SYSTEM)
+                    .apply();
+
+            Theme.selectedAutoNightType = Theme.AUTO_NIGHT_TYPE_SYSTEM;
+            Theme.setCurrentNightTheme(red);
+
+            if (Theme.isCurrentThemeDark()) {
+                Theme.applyTheme(red, true, true);
+            } else {
+                Theme.applyTheme(gold, true, false);
             }
         } catch (Throwable t) {
             FileLog.e(t);
+        }
+    }
+
+    private static boolean ensureThemeAsset(boolean red) {
+        try {
+            String name = red ? RED_THEME_NAME : GOLD_THEME_NAME;
+            String asset = red ? "drgram_red.attheme" : "drgram_gold.attheme";
+            String key = red ? RED_KEY : GOLD_KEY;
+
+            Theme.ThemeInfo existing = Theme.getTheme(key);
+            if (existing != null && existing.pathToFile != null) {
+                File installed = new File(existing.pathToFile);
+                if (installed.exists() && installed.length() > 1024) {
+                    return true;
+                }
+            }
+
+            Context ctx = ApplicationLoader.applicationContext;
+            if (ctx == null) {
+                return false;
+            }
+
+            File tmp = new File(ApplicationLoader.getFilesDirFixed(), name + ".install.tmp");
+            if (!copyAsset(ctx, asset, tmp)) {
+                return false;
+            }
+            Theme.ThemeInfo applied = Theme.applyThemeFile(tmp, name, (TLRPC.TL_theme) null, false);
+            try {
+                tmp.delete();
+            } catch (Throwable ignore) {
+            }
+            return applied != null;
+        } catch (Throwable t) {
+            FileLog.e(t);
+            return false;
         }
     }
 
