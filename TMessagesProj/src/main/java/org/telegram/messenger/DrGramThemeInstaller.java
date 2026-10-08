@@ -160,7 +160,9 @@ public class DrGramThemeInstaller {
             if (applied == null) {
                 return false;
             }
-            pinBrandedTheme(applied);
+            // Keep the two branded themes paired: gold for system day, red for
+            // system night. A manual palette tap must not pin both slots to one file.
+            ensureDrGramTheme();
             return true;
         } catch (Throwable t) {
             FileLog.e(t);
