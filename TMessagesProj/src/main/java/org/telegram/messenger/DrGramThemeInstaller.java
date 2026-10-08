@@ -206,6 +206,16 @@ public class DrGramThemeInstaller {
      * Current luxury accent color for the dialogs title & chrome accents.
      */
     public static int accentColor() {
+        Context context = ApplicationLoader.applicationContext;
+        if (context != null) {
+            int nightMode = context.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
+            if (nightMode == Configuration.UI_MODE_NIGHT_YES) {
+                return 0xFFE63B52;
+            }
+            if (nightMode == Configuration.UI_MODE_NIGHT_NO) {
+                return 0xFFF5B90D;
+            }
+        }
         return SharedConfig.drgramThemeRed ? 0xFFE63B52 : 0xFFF5B90D;
     }
 
