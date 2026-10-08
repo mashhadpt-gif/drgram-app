@@ -108,7 +108,9 @@ public class DrGramSettingsActivity extends BaseFragment {
             presentFragment(new ProfileActivity(args));
         }));
         contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSetAppearance), v ->
-                presentFragment(new ThemeActivity(ThemeActivity.THEME_TYPE_BASIC))));
+                chooseBrandMode()));
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramQuickLinksTitle), v ->
+                presentFragment(new DrGramQuickLinksActivity())));
         contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSetLanguage), v ->
                 presentFragment(new LanguageSelectActivity())));
     }
@@ -138,16 +140,43 @@ public class DrGramSettingsActivity extends BaseFragment {
         pillsRow.addView(themePillGold, pillParams);
         pillsRow.addView(themePillRed, pillParams);
 
+        themePillGold.setOnClickListener(v -> applyBrandMode(false));
+        themePillRed.setOnClickListener(v -> applyBrandMode(true));
         refreshThemePills();
+    }
+
+    private void chooseBrandMode() {
+        if (getParentActivity() == null) {
+            return;
+        }
+        String[] modes = {
+                LocaleController.getString(R.string.DrGramSetThemeGold),
+                LocaleController.getString(R.string.DrGramSetThemeRed)
+        };
+        new AlertDialog.Builder(getParentActivity())
+                .setTitle(LocaleController.getString(R.string.DrGramSetTheme))
+                .setItems(modes, (dialog, which) -> applyBrandMode(which == 1))
+                .setNegativeButton(LocaleController.getString(R.string.Cancel), null)
+                .show();
+    }
+
+    private void applyBrandMode(boolean loveMode) {
+        boolean applied = DrGramThemeInstaller.setLoveMode(loveMode);
+        refreshThemePills();
+        if (!applied && getParentActivity() != null) {
+            android.widget.Toast.makeText(getParentActivity(),
+                    LocaleController.getString(R.string.DrGramSetThemeApplyFailed),
+                    android.widget.Toast.LENGTH_LONG).show();
+        }
     }
 
     private LinearLayout makeThemePill(Context context, String label, int accent, boolean red) {
         LinearLayout pill = new LinearLayout(context);
         pill.setOrientation(LinearLayout.HORIZONTAL);
         pill.setGravity(Gravity.CENTER);
-        // These two pills are a palette legend, not a manual override:
-        // DrGram automatically uses gold in Android day mode and red at night.
-        pill.setClickable(false);
+        // These are actual mode switches, independent of Android's system theme.
+        pill.setClickable(true);
+        pill.setFocusable(true);
 
         android.widget.ImageView dot = new android.widget.ImageView(context);
         android.graphics.drawable.GradientDrawable dotBg = new android.graphics.drawable.GradientDrawable();
@@ -172,28 +201,26 @@ public class DrGramSettingsActivity extends BaseFragment {
             return;
         }
         int cardColor = getThemedColor(Theme.key_dialogBackground);
-        int accent = org.telegram.messenger.DrGramThemeInstaller.accentColor();
+        boolean loveMode = DrGramThemeInstaller.isLoveMode();
         android.graphics.drawable.GradientDrawable goldBg = new android.graphics.drawable.GradientDrawable();
         goldBg.setCornerRadius(AndroidUtilities.dp(18));
-        goldBg.setColor(cardColor);
-        goldBg.setStroke(AndroidUtilities.dp(1), 0xFFF5B90D);
+        goldBg.setColor(loveMode ? cardColor : 0xFF28200B);
+        goldBg.setStroke(AndroidUtilities.dp(loveMode ? 1 : 2), 0xFFF5B90D);
         themePillGold.setBackgroundDrawable(goldBg);
         themePillGold.setPadding(AndroidUtilities.dp(14), AndroidUtilities.dp(12), AndroidUtilities.dp(14), AndroidUtilities.dp(12));
         android.graphics.drawable.GradientDrawable redBg = new android.graphics.drawable.GradientDrawable();
         redBg.setCornerRadius(AndroidUtilities.dp(18));
-        redBg.setColor(cardColor);
-        redBg.setStroke(AndroidUtilities.dp(1), 0xFFE63B52);
+        redBg.setColor(loveMode ? 0xFF2B1017 : cardColor);
+        redBg.setStroke(AndroidUtilities.dp(loveMode ? 2 : 1), 0xFFE63B52);
         themePillRed.setBackgroundDrawable(redBg);
         themePillRed.setPadding(AndroidUtilities.dp(14), AndroidUtilities.dp(12), AndroidUtilities.dp(14), AndroidUtilities.dp(12));
-        themePillGold.getLayoutParams().height = ViewGroup.LayoutParams.WRAP_CONTENT;
-        themePillRed.getLayoutParams().height = ViewGroup.LayoutParams.WRAP_CONTENT;
-        // Both palettes are always available: gold for day and red for night.
+        // Both are selectable; the thicker stroke marks the currently active mode.
         android.widget.TextView goldLabel = (android.widget.TextView) themePillGold.getChildAt(1);
         android.widget.TextView redLabel = (android.widget.TextView) themePillRed.getChildAt(1);
         goldLabel.setTextColor(0xFFF5B90D);
         redLabel.setTextColor(0xFFE63B52);
-        themePillGold.setClickable(false);
-        themePillRed.setClickable(false);
+        themePillGold.setClickable(true);
+        themePillRed.setClickable(true);
     }
 
     //endregion

@@ -16,10 +16,21 @@
     <string name="Page1Title">درگرم</string>
     <string name="Page1Message">پیام‌رسان **لوکس**.\nساخته‌شده برای **خاص‌ها**.</string>
     <string name="DrGramTagline">پیام‌رسان لوکس</string>
-    <string name="DrGramSetTheme">تم لوکس</string>
-    <string name="DrGramSetThemeHint">مشکی-طلایی یا مشکی-قرمز — همون طرح تاییدشده. آنی اعمال میشه.</string>
-    <string name="DrGramSetThemeGold">مشکی-طلایی</string>
-    <string name="DrGramSetThemeRed">مشکی-قرمز</string>
+    <string name="DrGramSetTheme">مود اختصاصی DrGram</string>
+    <string name="DrGramSetThemeHint">دستی انتخاب کن: Gold Mode (لاکچری) یا LOVE Mode (عاشقانه). هر دو تم متعلق به DrGram هستند و تم پیش‌فرض تلگرام انتخاب نمی‌شود.</string>
+    <string name="DrGramSetThemeGold">Gold Mode (لاکچری)</string>
+    <string name="DrGramSetThemeRed">LOVE Mode (عاشقانه)</string>
+    <string name="DrGramSetThemeApplyFailed">اعمال مود DrGram ناموفق بود؛ برنامه را دوباره باز کن و مجدداً امتحان کن.</string>
+    <string name="DrGramQuickLinksTitle">لینک‌های سریع</string>
+    <string name="DrGramQuickLinksHint">پیوندهای پرکاربردت را ذخیره کن؛ اطلاعات فقط روی همین دستگاه می‌ماند.</string>
+    <string name="DrGramQuickLinksAdd">افزودن لینک سریع</string>
+    <string name="DrGramQuickLinksName">نام لینک</string>
+    <string name="DrGramQuickLinksUrl">آدرس یا لینک تلگرام</string>
+    <string name="DrGramQuickLinksEmpty">هنوز لینکی ذخیره نشده است.</string>
+    <string name="DrGramQuickLinksInvalid">یک لینک معتبر http، https یا tg وارد کن.</string>
+    <string name="DrGramQuickLinksSaved">لینک سریع ذخیره شد.</string>
+    <string name="DrGramQuickLinksActions">ویرایش یا حذف این لینک؟</string>
+    <string name="DrGramQuickLinksOpenFailed">باز کردن این لینک ناموفق بود.</string>
     <string name="YourNumber">شماره تلفن خود را وارد کنید</string>
 
     <!-- DrGram Fix 9: full Persian branding -->

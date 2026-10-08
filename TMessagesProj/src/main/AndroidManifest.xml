@@ -106,7 +106,7 @@
         android:supportsRtl="false"
         android:requestLegacyExternalStorage="true"
         android:preserveLegacyExternalStorage="true"
-        android:allowAudioPlaybackCapture="true"
+        android:allowAudioPlaybackCapture="false"
         tools:replace="android:supportsRtl"
         android:usesCleartextTraffic="true"
         android:enableOnBackInvokedCallback="true"

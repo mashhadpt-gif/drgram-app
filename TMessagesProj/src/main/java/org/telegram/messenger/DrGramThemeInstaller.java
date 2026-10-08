@@ -66,36 +66,67 @@ public class DrGramThemeInstaller {
         try {
             ensureThemeAsset(false);
             ensureThemeAsset(true);
-
-            Theme.ThemeInfo gold = Theme.getTheme(GOLD_KEY);
-            Theme.ThemeInfo red = Theme.getTheme(RED_KEY);
-            if (gold == null || red == null) {
-                return;
-            }
-
-            // DrGram brand policy:
-            // Day   = black + gold
-            // Night = black + red
-            // Use Android/system mode to choose the palette, never Telegram stock.
-            MessagesController.getGlobalMainSettings().edit()
-                    .putString("theme", GOLD_KEY)
-                    .putString("nighttheme", RED_KEY)
-                    .putInt("selectedAutoNightType", Theme.AUTO_NIGHT_TYPE_SYSTEM)
-                    .apply();
-
-            Theme.selectedAutoNightType = Theme.AUTO_NIGHT_TYPE_SYSTEM;
-            Theme.setCurrentNightTheme(red);
-
-            Context context = ApplicationLoader.applicationContext;
-            int nightMode = context.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
-            boolean systemNight = nightMode == Configuration.UI_MODE_NIGHT_YES;
-            if (systemNight) {
-                Theme.applyTheme(red, true, true);
-            } else {
-                Theme.applyTheme(gold, true, false);
-            }
+            // Keep the currently selected DrGram brand mode. Do not bind theme
+            // switching to Android's uiMode and never fall back to Telegram stock.
+            setLoveMode(isLoveMode());
         } catch (Throwable t) {
             FileLog.e(t);
+        }
+    }
+
+    /** True when the manually selected LOVE Mode (black + romantic red) is active. */
+    public static boolean isLoveMode() {
+        try {
+            SharedPreferences settings = MessagesController.getGlobalMainSettings();
+            String saved = settings.getString("drgram_brand_mode", null);
+            if ("love".equals(saved)) {
+                return true;
+            }
+            if ("gold".equals(saved)) {
+                return false;
+            }
+            // One-time migration from the prior DrGram build's persisted switch.
+            boolean legacyLove = SharedConfig.drgramThemeRed;
+            settings.edit().putString("drgram_brand_mode", legacyLove ? "love" : "gold").apply();
+            return legacyLove;
+        } catch (Throwable t) {
+            FileLog.e(t);
+            return SharedConfig.drgramThemeRed;
+        }
+    }
+
+    /**
+     * Selects one branded palette manually. Both Telegram theme slots are pinned
+     * to the same DrGram theme and auto-night switching is disabled, so changing
+     * Android's system light/dark setting can never activate the stock theme.
+     */
+    public static boolean setLoveMode(boolean loveMode) {
+        try {
+            if (!ensureThemeAsset(false) || !ensureThemeAsset(true)) {
+                return false;
+            }
+            String key = loveMode ? RED_KEY : GOLD_KEY;
+            Theme.ThemeInfo selected = Theme.getTheme(key);
+            if (selected == null) {
+                return false;
+            }
+            SharedPreferences settings = MessagesController.getGlobalMainSettings();
+            settings.edit()
+                    .putString("drgram_brand_mode", loveMode ? "love" : "gold")
+                    .putString("theme", key)
+                    .putString("nighttheme", key)
+                    .putInt("selectedAutoNightType", Theme.AUTO_NIGHT_TYPE_NONE)
+                    .apply();
+
+            SharedConfig.setDrgramThemeRed(loveMode);
+            Theme.selectedAutoNightType = Theme.AUTO_NIGHT_TYPE_NONE;
+            Theme.cancelAutoNightThemeCallbacks();
+            Theme.setCurrentNightTheme(selected);
+            Theme.applyTheme(selected, true, loveMode);
+            return true;
+        } catch (Throwable t) {
+            FileLog.e(t);
+            return false;
         }
     }
 
@@ -138,36 +169,7 @@ public class DrGramThemeInstaller {
      * Applies the bundled luxury theme file. red = true → DrGram Red, false → DrGram Gold.
      */
     public static boolean applyVariant(boolean red) {
-        try {
-            String name = red ? RED_THEME_NAME : GOLD_THEME_NAME;
-            String asset = red ? "drgram_red.attheme" : "drgram_gold.attheme";
-            Context ctx = ApplicationLoader.applicationContext;
-            if (ctx == null) {
-                return false;
-            }
-            // Fix 10: copy the asset to a TEMP file first. Theme.applyThemeFile copies
-            // `file` onto filesDir/<name>.attheme — copying the asset straight to that
-            // same path (as the previous build did) truncated the theme file to 0 bytes.
-            File tmp = new File(ApplicationLoader.getFilesDirFixed(), name + ".tmp");
-            if (!copyAsset(ctx, asset, tmp)) {
-                return false;
-            }
-            Theme.ThemeInfo applied = Theme.applyThemeFile(tmp, name, (TLRPC.TL_theme) null, false);
-            try {
-                tmp.delete();
-            } catch (Throwable ignore) {
-            }
-            if (applied == null) {
-                return false;
-            }
-            // Keep the two branded themes paired: gold for system day, red for
-            // system night. A manual palette tap must not pin both slots to one file.
-            ensureDrGramTheme();
-            return true;
-        } catch (Throwable t) {
-            FileLog.e(t);
-        }
-        return false;
+        return setLoveMode(red);
     }
 
     /**
@@ -206,17 +208,7 @@ public class DrGramThemeInstaller {
      * Current luxury accent color for the dialogs title & chrome accents.
      */
     public static int accentColor() {
-        Context context = ApplicationLoader.applicationContext;
-        if (context != null) {
-            int nightMode = context.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
-            if (nightMode == Configuration.UI_MODE_NIGHT_YES) {
-                return 0xFFE63B52;
-            }
-            if (nightMode == Configuration.UI_MODE_NIGHT_NO) {
-                return 0xFFF5B90D;
-            }
-        }
-        return SharedConfig.drgramThemeRed ? 0xFFE63B52 : 0xFFF5B90D;
+        return isLoveMode() ? 0xFFE63B52 : 0xFFF5B90D;
     }
 
     private static boolean copyAsset(Context ctx, String asset, File out) {
