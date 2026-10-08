@@ -25,6 +25,7 @@ package org.telegram.messenger;
 
 import android.content.Context;
 import android.content.SharedPreferences;
+import android.content.res.Configuration;
 
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.Theme;
@@ -85,7 +86,10 @@ public class DrGramThemeInstaller {
             Theme.selectedAutoNightType = Theme.AUTO_NIGHT_TYPE_SYSTEM;
             Theme.setCurrentNightTheme(red);
 
-            if (Theme.isCurrentThemeDark()) {
+            Context context = ApplicationLoader.applicationContext;
+            int nightMode = context.getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
+            boolean systemNight = nightMode == Configuration.UI_MODE_NIGHT_YES;
+            if (systemNight) {
                 Theme.applyTheme(red, true, true);
             } else {
                 Theme.applyTheme(gold, true, false);
