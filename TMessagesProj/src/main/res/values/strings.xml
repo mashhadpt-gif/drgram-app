@@ -4240,6 +4240,14 @@
     <string name="DrGramOpenToolsTitle">Auto reply &amp; advanced tools</string>
     <string name="DrGramOpenToolsHint">Automatic replies, presence alerts, hidden chats and other DrGram tools.</string>
     <string name="DrGramSetExploreOpen">Explore media from joined channels</string>
+    <string name="DrGramSetChatList">Chat list / home page</string>
+    <string name="DrGramSetChatListHint">Manage the native Telegram chat folders and filters.</string>
+    <string name="DrGramSetChatListOpen">Chat list and folders</string>
+    <string name="DrGramSetGifts">Gifts</string>
+    <string name="DrGramSetGiftsHint">Open Telegram's native gift recipient selector.</string>
+    <string name="DrGramSetGiftsOpen">Send a gift</string>
+    <string name="DrGramSetHotNotifications">Hot notifications</string>
+    <string name="DrGramSetHotNotificationsHint">Open DrGram online alerts and automatic-reply tools.</string>
     <string name="DrGramPrivateContactsTitle">Private contacts</string>
     <string name="DrGramPrivateContactsHint">Hide selected contacts from the standard contacts list without deleting them from Telegram. This setting is local to this account and device.</string>
     <string name="DrGramPrivateContactsEmpty">No loaded contacts are available yet.</string>

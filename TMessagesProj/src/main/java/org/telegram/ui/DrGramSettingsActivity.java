@@ -22,6 +22,7 @@ import org.telegram.ui.Components.Switch;
 import android.widget.TextView;
 
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.BirthdayController;
 import org.telegram.messenger.ContactsController;
 import org.telegram.messenger.DialogObject;
 import org.telegram.messenger.DrGramAutoForward;
@@ -40,6 +41,7 @@ import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.LayoutHelper;
+import org.telegram.ui.Components.Premium.boosts.UserSelectorBottomSheet;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -77,7 +79,9 @@ public class DrGramSettingsActivity extends BaseFragment {
 
         buildGeneralSection(context);
         buildThemeSection(context);
+        buildChatListSection(context);
         buildChatSection(context);
+        buildGiftsSection(context);
         buildAutoForwardSection(context);
         buildQuickRepliesSection(context);
         buildAutoReplySection(context);
@@ -85,6 +89,7 @@ public class DrGramSettingsActivity extends BaseFragment {
         buildPrivacySection(context);
         buildMediaSection(context);
         buildNotifySection(context);
+        buildHotNotificationsSection(context);
         buildAccountsSection(context);
         buildContactsSection(context);
         buildFavTagsSection(context);
@@ -229,6 +234,20 @@ public class DrGramSettingsActivity extends BaseFragment {
     //endregion
 
     //region 2. Chat feel
+
+    private void buildChatListSection(Context context) {
+        addHeader(context, LocaleController.getString(R.string.DrGramSetChatList),
+                LocaleController.getString(R.string.DrGramSetChatListHint));
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSetChatListOpen), v ->
+                presentFragment(new FiltersSetupActivity())));
+    }
+
+    private void buildGiftsSection(Context context) {
+        addHeader(context, LocaleController.getString(R.string.DrGramSetGifts),
+                LocaleController.getString(R.string.DrGramSetGiftsHint));
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSetGiftsOpen), v ->
+                UserSelectorBottomSheet.open(0, BirthdayController.getInstance(currentAccount).getState())));
+    }
 
     private void buildChatSection(Context context) {
         addHeader(context, LocaleController.getString(R.string.DrGramSetChat),
@@ -481,6 +500,13 @@ public class DrGramSettingsActivity extends BaseFragment {
     //endregion
 
     //region 9. Accounts
+
+    private void buildHotNotificationsSection(Context context) {
+        addHeader(context, LocaleController.getString(R.string.DrGramSetHotNotifications),
+                LocaleController.getString(R.string.DrGramSetHotNotificationsHint));
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramOnlineGuardTitle), v ->
+                presentFragment(new DrGramToolsActivity())));
+    }
 
     private void buildAccountsSection(Context context) {
         addHeader(context, LocaleController.getString(R.string.DrGramSetAccounts),

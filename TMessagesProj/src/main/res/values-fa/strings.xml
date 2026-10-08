@@ -41,6 +41,14 @@
     <string name="DrGramOpenToolsTitle">پاسخ‌گوی خودکار و ابزارهای پیشرفته</string>
     <string name="DrGramOpenToolsHint">پاسخ خودکار، هشدار آنلاین‌شدن، گفتگوهای پنهان و ابزارهای دیگر DrGram.</string>
     <string name="DrGramSetExploreOpen">کاوش رسانه‌های کانال‌های عضو‌شده</string>
+    <string name="DrGramSetChatList">لیست گفتگوها / صفحه اصلی</string>
+    <string name="DrGramSetChatListHint">پوشه‌ها و فیلترهای اصلی تلگرام را مدیریت کن.</string>
+    <string name="DrGramSetChatListOpen">لیست گفتگوها و پوشه‌ها</string>
+    <string name="DrGramSetGifts">هدایا</string>
+    <string name="DrGramSetGiftsHint">انتخاب‌گر اصلی تلگرام برای گیرنده هدیه را باز کن.</string>
+    <string name="DrGramSetGiftsOpen">ارسال هدیه</string>
+    <string name="DrGramSetHotNotifications">اعلان‌های داغ</string>
+    <string name="DrGramSetHotNotificationsHint">هشدار آنلاین‌شدن و ابزار پاسخ‌گوی خودکار DrGram را باز کن.</string>
     <string name="DrGramPrivateContactsTitle">مخاطبین خصوصی</string>
     <string name="DrGramPrivateContactsHint">مخاطب‌های انتخاب‌شده را بدون حذف از تلگرام، از فهرست معمول مخاطبین پنهان کن. این تنظیم فقط روی همین حساب و دستگاه ذخیره می‌شود.</string>
     <string name="DrGramPrivateContactsEmpty">فعلاً مخاطب بارگذاری‌شده‌ای در دسترس نیست.</string>
