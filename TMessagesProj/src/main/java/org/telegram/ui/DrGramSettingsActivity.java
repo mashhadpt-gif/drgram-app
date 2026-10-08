@@ -582,6 +582,8 @@ public class DrGramSettingsActivity extends BaseFragment {
     private void buildContactsSection(Context context) {
         addHeader(context, LocaleController.getString(R.string.DrGramSetContacts),
                 LocaleController.getString(R.string.DrGramSetContactsHint));
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramPrivateContactsTitle), v ->
+                presentFragment(new DrGramPrivateContactsActivity())));
         contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSetContactsOpen), v ->
                 presentFragment(new ContactsActivity(new Bundle()))));
         contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSetClogOpen), v ->

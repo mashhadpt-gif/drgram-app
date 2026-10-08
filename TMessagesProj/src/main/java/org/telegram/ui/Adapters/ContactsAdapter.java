@@ -25,6 +25,7 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ContactsController;
+import org.telegram.messenger.DrGramPrivateContacts;
 import org.telegram.messenger.FileLog;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.MessagesController;
@@ -98,12 +99,13 @@ public class ContactsAdapter extends RecyclerListView.SectionsAdapter {
             if (onlineContacts == null || force) {
                 onlineContacts = new ArrayList<>(ContactsController.getInstance(currentAccount).contacts);
                 long selfId = UserConfig.getInstance(currentAccount).clientUserId;
-                for (int a = 0, N = onlineContacts.size(); a < N; a++) {
+                for (int a = 0; a < onlineContacts.size(); a++) {
                     if (onlineContacts.get(a).user_id == selfId) {
                         onlineContacts.remove(a);
                         break;
                     }
                 }
+                onlineContacts = DrGramPrivateContacts.filterVisible(currentAccount, onlineContacts);
             }
             sortOnlineContacts();
         } else {
@@ -185,7 +187,7 @@ public class ContactsAdapter extends RecyclerListView.SectionsAdapter {
 
         if (onlyUsers != 0 && !isAdmin) {
             if (section < sortedUsersSectionsArray.size()) {
-                ArrayList<TLRPC.TL_contact> arr = usersSectionsDict.get(sortedUsersSectionsArray.get(section));
+                ArrayList<TLRPC.TL_contact> arr = getVisibleSection(usersSectionsDict, sortedUsersSectionsArray, section);
                 if (position < arr.size()) {
                     return MessagesController.getInstance(currentAccount).getUser(arr.get(position).user_id);
                 }
@@ -204,7 +206,7 @@ public class ContactsAdapter extends RecyclerListView.SectionsAdapter {
                     }
                 } else {
                     if (section - 1 < sortedUsersSectionsArray.size()) {
-                        ArrayList<TLRPC.TL_contact> arr = usersSectionsDict.get(sortedUsersSectionsArray.get(section - 1));
+                        ArrayList<TLRPC.TL_contact> arr = getVisibleSection(usersSectionsDict, sortedUsersSectionsArray, section - 1);
                         if (position < arr.size()) {
                             return MessagesController.getInstance(currentAccount).getUser(arr.get(position).user_id);
                         }
@@ -219,6 +221,17 @@ public class ContactsAdapter extends RecyclerListView.SectionsAdapter {
         return null;
     }
 
+
+    private ArrayList<TLRPC.TL_contact> getVisibleSection(
+            HashMap<String, ArrayList<TLRPC.TL_contact>> sections,
+            ArrayList<String> sectionKeys,
+            int sectionIndex) {
+        if (sectionIndex < 0 || sectionIndex >= sectionKeys.size()) {
+            return new ArrayList<>();
+        }
+        ArrayList<TLRPC.TL_contact> source = sections.get(sectionKeys.get(sectionIndex));
+        return DrGramPrivateContacts.filterVisible(currentAccount, source);
+    }
 
     public int getHash(int section, int position) {
         int sectionIndex = section;
@@ -239,7 +252,7 @@ public class ContactsAdapter extends RecyclerListView.SectionsAdapter {
             if (isEmpty) {
                 return false;
             }
-            ArrayList<TLRPC.TL_contact> arr = usersSectionsDict.get(sortedUsersSectionsArray.get(section));
+            ArrayList<TLRPC.TL_contact> arr = getVisibleSection(usersSectionsDict, sortedUsersSectionsArray, section);
             return row < arr.size();
         } else {
             if (section == 0) {
@@ -260,7 +273,7 @@ public class ContactsAdapter extends RecyclerListView.SectionsAdapter {
                     }
                 } else {
                     if (section - 1 < sortedUsersSectionsArray.size()) {
-                        ArrayList<TLRPC.TL_contact> arr = usersSectionsDict.get(sortedUsersSectionsArray.get(section - 1));
+                        ArrayList<TLRPC.TL_contact> arr = getVisibleSection(usersSectionsDict, sortedUsersSectionsArray, section - 1);
                         return row < arr.size();
                     }
                 }
@@ -330,7 +343,7 @@ public class ContactsAdapter extends RecyclerListView.SectionsAdapter {
                 return 1;
             }
             if (section < sortedUsersSectionsArray.size()) {
-                ArrayList<TLRPC.TL_contact> arr = usersSectionsDict.get(sortedUsersSectionsArray.get(section));
+                ArrayList<TLRPC.TL_contact> arr = getVisibleSection(usersSectionsDict, sortedUsersSectionsArray, section);
                 int count = arr.size();
                 if (section != (sortedUsersSectionsArray.size() - 1) || needPhonebook) {
                     count++;
@@ -360,7 +373,7 @@ public class ContactsAdapter extends RecyclerListView.SectionsAdapter {
                     }
                 } else {
                     if (section - 1 < sortedUsersSectionsArray.size()) {
-                        ArrayList<TLRPC.TL_contact> arr = usersSectionsDict.get(sortedUsersSectionsArray.get(section - 1));
+                        ArrayList<TLRPC.TL_contact> arr = getVisibleSection(usersSectionsDict, sortedUsersSectionsArray, section - 1);
                         int count = arr.size();
                         if (section - 1 != (sortedUsersSectionsArray.size() - 1) || needPhonebook) {
                         //    count++;
@@ -539,7 +552,7 @@ public class ContactsAdapter extends RecyclerListView.SectionsAdapter {
                 } else {
                     HashMap<String, ArrayList<TLRPC.TL_contact>> usersSectionsDict = onlyUsers == 2 ? ContactsController.getInstance(currentAccount).usersMutualSectionsDict : ContactsController.getInstance(currentAccount).usersSectionsDict;
                     ArrayList<String> sortedUsersSectionsArray = onlyUsers == 2 ? ContactsController.getInstance(currentAccount).sortedUsersMutualSectionsArray : ContactsController.getInstance(currentAccount).sortedUsersSectionsArray;
-                    arr = usersSectionsDict.get(sortedUsersSectionsArray.get(section - (onlyUsers != 0 && !isAdmin ? 0 : 1)));
+                    arr = getVisibleSection(usersSectionsDict, sortedUsersSectionsArray, section - (onlyUsers != 0 && !isAdmin ? 0 : 1));
                 }
                 TLRPC.User user = MessagesController.getInstance(currentAccount).getUser(arr.get(position).user_id);
                 userCell.setData(user, null, null, 0);
@@ -640,7 +653,7 @@ public class ContactsAdapter extends RecyclerListView.SectionsAdapter {
             if (isEmpty) {
                 return EMPTY_CELL;
             }
-            ArrayList<TLRPC.TL_contact> arr = usersSectionsDict.get(sortedUsersSectionsArray.get(section));
+            ArrayList<TLRPC.TL_contact> arr = getVisibleSection(usersSectionsDict, sortedUsersSectionsArray, section);
             return position < arr.size() ? USER_CELL : DIVIDER_CELL;
         } else {
             if (section == 0) {
@@ -679,7 +692,7 @@ public class ContactsAdapter extends RecyclerListView.SectionsAdapter {
                     }
                 } else {
                     if (section - 1 < sortedUsersSectionsArray.size()) {
-                        ArrayList<TLRPC.TL_contact> arr = usersSectionsDict.get(sortedUsersSectionsArray.get(section - 1));
+                        ArrayList<TLRPC.TL_contact> arr = getVisibleSection(usersSectionsDict, sortedUsersSectionsArray, section - 1);
                         return position < arr.size() ? USER_CELL : DIVIDER_CELL;
                     }
                 }

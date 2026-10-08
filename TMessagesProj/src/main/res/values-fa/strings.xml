@@ -41,6 +41,11 @@
     <string name="DrGramOpenToolsTitle">پاسخ‌گوی خودکار و ابزارهای پیشرفته</string>
     <string name="DrGramOpenToolsHint">پاسخ خودکار، هشدار آنلاین‌شدن، گفتگوهای پنهان و ابزارهای دیگر DrGram.</string>
     <string name="DrGramSetExploreOpen">کاوش رسانه‌های کانال‌های عضو‌شده</string>
+    <string name="DrGramPrivateContactsTitle">مخاطبین خصوصی</string>
+    <string name="DrGramPrivateContactsHint">مخاطب‌های انتخاب‌شده را بدون حذف از تلگرام، از فهرست معمول مخاطبین پنهان کن. این تنظیم فقط روی همین حساب و دستگاه ذخیره می‌شود.</string>
+    <string name="DrGramPrivateContactsEmpty">فعلاً مخاطب بارگذاری‌شده‌ای در دسترس نیست.</string>
+    <string name="DrGramPrivateContactsHidden">پنهان از مخاطبین</string>
+    <string name="DrGramPrivateContactsVisible">قابل‌نمایش در مخاطبین</string>
     <string name="YourNumber">شماره تلفن خود را وارد کنید</string>
 
     <!-- DrGram Fix 9: full Persian branding -->
