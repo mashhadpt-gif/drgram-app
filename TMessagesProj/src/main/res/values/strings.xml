@@ -4199,19 +4199,26 @@
     <string name="ViewMessageStatistic">Message Statistic</string>
     <string name="ViewMessage">Open Message</string>
     <!--Intro view-->
-    <string name="Page1Title">Telegram</string>
+    <string name="Page1Title">DrGram</string>
     <string name="Page2Title">Fast</string>
     <string name="Page3Title">Free</string>
     <string name="Page4Title">Secure</string>
     <string name="Page5Title">Powerful</string>
     <string name="Page6Title">Cloud-Based</string>
-    <string name="Page1Message">The world\'s **fastest** messaging app.\nIt is **free** and **secure**.</string>
+    <string name="Page1Message">The **luxury** messenger.\nBuilt for the **special** ones.</string>
     <string name="Page2Message">**Telegram** delivers messages faster than\nany other application.</string>
     <string name="Page3Message">**Telegram** provides free unlimited cloud storage for chats and media.</string>
     <string name="Page4Message">**Telegram** keeps your messages safe\nfrom hacker attacks.</string>
     <string name="Page5Message">**Telegram** has no limits on\nthe size of your media and chats.</string>
     <string name="Page6Message">**Telegram** lets you access your messages\nfrom multiple devices.</string>
-    <string name="StartMessaging">Start Messaging</string>
+    <string name="StartMessaging">Enter the Luxury World</string>
+
+    <!--DrGram Fix 8: luxury branding-->
+    <string name="DrGramTagline">The Luxury Messenger</string>
+    <string name="DrGramSetTheme">Luxury Theme</string>
+    <string name="DrGramSetThemeHint">Black-gold or black-red — the approved look. Applies instantly.</string>
+    <string name="DrGramSetThemeGold">Black-Gold</string>
+    <string name="DrGramSetThemeRed">Black-Red</string>
     <!-- VoIP -->
     <string name="AccountSettings">Account Settings</string>
     <string name="VoipUseLessData">Use less data for calls</string>
