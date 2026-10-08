@@ -34,7 +34,7 @@ on:
 
 concurrency:
   group: drgram-apk-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 permissions:
   contents: write
