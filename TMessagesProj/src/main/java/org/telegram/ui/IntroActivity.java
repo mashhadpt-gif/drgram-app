@@ -222,9 +222,9 @@ public class IntroActivity extends BaseFragment implements NotificationCenter.No
 
             // TODO: Generify this part, currently it's a clone of another theme switch toggle
             // DrGram Fix 8: switch between the two luxury file themes (black-gold / black-red)
-            String dayThemeName = org.telegram.messenger.Theme.getTheme(org.telegram.messenger.DrGramThemeInstaller.GOLD_THEME_NAME) != null
+            String dayThemeName = Theme.getTheme(org.telegram.messenger.DrGramThemeInstaller.GOLD_THEME_NAME) != null
                     ? org.telegram.messenger.DrGramThemeInstaller.GOLD_THEME_NAME : "Gold";
-            String nightThemeName = org.telegram.messenger.Theme.getTheme(org.telegram.messenger.DrGramThemeInstaller.RED_THEME_NAME) != null
+            String nightThemeName = Theme.getTheme(org.telegram.messenger.DrGramThemeInstaller.RED_THEME_NAME) != null
                     ? org.telegram.messenger.DrGramThemeInstaller.RED_THEME_NAME : "Night";
 
             Theme.ThemeInfo themeInfo;
