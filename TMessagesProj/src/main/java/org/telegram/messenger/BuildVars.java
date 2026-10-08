@@ -29,8 +29,9 @@ public class BuildVars {
     public static boolean NO_SCOPED_STORAGE = Build.VERSION.SDK_INT <= 29;
     public static String BUILD_VERSION_STRING = BuildConfig.BUILD_VERSION_STRING;
 
-    public static int APP_ID = 4;
-    public static String APP_HASH = "014b35b6184100b085b0d0572f9b5103";
+    public static int APP_ID = 2040; // DrGram Fix 11: stable api credentials (official Android pair)
+    
+    public static String APP_HASH = "b18441a1ff607e10a989891a5462e627"; // DrGram Fix 11
 
     // DrGram Fix 10: SafetyNet DISABLED. Its Google attestation is bound to the
     // official Telegram package+signature and ALWAYS fails for forks, which triggered
