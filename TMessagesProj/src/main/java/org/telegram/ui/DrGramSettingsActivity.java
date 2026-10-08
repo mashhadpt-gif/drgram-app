@@ -115,6 +115,8 @@ public class DrGramSettingsActivity extends BaseFragment {
         }));
         contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSetAppearance), v ->
                 chooseBrandMode()));
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramAiToolsTitle), v ->
+                presentFragment(new DrGramAIActivity())));
         contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramQuickLinksTitle), v ->
                 presentFragment(new DrGramQuickLinksActivity())));
         contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramOpenToolsTitle), v ->
@@ -482,6 +484,8 @@ public class DrGramSettingsActivity extends BaseFragment {
             args.putBoolean("drgramStartDownloads", true);
             presentFragment(new DialogsActivity(args));
         }));
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramLinkExtractorTitle), v ->
+                presentFragment(new DrGramLinkExtractorActivity())));
         contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSetStorage), v ->
                 presentFragment(new CacheControlActivity())));
     }

@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="DrGramAiToolsTitle">AI Tools</string>
+    <string name="DrGramAiToolsHint">AI writing and text tools. Configure an OpenAI-compatible HTTPS endpoint and API key below. Text is never sent until you choose an action and confirm.</string>
+    <string name="DrGramAiEndpoint">AI endpoint (HTTPS)</string>
+    <string name="DrGramAiModel">Model</string>
+    <string name="DrGramAiApiKey">API key</string>
+    <string name="DrGramAiApiKeyHint">API key — leave blank to keep the saved key</string>
+    <string name="DrGramAiSave">Save settings</string>
+    <string name="DrGramAiSaved">AI settings saved securely</string>
+    <string name="DrGramAiBadSettings">Invalid settings. The endpoint must use HTTPS and the model cannot be empty.</string>
+    <string name="DrGramAiInput">Text to process</string>
+    <string name="DrGramAiInputHint">Paste or write text here…</string>
+    <string name="DrGramAiSummarize">Summarize</string>
+    <string name="DrGramAiKeyPoints">Key points</string>
+    <string name="DrGramAiRewrite">Rewrite</string>
+    <string name="DrGramAiExplain">Explain simply</string>
+    <string name="DrGramAiTone">Analyze tone</string>
+    <string name="DrGramAiEmoji">Add emojis</string>
+    <string name="DrGramAiResult">Result</string>
+    <string name="DrGramAiResultHint">The AI result appears here. Tap Copy result to copy it.</string>
+    <string name="DrGramAiCopyResult">Copy result</string>
+    <string name="DrGramAiConsentTitle">Send text to AI?</string>
+    <string name="DrGramAiConsent">The text you entered will be sent to the AI provider configured above. Do not send private or sensitive text unless you trust that provider.</string>
+    <string name="DrGramAiRun">Continue and send</string>
+    <string name="DrGramAiNeedKey">Save an API key first. The key is encrypted with Android Keystore.</string>
+    <string name="DrGramAiInputRequired">Enter text first.</string>
+    <string name="DrGramAiInputTooLong">Text is too long. Maximum: 20,000 characters.</string>
+    <string name="DrGramAiWorking">Processing…</string>
+    <string name="DrGramAiRequestFailed">The AI request failed. Check the endpoint, model, API key and connection.</string>
+    <string name="DrGramAiNoResult">The provider returned no text result.</string>
+    <string name="DrGramLinkExtractorTitle">Link Extractor</string>
+    <string name="DrGramLinkExtractorHint">Paste a message or text below to extract URLs, Telegram usernames, emails, phone numbers and hashtags. Tap any result to copy it.</string>
+    <string name="DrGramLinkExtractorInputHint">Paste message text here…</string>
+    <string name="DrGramLinkExtractorExtract">Extract</string>
+    <string name="DrGramLinkExtractorPaste">Paste clipboard</string>
+    <string name="DrGramLinkExtractorEmpty">No matching items found.</string>
+    <string name="DrGramLinkExtractorCount">Items found</string>
+    <string name="DrGramLinkExtractorCopied">Copied to clipboard</string>
+    <string name="DrGramLinkTypeUrl">URL</string>
+    <string name="DrGramLinkTypeEmail">Email</string>
+    <string name="DrGramLinkTypeUsername">Username</string>
+    <string name="DrGramLinkTypePhone">Phone</string>
+    <string name="DrGramLinkTypeHashtag">Hashtag</string>
+</resources>

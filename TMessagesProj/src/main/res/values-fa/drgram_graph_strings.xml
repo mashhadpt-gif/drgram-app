@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="DrGramAiToolsTitle">ابزارهای هوش مصنوعی</string>
+    <string name="DrGramAiToolsHint">ابزارهای نوشتاری و پردازش متن. سرویس سازگار با OpenAI و کلید API را تنظیم کن. متن فقط بعد از انتخاب عملیات و تأیید تو ارسال می‌شود.</string>
+    <string name="DrGramAiEndpoint">آدرس سرویس هوش مصنوعی (HTTPS)</string>
+    <string name="DrGramAiModel">مدل</string>
+    <string name="DrGramAiApiKey">کلید API</string>
+    <string name="DrGramAiApiKeyHint">کلید API؛ برای نگه‌داشتن کلید ذخیره‌شده خالی بگذار</string>
+    <string name="DrGramAiSave">ذخیره تنظیمات</string>
+    <string name="DrGramAiSaved">تنظیمات هوش مصنوعی به‌صورت امن ذخیره شد</string>
+    <string name="DrGramAiBadSettings">تنظیمات معتبر نیست. آدرس سرویس باید HTTPS باشد و نام مدل خالی نباشد.</string>
+    <string name="DrGramAiInput">متن ورودی</string>
+    <string name="DrGramAiInputHint">متن را اینجا بنویس یا جای‌گذاری کن…</string>
+    <string name="DrGramAiSummarize">خلاصه‌سازی</string>
+    <string name="DrGramAiKeyPoints">نکات کلیدی</string>
+    <string name="DrGramAiRewrite">بازنویسی</string>
+    <string name="DrGramAiExplain">توضیح ساده</string>
+    <string name="DrGramAiTone">تحلیل لحن</string>
+    <string name="DrGramAiEmoji">افزودن ایموجی</string>
+    <string name="DrGramAiResult">نتیجه</string>
+    <string name="DrGramAiResultHint">نتیجه پردازش اینجا نمایش داده می‌شود. برای کپی، روی «کپی نتیجه» بزن.</string>
+    <string name="DrGramAiCopyResult">کپی نتیجه</string>
+    <string name="DrGramAiConsentTitle">ارسال متن به هوش مصنوعی؟</string>
+    <string name="DrGramAiConsent">متن واردشده به سرویس هوش مصنوعی که در بالا تنظیم کرده‌ای فرستاده می‌شود. متن خصوصی یا حساس را فقط در صورت اعتماد به آن سرویس ارسال کن.</string>
+    <string name="DrGramAiRun">تأیید و ارسال</string>
+    <string name="DrGramAiNeedKey">ابتدا یک کلید API ذخیره کن. کلید با Android Keystore رمزگذاری می‌شود.</string>
+    <string name="DrGramAiInputRequired">ابتدا متن ورودی را وارد کن.</string>
+    <string name="DrGramAiInputTooLong">متن بیش از حد طولانی است؛ حداکثر ۲۰٬۰۰۰ نویسه.</string>
+    <string name="DrGramAiWorking">در حال پردازش…</string>
+    <string name="DrGramAiRequestFailed">درخواست هوش مصنوعی ناموفق بود. آدرس، مدل، کلید API و اتصال را بررسی کن.</string>
+    <string name="DrGramAiNoResult">سرویس نتیجه متنی برنگرداند.</string>
+    <string name="DrGramLinkExtractorTitle">استخراج‌گر لینک</string>
+    <string name="DrGramLinkExtractorHint">متن یا پیام را وارد کن تا لینک‌ها، نام‌های کاربری تلگرام، ایمیل، شماره تلفن و هشتگ‌ها استخراج شوند. برای کپی روی هر نتیجه بزن.</string>
+    <string name="DrGramLinkExtractorInputHint">متن پیام را اینجا جای‌گذاری کن…</string>
+    <string name="DrGramLinkExtractorExtract">استخراج</string>
+    <string name="DrGramLinkExtractorPaste">جای‌گذاری از کلیپ‌بورد</string>
+    <string name="DrGramLinkExtractorEmpty">موردی پیدا نشد.</string>
+    <string name="DrGramLinkExtractorCount">تعداد موارد</string>
+    <string name="DrGramLinkExtractorCopied">در کلیپ‌بورد کپی شد</string>
+    <string name="DrGramLinkTypeUrl">لینک</string>
+    <string name="DrGramLinkTypeEmail">ایمیل</string>
+    <string name="DrGramLinkTypeUsername">نام کاربری</string>
+    <string name="DrGramLinkTypePhone">شماره</string>
+    <string name="DrGramLinkTypeHashtag">هشتگ</string>
+</resources>

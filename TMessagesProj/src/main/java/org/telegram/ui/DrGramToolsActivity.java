@@ -523,6 +523,8 @@ public class DrGramToolsActivity extends BaseFragment {
         contentView.addView(drawRow);
 
         contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramDownloadsEntry), v -> openDownloads()));
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramLinkExtractorTitle), v ->
+                presentFragment(new DrGramLinkExtractorActivity())));
     }
 
     private void showVoiceFxDialog() {
