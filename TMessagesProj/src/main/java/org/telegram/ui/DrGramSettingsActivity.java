@@ -145,14 +145,9 @@ public class DrGramSettingsActivity extends BaseFragment {
         LinearLayout pill = new LinearLayout(context);
         pill.setOrientation(LinearLayout.HORIZONTAL);
         pill.setGravity(Gravity.CENTER);
-        pill.setOnClickListener(v -> {
-            if (SharedConfig.drgramThemeRed == red) {
-                return;
-            }
-            SharedConfig.setDrgramThemeRed(red);
-            DrGramThemeInstaller.applyVariant(red);
-            refreshThemePills();
-        });
+        // These two pills are a palette legend, not a manual override:
+        // DrGram automatically uses gold in Android day mode and red at night.
+        pill.setClickable(false);
 
         android.widget.ImageView dot = new android.widget.ImageView(context);
         android.graphics.drawable.GradientDrawable dotBg = new android.graphics.drawable.GradientDrawable();
@@ -180,24 +175,25 @@ public class DrGramSettingsActivity extends BaseFragment {
         int accent = org.telegram.messenger.DrGramThemeInstaller.accentColor();
         android.graphics.drawable.GradientDrawable goldBg = new android.graphics.drawable.GradientDrawable();
         goldBg.setCornerRadius(AndroidUtilities.dp(18));
-        goldBg.setColor(SharedConfig.drgramThemeRed ? cardColor : accent);
-        goldBg.setStroke(SharedConfig.drgramThemeRed ? 0 : AndroidUtilities.dp(1), cardColor);
+        goldBg.setColor(cardColor);
+        goldBg.setStroke(AndroidUtilities.dp(1), 0xFFF5B90D);
         themePillGold.setBackgroundDrawable(goldBg);
         themePillGold.setPadding(AndroidUtilities.dp(14), AndroidUtilities.dp(12), AndroidUtilities.dp(14), AndroidUtilities.dp(12));
         android.graphics.drawable.GradientDrawable redBg = new android.graphics.drawable.GradientDrawable();
         redBg.setCornerRadius(AndroidUtilities.dp(18));
-        redBg.setColor(SharedConfig.drgramThemeRed ? accent : cardColor);
+        redBg.setColor(cardColor);
+        redBg.setStroke(AndroidUtilities.dp(1), 0xFFE63B52);
         themePillRed.setBackgroundDrawable(redBg);
         themePillRed.setPadding(AndroidUtilities.dp(14), AndroidUtilities.dp(12), AndroidUtilities.dp(14), AndroidUtilities.dp(12));
         themePillGold.getLayoutParams().height = ViewGroup.LayoutParams.WRAP_CONTENT;
         themePillRed.getLayoutParams().height = ViewGroup.LayoutParams.WRAP_CONTENT;
-        // text color flips on the selected pill
+        // Both palettes are always available: gold for day and red for night.
         android.widget.TextView goldLabel = (android.widget.TextView) themePillGold.getChildAt(1);
         android.widget.TextView redLabel = (android.widget.TextView) themePillRed.getChildAt(1);
-        goldLabel.setTextColor(SharedConfig.drgramThemeRed ? accent : 0xFF0A0908);
-        redLabel.setTextColor(SharedConfig.drgramThemeRed ? 0xFF0A0808 : accent);
-        themePillGold.setClickable(true);
-        themePillRed.setClickable(true);
+        goldLabel.setTextColor(0xFFF5B90D);
+        redLabel.setTextColor(0xFFE63B52);
+        themePillGold.setClickable(false);
+        themePillRed.setClickable(false);
     }
 
     //endregion
