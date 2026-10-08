@@ -163,6 +163,27 @@ jobs:
           echo "size_mb=$SIZE_MB" >> "$GITHUB_OUTPUT"
           echo "DrGram APK ready: $DEST (${SIZE_MB} MB)"
 
+      - name: Verify Google Play release manifest hardening
+        shell: bash
+        run: |
+          set -euo pipefail
+          AAPT="$ANDROID_HOME/build-tools/36.0.0/aapt"
+          "$AAPT" dump xmltree "${{ steps.apk.outputs.file }}" AndroidManifest.xml > merged-manifest.txt
+          if grep -q 'android.permission.REQUEST_INSTALL_PACKAGES' merged-manifest.txt; then
+            echo "::error::Release APK still declares REQUEST_INSTALL_PACKAGES"
+            exit 1
+          fi
+          if grep -q 'android.permission.READ_CALL_LOG' merged-manifest.txt; then
+            echo "::error::Release APK still declares READ_CALL_LOG"
+            exit 1
+          fi
+          cleartext_line="$(grep 'android:usesCleartextTraffic' merged-manifest.txt | head -n 1 || true)"
+          echo "Merged cleartext policy: ${cleartext_line}"
+          if ! echo "$cleartext_line" | grep -Eq '0x0([[:space:]]|$)'; then
+            echo "::error::Release APK does not explicitly disable cleartext traffic"
+            exit 1
+          fi
+
       - name: Upload build artifact
         uses: actions/upload-artifact@v4
         with:
