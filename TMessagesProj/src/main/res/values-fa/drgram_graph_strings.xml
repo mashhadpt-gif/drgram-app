@@ -42,4 +42,18 @@
     <string name="DrGramLinkTypeUsername">نام کاربری</string>
     <string name="DrGramLinkTypePhone">شماره</string>
     <string name="DrGramLinkTypeHashtag">هشتگ</string>
+
+    <string name="DrGramFakeNotificationsTitle">اعلان‌های جعلی (پیش‌نمایش محلی)</string>
+    <string name="DrGramFakeNotificationsHint">یک اعلان آزمایشی فقط روی همین دستگاه نمایش بده. هیچ پیامی برای تلگرام یا افراد دیگر ارسال نمی‌شود.</string>
+    <string name="DrGramFakeNotificationTitle">عنوان اعلان</string>
+    <string name="DrGramFakeNotificationBody">متن اعلان</string>
+    <string name="DrGramFakeNotificationTitleHint">عنوان پیش‌نمایش را بنویس</string>
+    <string name="DrGramFakeNotificationBodyHint">متن اعلان آزمایشی را وارد کن…</string>
+    <string name="DrGramFakeNotificationSend">نمایش اعلان محلی</string>
+    <string name="DrGramFakeNotificationTitleRequired">برای پیش‌نمایش، عنوان یا متن اعلان را وارد کن.</string>
+    <string name="DrGramFakeNotificationPermTitle">اجازه اعلان‌ها</string>
+    <string name="DrGramFakeNotificationPermMessage">اعلان‌های DrGram در اندروید غیرفعال‌اند. برای نمایش پیش‌نمایش محلی، آن‌ها را فعال کن.</string>
+    <string name="DrGramFakeNotificationOpenSettings">باز کردن تنظیمات</string>
+    <string name="DrGramFakeNotificationSent">اعلان آزمایشی محلی نمایش داده شد.</string>
+    <string name="DrGramFakeNotificationChannel">پیش‌نمایش‌های محلی DrGram</string>
 </resources>

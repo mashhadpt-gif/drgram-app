@@ -42,4 +42,18 @@
     <string name="DrGramLinkTypeUsername">Username</string>
     <string name="DrGramLinkTypePhone">Phone</string>
     <string name="DrGramLinkTypeHashtag">Hashtag</string>
+
+    <string name="DrGramFakeNotificationsTitle">Fake notifications (local preview)</string>
+    <string name="DrGramFakeNotificationsHint">Create a local notification preview on this device. Nothing is sent to Telegram or to other people.</string>
+    <string name="DrGramFakeNotificationTitle">Notification title</string>
+    <string name="DrGramFakeNotificationBody">Notification text</string>
+    <string name="DrGramFakeNotificationTitleHint">Enter a preview title</string>
+    <string name="DrGramFakeNotificationBodyHint">Enter the notification preview text…</string>
+    <string name="DrGramFakeNotificationSend">Show local notification</string>
+    <string name="DrGramFakeNotificationTitleRequired">Enter a title or message for the preview.</string>
+    <string name="DrGramFakeNotificationPermTitle">Allow notifications</string>
+    <string name="DrGramFakeNotificationPermMessage">Android notifications are disabled for DrGram. Allow them to show this local preview.</string>
+    <string name="DrGramFakeNotificationOpenSettings">Open settings</string>
+    <string name="DrGramFakeNotificationSent">Local notification preview sent.</string>
+    <string name="DrGramFakeNotificationChannel">DrGram local previews</string>
 </resources>
