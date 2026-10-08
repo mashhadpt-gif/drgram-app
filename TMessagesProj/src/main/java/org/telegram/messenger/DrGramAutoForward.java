@@ -207,7 +207,9 @@ public class DrGramAutoForward {
                 } catch (Exception ignore) {
 
                 }
-                break; // one relay per message: keeps rule chains safe
+                // Continue through all matching rules so one source can relay to
+                // multiple distinct targets. Forwarded messages are rejected by
+                // relayAllowed(), preventing relay chains from looping.
             }
         }
     }
