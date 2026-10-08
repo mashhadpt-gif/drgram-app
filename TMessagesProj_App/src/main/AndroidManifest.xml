@@ -3,6 +3,11 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:installLocation="auto">
 
+    <!-- Google Play build: do not request sideload/install-package capability.
+         Store-distributed app updates must be handled by Google Play. Keep the
+         permission in shared source only for the separate standalone updater build. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" tools:node="remove" />
+
     <application android:name="org.telegram.messenger.ApplicationLoaderImpl" tools:replace="name">
         <service
             android:name="org.telegram.messenger.GoogleVoiceClientService"
