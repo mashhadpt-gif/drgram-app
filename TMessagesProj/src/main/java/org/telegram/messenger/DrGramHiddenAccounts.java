@@ -32,11 +32,20 @@ public final class DrGramHiddenAccounts {
         }
     }
 
-    public static boolean isHidden(int account) {
+    private static long getAccountUserId(int account) {
         if (account < 0 || account >= UserConfig.MAX_ACCOUNT_COUNT) {
-            return false;
+            return 0;
         }
-        return read().contains(String.valueOf(account));
+        UserConfig config = UserConfig.getInstance(account);
+        if (!config.isClientActivated()) {
+            return 0;
+        }
+        return config.clientUserId;
+    }
+
+    public static boolean isHidden(int account) {
+        long userId = getAccountUserId(account);
+        return userId > 0 && read().contains(String.valueOf(userId));
     }
 
     /**
@@ -54,12 +63,17 @@ public final class DrGramHiddenAccounts {
         if (hidden && account == UserConfig.selectedAccount) {
             return false;
         }
+        long userId = getAccountUserId(account);
+        if (userId <= 0) {
+            return false;
+        }
+        String key = String.valueOf(userId);
         try {
             Set<String> values = read();
             if (hidden) {
-                values.add(String.valueOf(account));
+                values.add(key);
             } else {
-                values.remove(String.valueOf(account));
+                values.remove(key);
             }
             prefs().edit().putStringSet(KEY, new HashSet<>(values)).apply();
             return true;
@@ -71,15 +85,9 @@ public final class DrGramHiddenAccounts {
 
     public static ArrayList<Integer> getHiddenAccounts() {
         ArrayList<Integer> result = new ArrayList<>();
-        Set<String> values = read();
-        for (String value : values) {
-            try {
-                int account = Integer.parseInt(value);
-                if (account >= 0 && account < UserConfig.MAX_ACCOUNT_COUNT
-                        && UserConfig.getInstance(account).isClientActivated()) {
-                    result.add(account);
-                }
-            } catch (NumberFormatException ignore) {
+        for (int account = 0; account < UserConfig.MAX_ACCOUNT_COUNT; account++) {
+            if (isHidden(account)) {
+                result.add(account);
             }
         }
         return result;

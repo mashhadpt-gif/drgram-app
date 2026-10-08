@@ -25,6 +25,7 @@ import org.telegram.PhoneFormat.PhoneFormat;
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ChatObject;
 import org.telegram.messenger.ContactsController;
+import org.telegram.messenger.DrGramPrivateContacts;
 import org.telegram.messenger.FileLog;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.MessagesController;
@@ -53,6 +54,7 @@ import java.util.TimerTask;
 public class SearchAdapter extends RecyclerListView.SelectionAdapter {
 
     private Context mContext;
+    private final int currentAccount = UserConfig.selectedAccount;
     private LongSparseArray<TLRPC.User> ignoreUsers;
     private ArrayList<Object> searchResult = new ArrayList<>();
     private ArrayList<CharSequence> searchResultNames = new ArrayList<>();
@@ -99,7 +101,21 @@ public class SearchAdapter extends RecyclerListView.SelectionAdapter {
 
             @Override
             public LongSparseArray<TLRPC.User> getExcludeUsers() {
-                return ignoreUsers;
+                LongSparseArray<TLRPC.User> excluded = new LongSparseArray<>();
+                if (ignoreUsers != null) {
+                    for (int i = 0; i < ignoreUsers.size(); i++) {
+                        excluded.put(ignoreUsers.keyAt(i), ignoreUsers.valueAt(i));
+                    }
+                }
+                ArrayList<TLRPC.TL_contact> contacts = ContactsController.getInstance(currentAccount).contacts;
+                if (contacts != null) {
+                    for (TLRPC.TL_contact contact : contacts) {
+                        if (contact != null && DrGramPrivateContacts.isPrivate(currentAccount, contact.user_id)) {
+                            excluded.put(contact.user_id, MessagesController.getInstance(currentAccount).getUser(contact.user_id));
+                        }
+                    }
+                }
+                return excluded.size() == 0 ? null : excluded;
             }
         });
     }
@@ -175,7 +191,11 @@ public class SearchAdapter extends RecyclerListView.SelectionAdapter {
                 for (int a = 0; a < contactsCopy.size(); a++) {
                     TLRPC.TL_contact contact = contactsCopy.get(a);
                     TLRPC.User user = MessagesController.getInstance(currentAccount).getUser(contact.user_id);
-                    if (!allowSelf && user.self || onlyMutual && !user.mutual_contact || ignoreUsers != null && ignoreUsers.indexOfKey(contact.user_id) >= 0) {
+                    if (user == null
+                            || DrGramPrivateContacts.isPrivate(currentAccount, contact.user_id)
+                            || !allowSelf && user.self
+                            || onlyMutual && !user.mutual_contact
+                            || ignoreUsers != null && ignoreUsers.indexOfKey(contact.user_id) >= 0) {
                         continue;
                     }
 
