@@ -72,7 +72,7 @@ public class DrGramSparkEffect {
 
     private Particle obtain() {
         if (!freeParticles.isEmpty()) {
-            return freeParticles.remove(0);
+            return freeParticles.remove(freeParticles.size() - 1);
         }
         return new Particle();
     }
