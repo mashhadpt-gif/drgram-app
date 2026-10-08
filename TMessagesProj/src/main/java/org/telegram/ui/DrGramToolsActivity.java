@@ -114,12 +114,12 @@ public class DrGramToolsActivity extends BaseFragment {
                 LocaleController.getString(R.string.DrGramSecretaryHint));
 
         secretarySwitch = new Switch(context);
-        secretarySwitch.setChecked(DrGramSecretary.getInstance(currentAccount).isEnabled());
+        secretarySwitch.setChecked(DrGramSecretary.getInstance(currentAccount).isEnabled(), false);
         LinearLayout row = makeRow(context, LocaleController.getString(R.string.DrGramSecretaryEnable), secretarySwitch);
         row.setOnClickListener(v -> {
             boolean newState = !DrGramSecretary.getInstance(currentAccount).isEnabled();
             DrGramSecretary.getInstance(currentAccount).setEnabled(newState);
-            secretarySwitch.setChecked(newState);
+            secretarySwitch.setChecked(newState, false);
         });
         contentView.addView(row);
 
@@ -208,12 +208,12 @@ public class DrGramToolsActivity extends BaseFragment {
                 LocaleController.getString(R.string.DrGramGuardHint));
 
         guardSwitch = new Switch(context);
-        guardSwitch.setChecked(DrGramOnlineGuard.isEnabled(currentAccount));
+        guardSwitch.setChecked(DrGramOnlineGuard.isEnabled(currentAccount), false);
         LinearLayout row = makeRow(context, LocaleController.getString(R.string.DrGramGuardEnable), guardSwitch);
         row.setOnClickListener(v -> {
             boolean newState = !DrGramOnlineGuard.isEnabled(currentAccount);
             DrGramOnlineGuard.setEnabled(currentAccount, newState);
-            guardSwitch.setChecked(newState);
+            guardSwitch.setChecked(newState, false);
         });
         contentView.addView(row);
 
@@ -294,22 +294,22 @@ public class DrGramToolsActivity extends BaseFragment {
                 LocaleController.getString(R.string.DrGramChatHint));
 
         collapseSwitch = new Switch(context);
-        collapseSwitch.setChecked(DrGramChatTools.getInstance(currentAccount).isCollapseEnabled());
+        collapseSwitch.setChecked(DrGramChatTools.getInstance(currentAccount).isCollapseEnabled(), false);
         LinearLayout collapseRow = makeRow(context, LocaleController.getString(R.string.DrGramCollapse), collapseSwitch);
         collapseRow.setOnClickListener(v -> {
             boolean newState = !DrGramChatTools.getInstance(currentAccount).isCollapseEnabled();
             DrGramChatTools.getInstance(currentAccount).setCollapseEnabled(newState);
-            collapseSwitch.setChecked(newState);
+            collapseSwitch.setChecked(newState, false);
         });
         contentView.addView(collapseRow);
 
         quickSwitch = new Switch(context);
-        quickSwitch.setChecked(DrGramChatTools.getInstance(currentAccount).isQuickChatsEnabled());
+        quickSwitch.setChecked(DrGramChatTools.getInstance(currentAccount).isQuickChatsEnabled(), false);
         LinearLayout quickRow = makeRow(context, LocaleController.getString(R.string.DrGramQuickChats), quickSwitch);
         quickRow.setOnClickListener(v -> {
             boolean newState = !DrGramChatTools.getInstance(currentAccount).isQuickChatsEnabled();
             DrGramChatTools.getInstance(currentAccount).setQuickChatsEnabled(newState);
-            quickSwitch.setChecked(newState);
+            quickSwitch.setChecked(newState, false);
         });
         contentView.addView(quickRow);
     }
@@ -503,22 +503,22 @@ public class DrGramToolsActivity extends BaseFragment {
         contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramVoiceEffect), v -> showVoiceFxDialog(), "media_voice_fx"));
 
         storyGradientSwitch = new Switch(context);
-        storyGradientSwitch.setChecked(DrGramMedia.isStoryGradientEnabled());
+        storyGradientSwitch.setChecked(DrGramMedia.isStoryGradientEnabled(), false);
         LinearLayout storyRow = makeRow(context, LocaleController.getString(R.string.DrGramStoryGradient), storyGradientSwitch);
         storyRow.setOnClickListener(v -> {
             boolean newState = !DrGramMedia.isStoryGradientEnabled();
             DrGramMedia.setStoryGradientEnabled(newState);
-            storyGradientSwitch.setChecked(newState);
+            storyGradientSwitch.setChecked(newState, false);
         });
         contentView.addView(storyRow);
 
         drawSendSwitch = new Switch(context);
-        drawSendSwitch.setChecked(DrGramMedia.isDrawSendEnabled());
+        drawSendSwitch.setChecked(DrGramMedia.isDrawSendEnabled(), false);
         LinearLayout drawRow = makeRow(context, LocaleController.getString(R.string.DrGramDrawToggle), drawSendSwitch);
         drawRow.setOnClickListener(v -> {
             boolean newState = !DrGramMedia.isDrawSendEnabled();
             DrGramMedia.setDrawSendEnabled(newState);
-            drawSendSwitch.setChecked(newState);
+            drawSendSwitch.setChecked(newState, false);
         });
         contentView.addView(drawRow);
 
@@ -652,10 +652,10 @@ public class DrGramToolsActivity extends BaseFragment {
 
     private void refreshDynamicRows() {
         if (secretarySwitch != null) {
-            secretarySwitch.setChecked(DrGramSecretary.getInstance(currentAccount).isEnabled());
+            secretarySwitch.setChecked(DrGramSecretary.getInstance(currentAccount).isEnabled(), false);
         }
         if (guardSwitch != null) {
-            guardSwitch.setChecked(DrGramOnlineGuard.isEnabled(currentAccount));
+            guardSwitch.setChecked(DrGramOnlineGuard.isEnabled(currentAccount), false);
         }
         if (vaultCountText != null) {
             vaultCountText.setText(String.valueOf(DrGramVault.getInstance(currentAccount).getHiddenCount()));
