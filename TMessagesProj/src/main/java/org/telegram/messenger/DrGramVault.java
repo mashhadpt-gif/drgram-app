@@ -11,12 +11,15 @@ package org.telegram.messenger;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.text.TextUtils;
+import android.util.Base64;
 
 import org.telegram.tgnet.TLRPC;
 
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.Set;
+import java.security.MessageDigest;
+import java.nio.charset.StandardCharsets;
 
 public class DrGramVault {
 
@@ -27,7 +30,7 @@ public class DrGramVault {
     private final int currentAccount;
     private final SharedPreferences preferences;
     private Set<String> hiddenIds;
-    private String vaultCode;
+    private String vaultCodeHash;
     private long lastRevealAttempt;
 
     public static DrGramVault getInstance(int account) {
@@ -49,15 +52,28 @@ public class DrGramVault {
         Context context = ApplicationLoader.applicationContext;
         String prefsName = account == 0 ? "drgram_vault" : "drgram_vault_" + account;
         preferences = context.getSharedPreferences(prefsName, Context.MODE_PRIVATE);
-        hiddenIds = preferences.getStringSet("hidden_ids", new HashSet<>());
-        vaultCode = preferences.getString("vault_code", "");
+        // SharedPreferences returns a live set on some Android versions; always
+        // clone it before mutation to avoid corrupting the stored value.
+        hiddenIds = new HashSet<>(preferences.getStringSet("hidden_ids", new HashSet<>()));
+        vaultCodeHash = preferences.getString("vault_code_hash", "");
+        // One-time, backwards-compatible migration from the old plaintext code.
+        String legacyCode = preferences.getString("vault_code", "");
+        if (TextUtils.isEmpty(vaultCodeHash) && !TextUtils.isEmpty(legacyCode)) {
+            vaultCodeHash = hashCode(legacyCode);
+            save();
+        }
     }
 
     private void save() {
-        preferences.edit()
-                .putStringSet("hidden_ids", hiddenIds)
-                .putString("vault_code", vaultCode)
-                .apply();
+        SharedPreferences.Editor editor = preferences.edit()
+                .putStringSet("hidden_ids", new HashSet<>(hiddenIds))
+                .remove("vault_code");
+        if (TextUtils.isEmpty(vaultCodeHash)) {
+            editor.remove("vault_code_hash");
+        } else {
+            editor.putString("vault_code_hash", vaultCodeHash);
+        }
+        editor.apply();
     }
 
     public boolean isHidden(long dialogId) {
@@ -92,16 +108,32 @@ public class DrGramVault {
     }
 
     public boolean hasCode() {
-        return !TextUtils.isEmpty(vaultCode);
+        return !TextUtils.isEmpty(vaultCodeHash);
     }
 
+    /**
+     * Never expose a saved vault code back to the UI. The settings dialog should
+     * accept a new code rather than pre-filling a secret that is stored locally.
+     */
     public String getCode() {
-        return vaultCode;
+        return "";
     }
 
     public void setCode(String code) {
-        vaultCode = code == null ? "" : code.trim();
+        String value = code == null ? "" : code.trim();
+        vaultCodeHash = value.isEmpty() ? "" : hashCode(value);
         save();
+    }
+
+    private static String hashCode(String value) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-256");
+            return Base64.encodeToString(digest.digest(value.getBytes(StandardCharsets.UTF_8)), Base64.NO_WRAP);
+        } catch (Exception e) {
+            // SHA-256 is required by Android; fail closed if a provider is unavailable.
+            FileLog.e(e);
+            return "";
+        }
     }
 
     /**
@@ -110,18 +142,24 @@ public class DrGramVault {
      * caller should open the vault screen instead of searching.
      */
     public boolean matchesRevealCode(CharSequence text) {
-        if (TextUtils.isEmpty(vaultCode) || text == null) {
+        if (TextUtils.isEmpty(vaultCodeHash) || text == null) {
             return false;
         }
         String typed = text.toString().trim();
-        if (typed.length() < 2 || typed.length() != vaultCode.length()) {
+        if (typed.length() < 2) {
             return false;
         }
         if (System.currentTimeMillis() - lastRevealAttempt < REVEAL_COOLDOWN_MS) {
             return false;
         }
         lastRevealAttempt = System.currentTimeMillis();
-        return vaultCode.equals(typed);
+        try {
+            return MessageDigest.isEqual(
+                    vaultCodeHash.getBytes(StandardCharsets.UTF_8),
+                    hashCode(typed).getBytes(StandardCharsets.UTF_8));
+        } catch (Throwable ignore) {
+            return false;
+        }
     }
 
     /**
