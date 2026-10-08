@@ -145,8 +145,9 @@ public class DrGramPrivateContactsActivity extends BaseFragment {
             ArrayList<TLRPC.TL_contact> contacts = ContactsController.getInstance(currentAccount).contacts;
             if (contacts == null) return result;
             MessagesController messages = MessagesController.getInstance(currentAccount);
+            TLRPC.User currentUser = UserConfig.getInstance(currentAccount).getCurrentUser();
             for (TLRPC.TL_contact contact : contacts) {
-                if (contact == null || contact.user_id == UserObject.getUserId(UserConfig.getInstance(currentAccount).getCurrentUser())) {
+                if (contact == null || (currentUser != null && contact.user_id == currentUser.id)) {
                     continue;
                 }
                 TLRPC.User user = messages.getUser(contact.user_id);
