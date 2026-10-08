@@ -60,7 +60,7 @@ public class DrGramThemeInstaller {
             Theme.ThemeInfo info = Theme.getTheme(name);
             if (info != null && info.pathToFile != null && info.pathToFile.equals(out.getAbsolutePath())) {
                 // already installed — just re-apply to refresh colors after an app update
-                Theme.applyTheme(info, true, true, false);
+                Theme.applyTheme(info, true, false);
                 return true;
             }
             Theme.ThemeInfo applied = Theme.applyThemeFile(out, name, (TLRPC.TL_theme) null, false);
