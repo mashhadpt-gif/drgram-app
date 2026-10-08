@@ -3251,6 +3251,11 @@ public class LoginActivity extends BaseFragment implements NotificationCenter.No
                             needShowAlert(getString(R.string.RestorePasswordNoEmailTitle), getString("FloodWait", R.string.FloodWait));
                         } else if (error.code != -1000) {
                             AlertsCreator.processError(currentAccount, error, LoginActivity.this, req, phoneInputData.phoneNumber);
+                        } else {
+                            // DrGram Fix 10: network failure (-1000) used to fail SILENTLY —
+                            // the user tapped Next and nothing happened. Always show a visible
+                            // hint that connectivity (or VPN, where Telegram is filtered) is needed.
+                            needShowAlert(getString(R.string.AppName), getString(R.string.DrGramLoginNoConnection));
                         }
                     }
                 }

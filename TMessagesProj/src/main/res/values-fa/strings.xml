@@ -458,5 +458,6 @@
     <string name="DrGramSetFavTagsHint">پیام‌های برگزیده و جریان هشتگ‌های تو</string>
     <string name="DrGramSetFavOpen">پیام‌های برگزیده</string>
     <string name="DrGramSetTagsOpen">جریان هشتگ‌ها</string>
+    <string name="DrGramLoginNoConnection">اتصال به تلگرام برقرار نشد. اینترنت یا فیلترشکن خود را بررسی و دوباره تلاش کنید.</string>
 </resources>
 

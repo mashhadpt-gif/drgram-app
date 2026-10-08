@@ -3,14 +3,28 @@
  * It is licensed under GNU GPL v. 2 or later.
  *
  * DrGramThemeInstaller — guarantees the approved black-gold luxury look is the
- * shipped default. On first launch (and after upgrades that reset it) it imports
- * the bundled drgram_gold.attheme / drgram_red.attheme as real file-based themes,
- * so every color key in the app comes from one complete, hand-tuned palette
- * instead of partial in-code overrides.
+ * shipped default AND that it stays applied across restarts, system dark-mode
+ * changes and app updates.
+ *
+ * Fix 10 (theme-revert bug root causes):
+ *  1) The previous build applied the theme exactly once with a one-shot flag and
+ *     Theme.applyThemeFile copied the theme file ONTO ITSELF (same target path),
+ *     truncating it to 0 bytes — so the installed theme was invalid and Telegram's
+ *     own theme system fell back to the stock theme on the next launch.
+ *  2) On Android 10+ Telegram defaults "auto night theme" to "follow system",
+ *     which silently switched to the STOCK night theme (and on day-switch, to the
+ *     stock default theme) because the branded file theme is dark.
+ *  3) The theme was never persisted as the night theme, so any day/night event
+ *     escaped the brand palette.
+ * Now: the asset is copied to a TEMP file first (no self-copy), the theme is
+ * re-asserted on every app start (self-healing, cheap when healthy), persisted as
+ * BOTH the day and the night theme, and Telegram's auto night switching is turned
+ * off so a stock theme can never replace the brand look.
  */
 package org.telegram.messenger;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.Theme;
@@ -25,6 +39,12 @@ public class DrGramThemeInstaller {
     public static final String GOLD_THEME_NAME = "DrGram Gold";
     public static final String RED_THEME_NAME = "DrGram Red";
 
+    // Theme.applyThemeFile normalizes the theme name by appending ".attheme",
+    // and ThemeInfo.getKey() returns that normalized name — so this is the key
+    // stored in the "theme"/"nighttheme" preferences.
+    public static final String GOLD_KEY = GOLD_THEME_NAME + ".attheme";
+    public static final String RED_KEY = RED_THEME_NAME + ".attheme";
+
     private static volatile boolean tried = false;
 
     public static void onAppReady() {
@@ -32,10 +52,30 @@ public class DrGramThemeInstaller {
             return;
         }
         tried = true;
+        ensureDrGramTheme();
+    }
+
+    /**
+     * Re-asserts the branded theme if the active theme is not one of ours or its
+     * file is missing/corrupt. Cheap when already healthy: a string compare and a
+     * file size check. Runs on every app start — self-healing after reinstalls,
+     * upgrades, or if the user somehow ends up on a stock theme.
+     */
+    public static void ensureDrGramTheme() {
         try {
-            if (!SharedConfig.drgramThemeApplied) {
-                applyVariant(SharedConfig.drgramThemeRed);
-                SharedConfig.setDrgramThemeApplied(true);
+            boolean red = SharedConfig.drgramThemeRed;
+            String wantKey = red ? RED_KEY : GOLD_KEY;
+            Theme.ThemeInfo active = Theme.getActiveTheme();
+            if (active != null && wantKey.equals(active.name)) {
+                File f = active.pathToFile != null ? new File(active.pathToFile) : null;
+                if (f != null && f.exists() && f.length() > 1024) {
+                    pinBrandedTheme(active);
+                    return; // already installed and healthy
+                }
+            }
+            if (!applyVariant(red)) {
+                // fall back to the other variant if the primary asset is broken
+                applyVariant(!red);
             }
         } catch (Throwable t) {
             FileLog.e(t);
@@ -53,22 +93,59 @@ public class DrGramThemeInstaller {
             if (ctx == null) {
                 return false;
             }
-            File out = new File(ApplicationLoader.getFilesDirFixed(), name + ".attheme");
-            if (!copyAsset(ctx, asset, out)) {
+            // Fix 10: copy the asset to a TEMP file first. Theme.applyThemeFile copies
+            // `file` onto filesDir/<name>.attheme — copying the asset straight to that
+            // same path (as the previous build did) truncated the theme file to 0 bytes.
+            File tmp = new File(ApplicationLoader.getFilesDirFixed(), name + ".tmp");
+            if (!copyAsset(ctx, asset, tmp)) {
                 return false;
             }
-            Theme.ThemeInfo info = Theme.getTheme(name);
-            if (info != null && info.pathToFile != null && info.pathToFile.equals(out.getAbsolutePath())) {
-                // already installed — just re-apply to refresh colors after an app update
-                Theme.applyTheme(info, true, false);
-                return true;
+            Theme.ThemeInfo applied = Theme.applyThemeFile(tmp, name, (TLRPC.TL_theme) null, false);
+            try {
+                tmp.delete();
+            } catch (Throwable ignore) {
             }
-            Theme.ThemeInfo applied = Theme.applyThemeFile(out, name, (TLRPC.TL_theme) null, false);
-            return applied != null;
+            if (applied == null) {
+                return false;
+            }
+            pinBrandedTheme(applied);
+            return true;
         } catch (Throwable t) {
             FileLog.e(t);
         }
         return false;
+    }
+
+    /**
+     * Fix 10: persist the branded theme as BOTH the day and the night theme and
+     * disable Telegram's "auto night theme (follow system)", so a stock theme can
+     * never silently replace the brand look on restart or on a dark-mode flip.
+     */
+    private static void pinBrandedTheme(Theme.ThemeInfo info) {
+        try {
+            SharedPreferences prefs = MessagesController.getGlobalMainSettings();
+            SharedPreferences.Editor editor = prefs.edit();
+            if (!info.getKey().equals(prefs.getString("theme", null))) {
+                editor.putString("theme", info.getKey());
+            }
+            if (!info.getKey().equals(prefs.getString("nighttheme", null))) {
+                editor.putString("nighttheme", info.getKey());
+            }
+            if (prefs.getInt("selectedAutoNightType", -1) != Theme.AUTO_NIGHT_TYPE_NONE) {
+                editor.putInt("selectedAutoNightType", Theme.AUTO_NIGHT_TYPE_NONE);
+            }
+            editor.apply();
+
+            // in-memory sync: keeps the current night theme pointing at the brand
+            // theme so day/night events become visual no-ops
+            Theme.selectedAutoNightType = Theme.AUTO_NIGHT_TYPE_NONE;
+            Theme.cancelAutoNightThemeCallbacks();
+            if (Theme.getActiveTheme() == info) {
+                Theme.setCurrentNightTheme(info);
+            }
+        } catch (Throwable t) {
+            FileLog.e(t);
+        }
     }
 
     /**
@@ -89,6 +166,7 @@ public class DrGramThemeInstaller {
             while ((n = in.read(buf)) > 0) {
                 os.write(buf, 0, n);
             }
+            os.flush();
             return true;
         } catch (Throwable t) {
             FileLog.e(t);

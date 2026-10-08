@@ -11444,5 +11444,6 @@
     <string name="DrGramSetFavTagsHint">Favorite messages and your hashtag stream</string>
     <string name="DrGramSetFavOpen">Favorite messages</string>
     <string name="DrGramSetTagsOpen">Hashtag stream</string>
+    <string name="DrGramLoginNoConnection">No connection to Telegram. Check your internet or VPN, then try again.</string>
 </resources>
 
