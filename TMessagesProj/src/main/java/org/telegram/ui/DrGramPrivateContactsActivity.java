@@ -22,6 +22,7 @@ import org.telegram.messenger.DrGramPrivateContacts;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.R;
+import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.UserObject;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.ActionBar;
@@ -156,7 +157,7 @@ public class DrGramPrivateContactsActivity extends BaseFragment {
                 row.subtitle = user.username == null || user.username.isEmpty() ? "" : "@" + user.username;
                 result.add(row);
             }
-            Collections.sort(result, Comparator.comparing(a -> a.title == null ? "" : a.title, String.CASE_INSENSITIVE_ORDER));
+            Collections.sort(result, Comparator.comparing((ContactRow a) -> a.title == null ? "" : a.title, String.CASE_INSENSITIVE_ORDER));
         } catch (Throwable ignore) {
         }
         return result;
