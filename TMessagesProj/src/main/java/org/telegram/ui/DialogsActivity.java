@@ -13716,9 +13716,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             switchingTheme = true;
             try {
                 if (!DrGramThemeInstaller.setLoveMode(!loveMode)) {
-                    Activity activity = getParentActivity();
-                    if (activity != null) {
-                        Toast.makeText(activity, getString(R.string.DrGramSetThemeApplyFailed), Toast.LENGTH_LONG).show();
+                    Activity themeActivity = getParentActivity();
+                    if (themeActivity != null) {
+                        Toast.makeText(themeActivity, getString(R.string.DrGramSetThemeApplyFailed), Toast.LENGTH_LONG).show();
                     }
                 }
             } finally {
