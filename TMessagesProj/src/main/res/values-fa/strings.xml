@@ -17,7 +17,7 @@
     <string name="Page1Message">پیام‌رسان **لوکس**.\nساخته‌شده برای **خاص‌ها**.</string>
     <string name="DrGramTagline">پیام‌رسان لوکس</string>
     <string name="DrGramSetTheme">مود اختصاصی DrGram</string>
-    <string name="DrGramSetThemeHint">دستی انتخاب کن: Gold Mode (لاکچری) یا LOVE Mode (عاشقانه). هر دو تم متعلق به DrGram هستند و تم پیش‌فرض تلگرام انتخاب نمی‌شود.</string>
+    <string name="DrGramSetThemeHint">دستی انتخاب کن: Gold Mode (لاکچری) یا LOVE Mode (عاشقانه). همیشه یکی از تم‌های DrGram فعال می‌ماند و تم پیش‌فرض تلگرام انتخاب نمی‌شود.</string>
     <string name="DrGramSetThemeGold">Gold Mode (لاکچری)</string>
     <string name="DrGramSetThemeRed">LOVE Mode (عاشقانه)</string>
     <string name="DrGramSetThemeApplyFailed">اعمال مود DrGram ناموفق بود؛ برنامه را دوباره باز کن و مجدداً امتحان کن.</string>
