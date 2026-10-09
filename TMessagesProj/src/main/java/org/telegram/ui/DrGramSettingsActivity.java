@@ -27,6 +27,7 @@ import org.telegram.messenger.ContactsController;
 import org.telegram.messenger.DialogObject;
 import org.telegram.messenger.DrGramAutoForward;
 import org.telegram.messenger.DrGramFavorites;
+import org.telegram.messenger.DrGramHiddenAccounts;
 import org.telegram.messenger.DrGramQuickReplies;
 import org.telegram.messenger.DrGramThemeInstaller;
 import org.telegram.messenger.LocaleController;
