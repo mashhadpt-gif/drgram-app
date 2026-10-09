@@ -4216,7 +4216,7 @@
     <!--DrGram Fix 8: luxury branding-->
     <string name="DrGramTagline">The Luxury Messenger</string>
     <string name="DrGramSetTheme">DrGram Brand Mode</string>
-    <string name="DrGramSetThemeHint">Choose manually: Gold Mode (luxury) or LOVE Mode (romantic). Both stay in DrGram; Telegram's stock theme is never selected.</string>
+    <string name="DrGramSetThemeHint">Choose Gold Mode (luxury) or LOVE Mode (romantic). DrGram keeps one of its own themes active and never selects the default Telegram theme.</string>
     <string name="DrGramSetThemeGold">Gold Mode (Luxury)</string>
     <string name="DrGramSetThemeRed">LOVE Mode (Romantic)</string>
     <string name="DrGramSetThemeApplyFailed">Could not apply the DrGram mode. Please restart the app and try again.</string>
@@ -4244,7 +4244,7 @@
     <string name="DrGramSetChatListHint">Manage the native Telegram chat folders and filters.</string>
     <string name="DrGramSetChatListOpen">Chat list and folders</string>
     <string name="DrGramSetGifts">Gifts</string>
-    <string name="DrGramSetGiftsHint">Open Telegram's native gift recipient selector.</string>
+    <string name="DrGramSetGiftsHint">Open the native Telegram gift recipient selector.</string>
     <string name="DrGramSetGiftsOpen">Send a gift</string>
     <string name="DrGramSetHotNotifications">Hot notifications</string>
     <string name="DrGramSetHotNotificationsHint">Open DrGram online alerts and automatic-reply tools.</string>
