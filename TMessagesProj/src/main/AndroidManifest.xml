@@ -108,10 +108,10 @@
         android:preserveLegacyExternalStorage="true"
         android:allowAudioPlaybackCapture="false"
         tools:replace="android:supportsRtl"
-        android:usesCleartextTraffic="true"
+        android:usesCleartextTraffic="false"
         android:enableOnBackInvokedCallback="true"
     >
-        <!-- usesCleartextTraffic for browser supporting opening http:// links -->
+        <!-- Cleartext HTTP is disabled for release builds. HTTPS links remain supported. -->
 
         <activity-alias
             android:enabled="true"
