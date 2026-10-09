@@ -371,6 +371,22 @@ public class Switch extends View {
         invalidate();
     }
 
+    /**
+     * Switch extends View rather than TextView, so View's default wrap-content
+     * measurement can consume the entire available height in scrollable layouts.
+     * Keep intrinsic dimensions for wrap-content callers while respecting exact
+     * dimensions explicitly requested by existing Telegram cells.
+     */
+    @Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        int desiredWidth = AndroidUtilities.dp(34);
+        int desiredHeight = AndroidUtilities.dp(32);
+        setMeasuredDimension(
+                resolveSize(desiredWidth, widthMeasureSpec),
+                resolveSize(desiredHeight, heightMeasureSpec)
+        );
+    }
+
     @Override
     protected void onDraw(Canvas canvas) {
         if (getVisibility() != VISIBLE) {

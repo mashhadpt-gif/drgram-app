@@ -106,6 +106,7 @@ import org.telegram.messenger.BuildVars;
 import org.telegram.messenger.ChatObject;
 import org.telegram.messenger.ContactsController;
 import org.telegram.messenger.DialogObject;
+import org.telegram.messenger.DrGramThemeInstaller;
 import org.telegram.messenger.Emoji;
 import org.telegram.messenger.FileLoader;
 import org.telegram.messenger.FileLog;
@@ -13704,46 +13705,25 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             return;
         }
 
-        final boolean isCurrentThemeDark;
-        if (resourceProvider != null) {
-            isCurrentThemeDark = resourceProvider.isDark();
-        } else {
-            isCurrentThemeDark = Theme.isCurrentThemeDark();
-        }
-        io.add(isCurrentThemeDark ? R.drawable.menu_day_mode_24 : R.drawable.menu_night_mode_24,
-                getString(isCurrentThemeDark ? R.string.SwitchThemeToDay : R.string.SwitchThemeToNight), () -> {
+        // DrGram uses two branded palettes instead of Telegram's stock day/night themes.
+        // The menu item always switches to the other DrGram mode; it never opens ThemeActivity.
+        final boolean loveMode = DrGramThemeInstaller.isLoveMode();
+        io.add(R.drawable.msg_customize,
+                getString(loveMode ? R.string.DrGramSetThemeGold : R.string.DrGramSetThemeRed), () -> {
             if (switchingTheme) {
                 return;
             }
             switchingTheme = true;
-            SharedPreferences preferences = ApplicationLoader.applicationContext.getSharedPreferences("themeconfig", Activity.MODE_PRIVATE);
-            String dayThemeName = preferences.getString("lastDayTheme", "Gold");
-            if (Theme.getTheme(dayThemeName) == null || Theme.getTheme(dayThemeName).isDark()) {
-                dayThemeName = "Gold";
-            }
-            String nightThemeName = preferences.getString("lastDarkTheme", "Red");
-            if (Theme.getTheme(nightThemeName) == null || !Theme.getTheme(nightThemeName).isDark()) {
-                nightThemeName = "Red";
-            }
-            Theme.ThemeInfo themeInfo = Theme.getActiveTheme();
-            if (dayThemeName.equals(nightThemeName)) {
-                if (themeInfo.isDark() || dayThemeName.equals("Red") || dayThemeName.equals("Night")) {
-                    dayThemeName = "Gold";
-                } else {
-                    nightThemeName = "Red";
+            try {
+                if (!DrGramThemeInstaller.setLoveMode(!loveMode)) {
+                    Activity activity = getParentActivity();
+                    if (activity != null) {
+                        Toast.makeText(activity, getString(R.string.DrGramSetThemeApplyFailed), Toast.LENGTH_LONG).show();
+                    }
                 }
+            } finally {
+                switchingTheme = false;
             }
-
-            boolean toDark;
-            if (toDark = dayThemeName.equals(themeInfo.getKey())) {
-                themeInfo = Theme.getTheme(nightThemeName);
-            } else {
-                themeInfo = Theme.getTheme(dayThemeName);
-            }
-            switchTheme(themeInfo, toDark);
-            Theme.turnOffAutoNight(BulletinFactory.of(this), () -> {
-                presentFragment(new ThemeActivity(ThemeActivity.THEME_TYPE_NIGHT));
-            });
         });
         io.addGap();
         io.add(R.drawable.drgram_explore, getString(R.string.Explore), () -> presentFragment(new DrGramExploreActivity()));

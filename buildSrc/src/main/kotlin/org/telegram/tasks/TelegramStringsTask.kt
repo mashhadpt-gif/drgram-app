@@ -81,8 +81,8 @@ abstract class TelegramStringsTask : DefaultTask() {
             "other"
         )
 
-        // The plugin runs on the application now, so the default localization
-        // is composed from two values/strings.xml files.
+        // The app default localization combines standard Telegram strings and
+        // DrGram feature strings from both the library and application modules.
         val defaultLocalizationFiles = stringsXml.files.toList()
 
 
