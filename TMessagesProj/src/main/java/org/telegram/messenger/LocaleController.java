@@ -4452,24 +4452,62 @@ public class LocaleController {
         return localizationInternal.getByResName(key);
     }
 
+
+    // DrGram Fix 13: keys that must ALWAYS resolve from packaged resources so
+    // cloud language packs can never re-introduce Telegram branding.
+    private static boolean isBrandProtectedKey(String key) {
+        if (key == null) {
+            return false;
+        }
+        if (key.startsWith("DrGram")) {
+            return true;
+        }
+        switch (key) {
+            case "AppName":
+            case "AppNameBeta":
+            case "LanguageName":
+            case "Page1Title":
+            case "Page1Message":
+            case "Page2Title":
+            case "Page2Message":
+            case "Page3Title":
+            case "Page3Message":
+            case "Page4Title":
+            case "Page4Message":
+            case "Page5Title":
+            case "Page5Message":
+            case "Page6Title":
+            case "Page6Message":
+            case "Page7Title":
+            case "Page7Message":
+            case "TelegramFeatures":
+            case "TelegramVersion":
+            case "TelegramFAQ":
+            case "SecretChatName":
+            case "NotificationHiddenName":
+            case "NotificationHiddenChatName":
+                return true;
+            default:
+                return false;
+        }
+    }
+
     @Nullable
     private String getStringV2(String key, @StringRes int stringRes, String fallback) {
         final Context context = ApplicationLoader.applicationContext;
         String value;
 
-        if (BuildVars.USE_CLOUD_STRINGS) {
-            // DrGram: brand strings always resolve from packaged resources —
+        if (BuildVars.USE_CLOUD_STRINGS && !isBrandProtectedKey(key)) {
+            // DrGram Fix 13: brand strings always resolve from packaged resources —
             // cloud translations must never rename the app back to Telegram.
-            if (stringRes != R.string.AppName && stringRes != R.string.AppNameBeta) {
-                value = localizationExternal.getByResNameOrResId(context, key, stringRes);
-                if (value != null) {
-                    return value;
-                }
+            value = localizationExternal.getByResNameOrResId(context, key, stringRes);
+            if (value != null) {
+                return value;
+            }
 
-                value = localizationExternal.getByResName(fallback);
-                if (value != null) {
-                    return value;
-                }
+            value = localizationExternal.getByResName(fallback);
+            if (value != null) {
+                return value;
             }
         }
 
