@@ -23,7 +23,12 @@ public class BuildVars {
     public static boolean DEBUG_PRIVATE_VERSION = BuildConfig.DEBUG_PRIVATE_VERSION;
     // DrGram Fix 10: cloud string packs are the OFFICIAL Telegram strings and would
     // overwrite the DrGram rebrand after a language change or string refresh
-    public static boolean USE_CLOUD_STRINGS = false;
+    // DrGram Fix 13: cloud language packs are SAFE to enable now —
+    // LocaleController.getStringV2() resolves brand-protected keys from the
+    // packaged resources only (see isBrandProtectedKey), so the full official
+    // language list (incl. a complete Persian pack) works without ever
+    // re-introducing Telegram branding.
+    public static boolean USE_CLOUD_STRINGS = true;
     // DrGram Fix 10: never prompt/check updates pointing at the official Telegram app
     public static boolean CHECK_UPDATES = false;
     public static boolean NO_SCOPED_STORAGE = Build.VERSION.SDK_INT <= 29;
