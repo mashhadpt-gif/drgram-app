@@ -95,8 +95,12 @@ android {
             debuggable false
             jniDebuggable false
             signingConfig signingConfigs.release
-            minifyEnabled true
-            shrinkResources true
+            // DrGram Fix 12: two consecutive CI runs were killed by the runner
+            // shutdown signal exactly inside minifyAfatReleaseWithR8. Disable
+            // shrinking (functionally identical APK, ~+15MB, ~20min faster) so
+            // phase 2 cannot stall/die there again.
+            minifyEnabled false
+            shrinkResources false
             multiDexEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), '../TMessagesProj/proguard-rules.pro'
             ndk.debugSymbolLevel = 'FULL'
