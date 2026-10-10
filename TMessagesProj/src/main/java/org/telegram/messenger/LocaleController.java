@@ -3234,6 +3234,10 @@ public class LocaleController {
                     ConnectionsManager.getInstance(currentAccount).sendRequest(req, (response, error) -> {
                         if (response != null) {
                             AndroidUtilities.runOnUIThread(() -> saveRemoteLocaleStrings(localeInfo, (TLRPC.TL_langPackDifference) response, currentAccount, onPartlyDone));
+                        } else {
+                            // Do not leave the language picker spinning forever when Telegram's
+                            // translation endpoint returns an error or the connection drops.
+                            AndroidUtilities.runOnUIThread(onPartlyDone);
                         }
                     }, ConnectionsManager.RequestFlagWithoutLogin);
                 }
@@ -3264,6 +3268,10 @@ public class LocaleController {
                         AndroidUtilities.runOnUIThread(() -> {
                             saveRemoteLocaleStrings(localeInfo, (TLRPC.TL_langPackDifference) response, currentAccount, onPartlyDone);
                         });
+                    } else {
+                        // Complete the selection flow on network/API errors too; the UI already
+                        // switched to the selected locale and can use bundled translations.
+                        AndroidUtilities.runOnUIThread(onPartlyDone);
                     }
                 }, ConnectionsManager.RequestFlagWithoutLogin);
             } else {
