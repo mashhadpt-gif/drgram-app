@@ -1404,12 +1404,16 @@ public class LocaleController {
                 reloadLastFile = false;
                 FileLog.d("reloadLastFile=false");
             }
+            // Refresh immediately after changing the selected locale. A remote language
+            // pack may take time to download; waiting for it here leaves the whole
+            // Telegram interface visually stuck in the previous language. Pack updates
+            // will refresh the interface again when their download completes.
+            if (init) {
+                AndroidUtilities.runOnUIThread(() -> NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.reloadInterface));
+            } else {
+                NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.reloadInterface);
+            }
             if (!isLoadingRemote) {
-                if (init) {
-                    AndroidUtilities.runOnUIThread(() -> NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.reloadInterface));
-                } else {
-                    NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.reloadInterface);
-                }
                 RestrictedLanguagesSelectActivity.invalidateRestrictedLanguages();
                 if (onDone != null) {
                     onDone.run();
