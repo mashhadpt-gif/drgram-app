@@ -640,6 +640,9 @@ public class DrGramToolsActivity extends BaseFragment {
         int accent = DrGramThemeInstaller.accentColor();
         for (int index = 0; index < group.getChildCount(); index++) {
             View child = group.getChildAt(index);
+            if (child instanceof TextView && ((TextView) child).getText().toString().startsWith("💎")) {
+                ((TextView) child).setTextColor(accent);
+            }
             if (!(child instanceof ViewGroup)) {
                 continue;
             }
