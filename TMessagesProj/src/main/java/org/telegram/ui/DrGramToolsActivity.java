@@ -28,6 +28,7 @@ import org.telegram.messenger.R;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.UserObject;
 import org.telegram.messenger.DrGramChatTools;
+import org.telegram.messenger.DrGramThemeInstaller;
 import org.telegram.messenger.DrGramFavorites;
 import org.telegram.messenger.DrGramMedia;
 import org.telegram.messenger.DrGramOnlineGuard;
