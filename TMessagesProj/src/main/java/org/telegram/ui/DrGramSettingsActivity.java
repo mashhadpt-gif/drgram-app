@@ -111,6 +111,7 @@ public class DrGramSettingsActivity extends BaseFragment {
     @Override
     public void onResume() {
         super.onResume();
+        refreshBrandSurfaces();
         refreshDynamicRows();
     }
 
@@ -183,6 +184,7 @@ public class DrGramSettingsActivity extends BaseFragment {
 
     private void applyBrandMode(boolean loveMode) {
         boolean applied = DrGramThemeInstaller.setLoveMode(loveMode);
+        refreshBrandSurfaces();
         refreshThemePills();
         if (!applied && getParentActivity() != null) {
             android.widget.Toast.makeText(getParentActivity(),
@@ -799,6 +801,41 @@ public class DrGramSettingsActivity extends BaseFragment {
         hintView.setPadding(AndroidUtilities.dp(21), 0, AndroidUtilities.dp(21), AndroidUtilities.dp(8));
         hintView.setText(hint);
         contentView.addView(hintView);
+    }
+
+    private void refreshBrandSurfaces() {
+        if (contentView == null) {
+            return;
+        }
+        boolean loveMode = DrGramThemeInstaller.isLoveMode();
+        contentView.setBackground(new android.graphics.drawable.GradientDrawable(
+                android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
+                loveMode
+                        ? new int[] {0xFF160A0F, 0xFF251017, 0xFF10090D}
+                        : new int[] {0xFF100E08, 0xFF211A0A, 0xFF100E08}));
+        refreshBrandRows(contentView, loveMode);
+    }
+
+    private void refreshBrandRows(ViewGroup group, boolean loveMode) {
+        int accent = DrGramThemeInstaller.accentColor();
+        for (int index = 0; index < group.getChildCount(); index++) {
+            View child = group.getChildAt(index);
+            if (!(child instanceof ViewGroup)) {
+                continue;
+            }
+            ViewGroup row = (ViewGroup) child;
+            if (row != contentView && row.getChildCount() == 2 && row.getChildAt(0) instanceof TextView) {
+                android.graphics.drawable.GradientDrawable card = new android.graphics.drawable.GradientDrawable(
+                        android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT,
+                        loveMode ? new int[] {0xFF2A1018, 0xFF1C0B11} : new int[] {0xFF2C220B, 0xFF1B1608});
+                card.setCornerRadius(AndroidUtilities.dp(17));
+                card.setStroke(AndroidUtilities.dp(1), loveMode ? 0x99E63B52 : 0x99F5B90D);
+                row.setBackgroundDrawable(card);
+                row.setElevation(AndroidUtilities.dp(2));
+                ((TextView) row.getChildAt(0)).setTextColor(0xFFF7F0DF);
+            }
+            refreshBrandRows(row, loveMode);
+        }
     }
 
     private LinearLayout makeRow(Context context, String title, View valueView) {
