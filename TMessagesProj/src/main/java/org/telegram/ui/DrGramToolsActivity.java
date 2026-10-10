@@ -73,8 +73,20 @@ public class DrGramToolsActivity extends BaseFragment {
 
         contentView = new LinearLayout(context);
         contentView.setOrientation(LinearLayout.VERTICAL);
-        contentView.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
-        fragmentView = contentView;
+        contentView.setPadding(0, 0, 0, AndroidUtilities.dp(28));
+        contentView.setBackground(new android.graphics.drawable.GradientDrawable(
+                android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
+                DrGramThemeInstaller.isLoveMode()
+                        ? new int[] {0xFF160A0F, 0xFF251017, 0xFF10090D}
+                        : new int[] {0xFF100E08, 0xFF211A0A, 0xFF100E08}));
+
+        android.widget.ScrollView scroller = new android.widget.ScrollView(context);
+        scroller.setFillViewport(true);
+        scroller.setClipToPadding(false);
+        scroller.setVerticalScrollBarEnabled(true);
+        scroller.addView(contentView, new FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        fragmentView = scroller;
 
         buildSettingsCenterSection(context);
         buildSecretarySection(context);
@@ -597,14 +609,14 @@ public class DrGramToolsActivity extends BaseFragment {
         TextView header = new TextView(context);
         header.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
         header.setTypeface(AndroidUtilities.bold());
-        header.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlueHeader));
+        header.setTextColor(DrGramThemeInstaller.accentColor());
         header.setText("💎  " + title);
         header.setPadding(AndroidUtilities.dp(21), AndroidUtilities.dp(22), AndroidUtilities.dp(21), AndroidUtilities.dp(2));
         contentView.addView(header);
 
         TextView hintView = new TextView(context);
         hintView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
-        hintView.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));
+        hintView.setTextColor(0xFFB9AD95);
         hintView.setPadding(AndroidUtilities.dp(21), 0, AndroidUtilities.dp(21), AndroidUtilities.dp(8));
         hintView.setText(hint);
         contentView.addView(hintView);
@@ -615,19 +627,22 @@ public class DrGramToolsActivity extends BaseFragment {
         LinearLayout row = new LinearLayout(context);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        android.graphics.drawable.GradientDrawable card = new android.graphics.drawable.GradientDrawable();
-        card.setCornerRadius(AndroidUtilities.dp(16));
-        card.setColor(getThemedColor(Theme.key_dialogBackground));
-        card.setStroke(1, getThemedColor(Theme.key_divider));
+        boolean loveMode = DrGramThemeInstaller.isLoveMode();
+        android.graphics.drawable.GradientDrawable card = new android.graphics.drawable.GradientDrawable(
+                android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT,
+                loveMode ? new int[] {0xFF2A1018, 0xFF1C0B11} : new int[] {0xFF2C220B, 0xFF1B1608});
+        card.setCornerRadius(AndroidUtilities.dp(17));
+        card.setStroke(AndroidUtilities.dp(1), loveMode ? 0x99E63B52 : 0x99F5B90D);
         row.setBackgroundDrawable(card);
-        row.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(13), AndroidUtilities.dp(16), AndroidUtilities.dp(13));
+        row.setElevation(AndroidUtilities.dp(2));
+        row.setPadding(AndroidUtilities.dp(17), AndroidUtilities.dp(14), AndroidUtilities.dp(17), AndroidUtilities.dp(14));
         LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         rowParams.setMargins(AndroidUtilities.dp(16), AndroidUtilities.dp(4), AndroidUtilities.dp(16), AndroidUtilities.dp(4));
         row.setLayoutParams(rowParams);
 
         TextView titleView = new TextView(context);
         titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
-        titleView.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
+        titleView.setTextColor(0xFFF7F0DF);
         titleView.setText(title);
         titleView.setGravity(Gravity.START);
         row.addView(titleView, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1f));
