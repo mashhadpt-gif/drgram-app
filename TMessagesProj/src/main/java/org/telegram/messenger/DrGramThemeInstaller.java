@@ -122,7 +122,10 @@ public class DrGramThemeInstaller {
             Theme.selectedAutoNightType = Theme.AUTO_NIGHT_TYPE_NONE;
             Theme.cancelAutoNightThemeCallbacks();
             Theme.setCurrentNightTheme(selected);
-            Theme.applyTheme(selected, true, loveMode);
+            // Apply the selected palette as the active theme immediately in both modes.
+// LOVE is a brand palette, not Telegram's Android night-mode slot.
+            Theme.applyTheme(selected, true, false);
+            Theme.setCurrentNightTheme(selected);
             return true;
         } catch (Throwable t) {
             FileLog.e(t);
