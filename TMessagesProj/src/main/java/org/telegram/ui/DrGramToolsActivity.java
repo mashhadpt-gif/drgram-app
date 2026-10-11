@@ -29,6 +29,7 @@ import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.UserObject;
 import org.telegram.messenger.DrGramChatTools;
 import org.telegram.messenger.DrGramThemeInstaller;
+import org.telegram.messenger.FileLog;
 import org.telegram.messenger.DrGramFavorites;
 import org.telegram.messenger.DrGramMedia;
 import org.telegram.messenger.DrGramOnlineGuard;
@@ -89,7 +90,12 @@ public class DrGramToolsActivity extends BaseFragment {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         fragmentView = scroller;
 
-        addSignatureHero(context, LocaleController.getString(R.string.DrGramToolsHero));
+        try {
+            addSignatureHero(context, LocaleController.getString(R.string.DrGramToolsHero));
+        } catch (Throwable t) {
+            // DrGram Fix 14 (hardening): decoration must never crash the page.
+            FileLog.e(t);
+        }
         buildSettingsCenterSection(context);
         buildSecretarySection(context);
         buildVaultSection(context);
