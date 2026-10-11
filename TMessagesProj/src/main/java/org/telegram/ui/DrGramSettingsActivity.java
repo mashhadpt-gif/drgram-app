@@ -37,6 +37,7 @@ import org.telegram.messenger.R;
 import org.telegram.messenger.SharedConfig;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.UserObject;
+import org.telegram.messenger.ApplicationLoader;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.AlertDialog;
@@ -95,22 +96,24 @@ public class DrGramSettingsActivity extends BaseFragment {
             // DrGram Fix 14 (hardening): the hero is decoration — never crash the hub.
             FileLog.e(t);
         }
-        buildGeneralSection(context);
-        buildThemeSection(context);
-        buildChatListSection(context);
-        buildChatSection(context);
-        buildGiftsSection(context);
-        buildAutoForwardSection(context);
-        buildQuickRepliesSection(context);
-        buildAutoReplySection(context);
-        buildSpecialSection(context);
-        buildPrivacySection(context);
-        buildMediaSection(context);
-        buildNotifySection(context);
-        buildHotNotificationsSection(context);
-        buildAccountsSection(context);
-        buildContactsSection(context);
-        buildFavTagsSection(context);
+        // DrGram Fix 15 (hardening): no section is crash-critical. Whatever throws
+        // on any device gets logged and skipped — the hub must always open.
+        safeSection("general", this::buildGeneralSection);
+        safeSection("theme", this::buildThemeSection);
+        safeSection("chatList", this::buildChatListSection);
+        safeSection("chat", this::buildChatSection);
+        safeSection("gifts", this::buildGiftsSection);
+        safeSection("autoForward", this::buildAutoForwardSection);
+        safeSection("quickReplies", this::buildQuickRepliesSection);
+        safeSection("autoReply", this::buildAutoReplySection);
+        safeSection("special", this::buildSpecialSection);
+        safeSection("privacy", this::buildPrivacySection);
+        safeSection("media", this::buildMediaSection);
+        safeSection("notify", this::buildNotifySection);
+        safeSection("hotNotifications", this::buildHotNotificationsSection);
+        safeSection("accounts", this::buildAccountsSection);
+        safeSection("contacts", this::buildContactsSection);
+        safeSection("favTags", this::buildFavTagsSection);
 
         return fragmentView;
     }
@@ -118,8 +121,33 @@ public class DrGramSettingsActivity extends BaseFragment {
     @Override
     public void onResume() {
         super.onResume();
-        refreshBrandSurfaces();
-        refreshDynamicRows();
+        try {
+            refreshBrandSurfaces();
+            refreshDynamicRows();
+        } catch (Throwable t) {
+            // DrGram Fix 15 (hardening): dynamic refresh must never crash the hub.
+            FileLog.e(t);
+        }
+    }
+
+    private interface SectionBuilder {
+        void build(Context context);
+    }
+
+    private Context context() {
+        return getParentActivity() != null ? getParentActivity() : applicationContext();
+    }
+
+    private Context applicationContext() {
+        return ApplicationLoader.applicationContext;
+    }
+
+    private void safeSection(String name, SectionBuilder builder) {
+        try {
+            builder.build(context());
+        } catch (Throwable t) {
+            FileLog.e(t);
+        }
     }
 
 

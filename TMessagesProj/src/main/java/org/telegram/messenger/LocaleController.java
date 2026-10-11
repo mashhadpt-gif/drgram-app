@@ -4497,7 +4497,19 @@ public class LocaleController {
         final Context context = ApplicationLoader.applicationContext;
         String value;
 
-        if (BuildVars.USE_CLOUD_STRINGS && !isBrandProtectedKey(key)) {
+        // DrGram Fix 15: resId-only callers pass key == null, which slipped past the
+        // brand guard — the cloud pack then renamed the app back to "Telegram" in the
+        // main dialogs header. Resolve the resource entry name so brand keys are
+        // protected on every code path.
+        String effectiveKey = key;
+        if (effectiveKey == null && stringRes != 0) {
+            try {
+                effectiveKey = context.getResources().getResourceEntryName(stringRes);
+            } catch (Exception ignore) {
+                effectiveKey = null;
+            }
+        }
+        if (BuildVars.USE_CLOUD_STRINGS && !isBrandProtectedKey(effectiveKey)) {
             // DrGram Fix 13: brand strings always resolve from packaged resources —
             // cloud translations must never rename the app back to Telegram.
             value = localizationExternal.getByResNameOrResId(context, key, stringRes);

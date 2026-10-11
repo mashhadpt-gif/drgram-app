@@ -2000,7 +2000,7 @@ public class ChatActivity extends BaseFragment implements
                 boolean sparkRtl = LocaleController.isRTL;
                 float sparkX = sparkLocation[0] + (sparkRtl ? dp(36) : chatActivityEnterView.getMeasuredWidth() - dp(36));
                 float sparkY = sparkLocation[1] + dp(12);
-                contentView.startDrgramSparks(sparkX, sparkY);
+                contentView.startDrgramSparks(sparkX, sparkY, 1.75f); // DrGram Fix 15: grand burst
             }
             if (chatListItemAnimator != null) {
                 chatActivityEnterViewAnimateFromTop = chatActivityEnterView.getBackgroundTop();

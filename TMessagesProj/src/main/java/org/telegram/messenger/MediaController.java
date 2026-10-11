@@ -3936,6 +3936,7 @@ public class MediaController implements AudioManager.OnAudioFocusChangeListener,
                         AndroidUtilities.runOnUIThread(() -> NotificationCenter.getInstance(messageObject.currentAccount).postNotificationName(NotificationCenter.fileLoaded, FileLoader.getAttachFileName(messageObject.getDocument()), cacheFile));
                     }
                     audioPlayer.preparePlayer(Uri.fromFile(cacheFile), "other");
+                    drgramApplyVoiceFx(); // DrGram Fix 15: pitch on fresh playback
                     isStreamingCurrentAudio = false;
                 } else {
                     int reference = FileLoader.getInstance(messageObject.currentAccount).getFileReference(messageObject);
@@ -3951,6 +3952,7 @@ public class MediaController implements AudioManager.OnAudioFocusChangeListener,
                             "&reference=" + Utilities.bytesToHex(document.file_reference != null ? document.file_reference : new byte[0]);
                     Uri uri = Uri.parse("tg://" + messageObject.getFileName() + params);
                     audioPlayer.preparePlayer(uri, "other");
+                    drgramApplyVoiceFx(); // DrGram Fix 15: pitch on fresh playback
                     isStreamingCurrentAudio = true;
                 }
                 if (messageObject.isVoice()) {
@@ -4020,6 +4022,7 @@ public class MediaController implements AudioManager.OnAudioFocusChangeListener,
                 }
                 audioPlayer.setStreamType(useFrontSpeaker ? AudioManager.STREAM_VOICE_CALL : AudioManager.STREAM_MUSIC);
                 audioPlayer.play();
+                drgramApplyVoiceFx(); // DrGram Fix 15: pitch on start/resume
                 if (!messageObject.isVoice()) {
                     if (audioVolumeAnimator != null) {
                         audioVolumeAnimator.removeAllListeners();
@@ -4391,6 +4394,7 @@ public class MediaController implements AudioManager.OnAudioFocusChangeListener,
             }
             if (audioPlayer != null) {
                 audioPlayer.play();
+                drgramApplyVoiceFx(); // DrGram Fix 15: pitch on resume
             } else if (videoPlayer != null) {
                 videoPlayer.play();
             }
@@ -6567,6 +6571,7 @@ public class MediaController implements AudioManager.OnAudioFocusChangeListener,
                 playMessage(currentMessageObject);
             } else {
                 audioPlayer.play();
+                drgramApplyVoiceFx(); // DrGram Fix 15: pitch after buffering restart
             }
         }
     }

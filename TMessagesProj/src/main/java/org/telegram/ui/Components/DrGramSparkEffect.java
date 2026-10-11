@@ -61,7 +61,7 @@ public class DrGramSparkEffect {
 
     public DrGramSparkEffect() {
         paint.setStyle(Paint.Style.FILL);
-        for (int a = 0; a < 160; a++) {
+        for (int a = 0; a < 240; a++) {
             freeParticles.add(new Particle());
         }
     }
@@ -122,7 +122,7 @@ public class DrGramSparkEffect {
             ring.color = GOLD;
             ring.alpha = 0.5f;
             ring.currentTime = 0;
-            ring.lifeTime = 520;
+            ring.lifeTime = 620;
             ring.scale = intensity;
             ring.rotation = 0;
             ring.rotationSpeed = 0;
@@ -132,7 +132,7 @@ public class DrGramSparkEffect {
             particles.add(ring);
         }
 
-        int count = (int) ((24 + Utilities.random.nextInt(14)) * intensity);
+        int count = (int) ((36 + Utilities.random.nextInt(16)) * intensity); // DrGram Fix 15
         for (int a = 0; a < count; a++) {
             Particle p = obtain();
             p.x = cx + (Utilities.random.nextFloat() - 0.5f) * AndroidUtilities.dp(16);
@@ -140,15 +140,15 @@ public class DrGramSparkEffect {
 
             // upward-biased fan (around -90 degrees), wide spread like confetti
             float angle = (float) (-Math.PI / 2.0 + (Utilities.random.nextFloat() - 0.5f) * Math.PI * 1.4);
-            float speed = 1.1f + Utilities.random.nextFloat() * 1.9f;
+            float speed = 1.3f + Utilities.random.nextFloat() * 2.3f;
             p.vx = (float) Math.cos(angle) * speed * 1.55f * intensity;
             p.vy = (float) Math.sin(angle) * speed * 1.55f * intensity;
 
             p.color = randomGoldColor();
             p.alpha = 1.0f;
             p.currentTime = 0;
-            p.lifeTime = (int) ((650 + Utilities.random.nextInt(750)) * Math.min(1.25f, 0.85f + intensity * 0.15f));
-            p.scale = Math.max(1.0f, Utilities.random.nextFloat() * 2.1f) * (0.85f + intensity * 0.15f);
+            p.lifeTime = (int) ((800 + Utilities.random.nextInt(850)) * Math.min(1.3f, 0.85f + intensity * 0.15f));
+            p.scale = Math.max(1.2f, Utilities.random.nextFloat() * 2.6f) * (0.9f + intensity * 0.2f);
             p.rotation = Utilities.random.nextFloat() * 360.0f;
             p.rotationSpeed = (Utilities.random.nextBoolean() ? -1 : 1) * (120.0f + Utilities.random.nextFloat() * 240.0f);
             p.twinklePhase = Utilities.random.nextFloat() * (float) (Math.PI * 2.0);
@@ -289,7 +289,7 @@ public class DrGramSparkEffect {
             int color = particle.color;
             switch (particle.type) {
                 case TYPE_FLASH: {
-                    float radius = AndroidUtilities.dp(26) * particle.scale * (0.4f + progress * 1.8f);
+                    float radius = AndroidUtilities.dp(34) * particle.scale * (0.4f + progress * 1.8f);
                     paint.setStyle(Paint.Style.FILL);
                     paint.setColor(color);
                     paint.setAlpha((int) (255 * alpha));
@@ -297,7 +297,7 @@ public class DrGramSparkEffect {
                     break;
                 }
                 case TYPE_RING: {
-                    float radius = AndroidUtilities.dp(14) * particle.scale * (0.3f + progress * 3.4f);
+                    float radius = AndroidUtilities.dp(18) * particle.scale * (0.3f + progress * 3.4f);
                     paint.setStyle(Paint.Style.STROKE);
                     paint.setStrokeWidth(AndroidUtilities.dp(1.6f) * (1.0f - progress * 0.6f));
                     paint.setColor(color);
