@@ -88,7 +88,7 @@ public class DrGramSettingsActivity extends BaseFragment {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         fragmentView = scroller;
 
-        addSignatureHero(context, LocaleController.getString(R.string.DrGramSetGeneralHint));
+        addSignatureHero(context, LocaleController.getString(R.string.DrGramSettingsHero));
         buildGeneralSection(context);
         buildThemeSection(context);
         buildChatListSection(context);
