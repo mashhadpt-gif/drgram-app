@@ -186,6 +186,11 @@ public class DrGramSettingsActivity extends BaseFragment {
         boolean applied = DrGramThemeInstaller.setLoveMode(loveMode);
         refreshBrandSurfaces();
         refreshThemePills();
+        if (applied && parentLayout != null) {
+            // DrGram Fix 13: rebuild every fragment view so the new palette is
+            // visible instantly (same approach as Telegram's own ThemeActivity).
+            parentLayout.rebuildAllFragmentViews(true, true);
+        }
         if (!applied && getParentActivity() != null) {
             android.widget.Toast.makeText(getParentActivity(),
                     LocaleController.getString(R.string.DrGramSetThemeApplyFailed),
