@@ -78,7 +78,7 @@ public class DrGramSettingsActivity extends BaseFragment {
                 android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
                 DrGramThemeInstaller.isLoveMode()
                         ? new int[] {0xFF160A0F, 0xFF251017, 0xFF10090D}
-                        : new int[] {0xFF100E08, 0xFF211A0A, 0xFF100E08}));
+                        : new int[] {0xFF0C0A05, 0xFF261D09, 0xFF0C0A05}));
         contentView.setScrollbarFadingEnabled(false);
         android.widget.ScrollView scroller = new android.widget.ScrollView(context);
         scroller.setFillViewport(true);
@@ -232,8 +232,8 @@ public class DrGramSettingsActivity extends BaseFragment {
         boolean loveMode = DrGramThemeInstaller.isLoveMode();
         android.graphics.drawable.GradientDrawable goldBg = new android.graphics.drawable.GradientDrawable();
         goldBg.setCornerRadius(AndroidUtilities.dp(18));
-        goldBg.setColor(loveMode ? cardColor : 0xFF28200B);
-        goldBg.setStroke(AndroidUtilities.dp(loveMode ? 1 : 2), 0xFFF5B90D);
+        goldBg.setColor(loveMode ? cardColor : 0xFF33270D);
+        goldBg.setStroke(AndroidUtilities.dp(loveMode ? 1 : 2), 0xFFFFC94A);
         themePillGold.setBackgroundDrawable(goldBg);
         themePillGold.setPadding(AndroidUtilities.dp(14), AndroidUtilities.dp(12), AndroidUtilities.dp(14), AndroidUtilities.dp(12));
         android.graphics.drawable.GradientDrawable redBg = new android.graphics.drawable.GradientDrawable();
@@ -245,7 +245,7 @@ public class DrGramSettingsActivity extends BaseFragment {
         // Both are selectable; the thicker stroke marks the currently active mode.
         android.widget.TextView goldLabel = (android.widget.TextView) themePillGold.getChildAt(1);
         android.widget.TextView redLabel = (android.widget.TextView) themePillRed.getChildAt(1);
-        goldLabel.setTextColor(0xFFF5B90D);
+        goldLabel.setTextColor(0xFFFFC94A);
         redLabel.setTextColor(0xFFE63B52);
         themePillGold.setClickable(true);
         themePillRed.setClickable(true);
@@ -817,7 +817,7 @@ public class DrGramSettingsActivity extends BaseFragment {
                 android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
                 loveMode
                         ? new int[] {0xFF160A0F, 0xFF251017, 0xFF10090D}
-                        : new int[] {0xFF100E08, 0xFF211A0A, 0xFF100E08}));
+                        : new int[] {0xFF0C0A05, 0xFF261D09, 0xFF0C0A05}));
         refreshBrandRows(contentView, loveMode);
     }
 
@@ -835,12 +835,12 @@ public class DrGramSettingsActivity extends BaseFragment {
             if (row != contentView && row.getChildCount() == 2 && row.getChildAt(0) instanceof TextView) {
                 android.graphics.drawable.GradientDrawable card = new android.graphics.drawable.GradientDrawable(
                         android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT,
-                        loveMode ? new int[] {0xFF2A1018, 0xFF1C0B11} : new int[] {0xFF2C220B, 0xFF1B1608});
+                        loveMode ? new int[] {0xFF2A1018, 0xFF1C0B11} : new int[] {0xFF3A2C0E, 0xFF211A0A});
                 card.setCornerRadius(AndroidUtilities.dp(17));
-                card.setStroke(AndroidUtilities.dp(1), loveMode ? 0x99E63B52 : 0x99F5B90D);
+                card.setStroke(AndroidUtilities.dp(1), loveMode ? 0xCCE63B52 : 0xCCFFC94A);
                 row.setBackgroundDrawable(card);
                 row.setElevation(AndroidUtilities.dp(2));
-                ((TextView) row.getChildAt(0)).setTextColor(0xFFF7F0DF);
+                ((TextView) row.getChildAt(0)).setTextColor(0xFFFFF6DF);
             }
             refreshBrandRows(row, loveMode);
         }
@@ -854,9 +854,9 @@ public class DrGramSettingsActivity extends BaseFragment {
         boolean loveMode = DrGramThemeInstaller.isLoveMode();
         android.graphics.drawable.GradientDrawable card = new android.graphics.drawable.GradientDrawable(
                 android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT,
-                loveMode ? new int[] {0xFF2A1018, 0xFF1C0B11} : new int[] {0xFF2C220B, 0xFF1B1608});
+                loveMode ? new int[] {0xFF2A1018, 0xFF1C0B11} : new int[] {0xFF3A2C0E, 0xFF211A0A});
         card.setCornerRadius(AndroidUtilities.dp(17));
-        card.setStroke(AndroidUtilities.dp(1), loveMode ? 0x99E63B52 : 0x99F5B90D);
+        card.setStroke(AndroidUtilities.dp(1), loveMode ? 0xCCE63B52 : 0xCCFFC94A);
         row.setBackgroundDrawable(card);
         row.setElevation(AndroidUtilities.dp(2));
         row.setPadding(AndroidUtilities.dp(17), AndroidUtilities.dp(14), AndroidUtilities.dp(17), AndroidUtilities.dp(14));
@@ -866,7 +866,7 @@ public class DrGramSettingsActivity extends BaseFragment {
 
         TextView titleView = new TextView(context);
         titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
-        titleView.setTextColor(0xFFF7F0DF);
+        titleView.setTextColor(0xFFFFF6DF);
         titleView.setText(title);
         titleView.setGravity(Gravity.START);
         row.addView(titleView, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1f));
