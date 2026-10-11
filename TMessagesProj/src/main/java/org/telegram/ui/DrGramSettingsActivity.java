@@ -30,6 +30,7 @@ import org.telegram.messenger.DrGramFavorites;
 import org.telegram.messenger.DrGramHiddenAccounts;
 import org.telegram.messenger.DrGramQuickReplies;
 import org.telegram.messenger.DrGramThemeInstaller;
+import org.telegram.messenger.FileLog;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.R;
@@ -88,7 +89,12 @@ public class DrGramSettingsActivity extends BaseFragment {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         fragmentView = scroller;
 
-        addSignatureHero(context, LocaleController.getString(R.string.DrGramSettingsHero));
+        try {
+            addSignatureHero(context, LocaleController.getString(R.string.DrGramSettingsHero));
+        } catch (Throwable t) {
+            // DrGram Fix 14 (hardening): the hero is decoration — never crash the hub.
+            FileLog.e(t);
+        }
         buildGeneralSection(context);
         buildThemeSection(context);
         buildChatListSection(context);
@@ -259,9 +265,16 @@ public class DrGramSettingsActivity extends BaseFragment {
         refreshBrandSurfaces();
         refreshThemePills();
         if (applied && parentLayout != null) {
-            // DrGram Fix 13: rebuild every fragment view so the new palette is
-            // visible instantly (same approach as Telegram's own ThemeActivity).
-            parentLayout.rebuildAllFragmentViews(true, true);
+            // DrGram Fix 14 (hardening): rebuild off the click stack, guarded —
+            // a fragment rebuild while a click handler is on the call stack can
+            // destabilize the transaction state on some devices.
+            AndroidUtilities.runOnUIThread(() -> {
+                try {
+                    parentLayout.rebuildAllFragmentViews(true, true);
+                } catch (Throwable t) {
+                    FileLog.e(t);
+                }
+            });
         }
         if (!applied && getParentActivity() != null) {
             android.widget.Toast.makeText(getParentActivity(),
