@@ -46,6 +46,14 @@ public class DrGramThemeInstaller {
     public static final String GOLD_KEY = GOLD_THEME_NAME + ".attheme";
     public static final String RED_KEY = RED_THEME_NAME + ".attheme";
 
+    /**
+     * Fix 17: bumped whenever the bundled .attheme art is upgraded (v3 = Fix 17
+     * animated motion wallpapers + gradient bubbles + full de-blue sweep). Devices
+     * holding an older installed copy silently get a fresh install from the new
+     * asset on the next app start, so palette upgrades reach every user.
+     */
+    public static final int THEME_ASSET_VERSION = 3;
+
     private static volatile boolean tried = false;
 
     public static void onAppReady() {
@@ -139,11 +147,17 @@ public class DrGramThemeInstaller {
             String asset = red ? "drgram_red.attheme" : "drgram_gold.attheme";
             String key = red ? RED_KEY : GOLD_KEY;
 
-            Theme.ThemeInfo existing = Theme.getTheme(key);
-            if (existing != null && existing.pathToFile != null) {
-                File installed = new File(existing.pathToFile);
-                if (installed.exists() && installed.length() > 1024) {
-                    return true;
+            // Fix 17: fast path only when the installed copy already matches the
+            // bundled art version; otherwise fall through and reinstall fresh.
+            SharedPreferences globalPrefs = MessagesController.getGlobalMainSettings();
+            String versionKey = red ? "drgram_theme_asset_version_red" : "drgram_theme_asset_version_gold";
+            if (globalPrefs.getInt(versionKey, 0) == THEME_ASSET_VERSION) {
+                Theme.ThemeInfo existing = Theme.getTheme(key);
+                if (existing != null && existing.pathToFile != null) {
+                    File installed = new File(existing.pathToFile);
+                    if (installed.exists() && installed.length() > 1024) {
+                        return true;
+                    }
                 }
             }
 
@@ -161,7 +175,11 @@ public class DrGramThemeInstaller {
                 tmp.delete();
             } catch (Throwable ignore) {
             }
-            return applied != null;
+            if (applied != null) {
+                globalPrefs.edit().putInt(versionKey, THEME_ASSET_VERSION).apply();
+                return true;
+            }
+            return false;
         } catch (Throwable t) {
             FileLog.e(t);
             return false;

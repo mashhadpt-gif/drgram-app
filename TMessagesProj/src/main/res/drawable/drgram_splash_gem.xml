@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- DrGram Fix 17: the luxury gem seal — central brilliant with a thin golden
+     ring, warm halo and a constellation of sparkle stars around it. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
@@ -10,17 +12,46 @@
         android:pivotY="54"
         android:scaleX="0.72"
         android:scaleY="0.72">
+        <!-- warm halo behind everything -->
+        <path
+            android:fillColor="#1AF5B90D"
+            android:pathData="M54,10 A44,44 0 1 1 53.9,10 Z"/>
+        <!-- thin luxury seal ring -->
+        <path
+            android:strokeColor="#59F5B90D"
+            android:strokeWidth="0.9"
+            android:fillColor="#00000000"
+            android:pathData="M54,22 A32,32 0 1 1 53.9,22 Z"/>
+        <path
+            android:strokeColor="#2BF5B90D"
+            android:strokeWidth="0.6"
+            android:fillColor="#00000000"
+            android:pathData="M54,25 A29,29 0 1 1 53.9,25 Z"/>
+        <!-- central brilliant -->
         <path
             android:fillColor="#FFF5B90D"
             android:pathData="M54,18 L61.5,46.5 L90,54 L61.5,61.5 L54,90 L46.5,61.5 L18,54 L46.5,46.5 Z"/>
         <path
             android:fillColor="#FFFFE47A"
             android:pathData="M54,40 L58,50 L68,54 L58,58 L54,68 L50,58 L40,54 L50,50 Z"/>
+        <!-- sparkle constellation -->
         <path
             android:fillColor="#66F5B90D"
             android:pathData="M80,24 L82.5,32 L90,34.5 L82.5,37 L80,45 L77.5,37 L70,34.5 L77.5,32 Z"/>
         <path
             android:fillColor="#4DF5B90D"
             android:pathData="M28,70 L30,75.5 L35.5,77.5 L30,79.5 L28,85 L26,79.5 L20.5,77.5 L26,75.5 Z"/>
+        <path
+            android:fillColor="#8CFFD94D"
+            android:pathData="M76,66 L77.4,70.6 L82,72 L77.4,73.4 L76,78 L74.6,73.4 L70,72 L74.6,70.6 Z"/>
+        <path
+            android:fillColor="#5CFFE47A"
+            android:pathData="M33,31 L34.2,34.8 L38,36 L34.2,37.2 L33,41 L31.8,37.2 L28,36 L31.8,34.8 Z"/>
+        <path
+            android:fillColor="#40FFE47A"
+            android:pathData="M68,80.5 L68.9,83.1 L71.5,84 L68.9,84.9 L68,87.5 L67.1,84.9 L64.5,84 L67.1,83.1 Z"/>
+        <path
+            android:fillColor="#38FFE47A"
+            android:pathData="M42,22.5 L42.8,24.7 L45,25.5 L42.8,26.3 L42,28.5 L41.2,26.3 L39,25.5 L41.2,24.7 Z"/>
     </group>
 </vector>

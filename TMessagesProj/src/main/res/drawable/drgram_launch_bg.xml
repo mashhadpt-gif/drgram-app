@@ -1,8 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- DrGram Fix 17: luxury launch — black velvet, warm radial aura,
+     golden seal ring and the animated gem at the center. -->
 <layer-list xmlns:android="http://schemas.android.com/apk/res/android">
     <item>
         <shape android:shape="rectangle">
             <solid android:color="#FF0A0906"/>
+        </shape>
+    </item>
+    <item
+        android:width="340dp"
+        android:height="340dp"
+        android:gravity="center">
+        <shape android:shape="oval">
+            <gradient
+                android:type="radial"
+                android:gradientRadius="170dp"
+                android:startColor="#33F5B90D"
+                android:centerColor="#14C08A10"
+                android:endColor="#000C0A07"/>
         </shape>
     </item>
     <item
