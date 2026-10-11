@@ -202,6 +202,7 @@ public class DrGramQuickLinksActivity extends BaseFragment {
         linkFieldBg.setColor(0x1AFFFFFF);
         linkFieldBg.setStroke(AndroidUtilities.dp(1), 0x59F4D27A);
         title.setBackground(linkFieldBg);
+        EditText url = new EditText(context);
         url.setSingleLine(true);
         url.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
         url.setHint(LocaleController.getString(R.string.DrGramQuickLinksUrl));
