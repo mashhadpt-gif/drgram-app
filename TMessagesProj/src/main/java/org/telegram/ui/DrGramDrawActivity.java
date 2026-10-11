@@ -9,6 +9,8 @@
  */
 package org.telegram.ui;
 
+import android.view.ViewGroup;
+
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.graphics.Bitmap;
@@ -303,6 +305,32 @@ public class DrGramDrawActivity extends BaseFragment {
                 Stroke stroke = strokes.get(i);
                 canvas.drawPath(stroke.path, stroke.paint);
             }
+        }
+    }
+    // DrGram Fix 13: self-managed edge-to-edge. These pages previously relied on
+    // the fragment container padding, which left the last rows behind the system
+    // navigation bar — the page could not be scrolled to its very bottom.
+    // Opting into edge-to-edge + padding the scroll content with the real navbar
+    // inset makes every row reachable (and lets content scroll under the pill).
+    @Override
+    public boolean isSupportEdgeToEdge() {
+        return true;
+    }
+
+    @Override
+    public void onInsets(int left, int top, int right, int bottom) {
+        super.onInsets(left, top, right, bottom);
+        if (fragmentView instanceof ViewGroup) {
+            ViewGroup root = (ViewGroup) fragmentView;
+            ViewGroup target = root;
+            if (root instanceof android.widget.ScrollView
+                    && root.getChildCount() > 0
+                    && root.getChildAt(0) instanceof ViewGroup) {
+                target = (ViewGroup) root.getChildAt(0);
+            }
+            int newBottom = Math.max(target.getPaddingBottom(), bottom + AndroidUtilities.dp(16));
+            target.setPadding(target.getPaddingLeft(), target.getPaddingTop(), target.getPaddingRight(), newBottom);
+            target.setClipToPadding(false);
         }
     }
 }
