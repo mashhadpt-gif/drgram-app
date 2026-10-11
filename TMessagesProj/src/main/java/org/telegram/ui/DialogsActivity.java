@@ -656,6 +656,8 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     private String searchString;
     private String initialSearchString;
     private boolean drgramStartDownloads;
+    // DrGram Fix 14: true while the user is inside the downloads subpage.
+    private boolean drgramDownloadsMode;
     private MessagesStorage.TopicKey openedDialogId = new MessagesStorage.TopicKey();
     private boolean cantSendToChannels;
     private boolean allowSwitchAccount;
@@ -3917,7 +3919,8 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                         } else {
                             hideActionMode(true);
                         }
-                    } else if (onlySelect || folderId != 0 || communityId != 0) {
+                    } else if (onlySelect || folderId != 0 || communityId != 0 || drgramDownloadsMode) {
+                        // DrGram Fix 14: downloads subpage arrow returns to the caller.
                         finishFragment();
                     }
                 } else if (id == 1) {
@@ -5443,7 +5446,15 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             }
         } else if (drgramStartDownloads) {
             drgramStartDownloads = false;
+            // DrGram Fix 14: downloads behaves as a real subpage — visible back
+            // arrow + title, and the search state watcher is armed so the X
+            // button and the back gesture can always leave the screen
+            // (before this, toggleSearch(false) was a no-op and the page stuck).
+            drgramDownloadsMode = true;
+            actionBar.setBackButtonDrawable(backDrawable = new BackDrawable(false));
+            actionBar.setTitle(LocaleController.getString(R.string.DrGramSetDownloads));
             showSearch(true, true, false);
+            fragmentSearchFieldWatcher.toggleSearch(true);
         } else {
             showSearch(false, false, false);
         }
