@@ -161,6 +161,15 @@ public class DrGramToolsActivity extends BaseFragment {
         int pad = AndroidUtilities.dp(20);
         input.setPadding(pad, pad / 2, pad, pad / 2);
         input.setText(DrGramSecretary.getInstance(currentAccount).getReplyText());
+        // DrGram Fix 14: guaranteed readable text on the dark luxury dialogs —
+        // bare EditTexts resolved a dark framework color on the dark background.
+        input.setTextColor(0xFFF7F0DF);
+        input.setHintTextColor(0x99B9AD95);
+        android.graphics.drawable.GradientDrawable secretaryFieldBg = new android.graphics.drawable.GradientDrawable();
+        secretaryFieldBg.setCornerRadius(AndroidUtilities.dp(12));
+        secretaryFieldBg.setColor(0x1AFFFFFF);
+        secretaryFieldBg.setStroke(AndroidUtilities.dp(1), 0x59F4D27A);
+        input.setBackground(secretaryFieldBg);
         FrameLayout container = new FrameLayout(context);
         container.addView(input, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP, 8, 8, 8, 0));
         builder.setView(container);
@@ -204,6 +213,15 @@ public class DrGramToolsActivity extends BaseFragment {
         int pad = AndroidUtilities.dp(20);
         input.setPadding(pad, pad / 2, pad, pad / 2);
         input.setText(DrGramVault.getInstance(currentAccount).getCode());
+        // DrGram Fix 14: guaranteed readable text on the dark luxury dialogs —
+        // bare EditTexts resolved a dark framework color on the dark background.
+        input.setTextColor(0xFFF7F0DF);
+        input.setHintTextColor(0x99B9AD95);
+        android.graphics.drawable.GradientDrawable vaultFieldBg = new android.graphics.drawable.GradientDrawable();
+        vaultFieldBg.setCornerRadius(AndroidUtilities.dp(12));
+        vaultFieldBg.setColor(0x1AFFFFFF);
+        vaultFieldBg.setStroke(AndroidUtilities.dp(1), 0x59F4D27A);
+        input.setBackground(vaultFieldBg);
         FrameLayout container = new FrameLayout(context);
         container.addView(input, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP, 8, 8, 8, 0));
         builder.setView(container);
