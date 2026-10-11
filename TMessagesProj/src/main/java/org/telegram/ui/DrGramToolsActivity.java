@@ -89,7 +89,7 @@ public class DrGramToolsActivity extends BaseFragment {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         fragmentView = scroller;
 
-        addSignatureHero(context, LocaleController.getString(R.string.DrGramSetGeneralHint));
+        addSignatureHero(context, LocaleController.getString(R.string.DrGramToolsHero));
         buildSettingsCenterSection(context);
         buildSecretarySection(context);
         buildVaultSection(context);
