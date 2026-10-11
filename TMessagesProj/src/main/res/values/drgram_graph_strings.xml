@@ -56,4 +56,6 @@
     <string name="DrGramFakeNotificationOpenSettings">Open settings</string>
     <string name="DrGramFakeNotificationSent">Local notification preview sent.</string>
     <string name="DrGramFakeNotificationChannel">DrGram local previews</string>
+    <string name="DrGramToolsHero">Your gilded command deck — every DrGram power in one place.</string>
+    <string name="DrGramSettingsHero">The royal control center of your DrGram world.</string>
 </resources>
