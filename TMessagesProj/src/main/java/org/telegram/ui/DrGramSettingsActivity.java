@@ -455,6 +455,18 @@ public class DrGramSettingsActivity extends BaseFragment {
         titleField.setHint(LocaleController.getString(R.string.DrGramSetRepliesName));
         titleField.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
         titleField.setText(presetTitle);
+        // DrGram Fix 14: guaranteed readable text on the dark luxury dialogs —
+        // bare EditTexts resolved a dark framework color on the dark background.
+        titleField.setTextColor(0xFFF7F0DF);
+        titleField.setHintTextColor(0x99B9AD95);
+        android.graphics.drawable.GradientDrawable replyFieldBg = new android.graphics.drawable.GradientDrawable();
+        replyFieldBg.setCornerRadius(AndroidUtilities.dp(12));
+        replyFieldBg.setColor(0x1AFFFFFF);
+        replyFieldBg.setStroke(AndroidUtilities.dp(1), 0x59F4D27A);
+        titleField.setBackground(replyFieldBg);
+        textField.setTextColor(0xFFF7F0DF);
+        textField.setHintTextColor(0x99B9AD95);
+        textField.setBackground(replyFieldBg);
         EditText textField = new EditText(context);
         textField.setHint(LocaleController.getString(R.string.DrGramSetRepliesText));
         textField.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
