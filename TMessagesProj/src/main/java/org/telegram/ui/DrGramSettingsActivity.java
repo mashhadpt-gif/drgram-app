@@ -477,14 +477,13 @@ public class DrGramSettingsActivity extends BaseFragment {
         replyFieldBg.setColor(0x1AFFFFFF);
         replyFieldBg.setStroke(AndroidUtilities.dp(1), 0x59F4D27A);
         titleField.setBackground(replyFieldBg);
-        textField.setTextColor(0xFFF7F0DF);
-        textField.setHintTextColor(0x99B9AD95);
-        textField.setBackground(replyFieldBg);
-        EditText textField = new EditText(context);
         textField.setHint(LocaleController.getString(R.string.DrGramSetRepliesText));
         textField.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
         textField.setMinLines(2);
         textField.setText(presetText);
+        textField.setTextColor(0xFFF7F0DF);
+        textField.setHintTextColor(0x99B9AD95);
+        textField.setBackground(replyFieldBg);
         box.addView(titleField);
         box.addView(textField);
 
