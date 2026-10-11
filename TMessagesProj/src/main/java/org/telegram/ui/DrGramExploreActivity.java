@@ -64,6 +64,9 @@ public class DrGramExploreActivity extends BaseFragment implements NotificationC
 
     private int columnsCount = 3;
 
+    // total item count at the moment the auto-chain last fired (stall guard)
+    private int lastChainTotal = -1;
+
     public DrGramExploreActivity() {
         super();
         exploreController = DrGramExploreController.getInstance(currentAccount);
@@ -142,7 +145,20 @@ public class DrGramExploreActivity extends BaseFragment implements NotificationC
             @Override
             public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
                 super.onScrolled(recyclerView, dx, dy);
+                if (dy > 0) {
+                    lastChainTotal = -1; // real user scroll re-arms the chain
+                }
                 checkLoadMore();
+            }
+
+            @Override
+            public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
+                super.onScrollStateChanged(recyclerView, newState);
+                // Instagram-style: keep the runway full after a fling settles
+                if (newState == RecyclerView.SCROLL_STATE_IDLE
+                        || newState == RecyclerView.SCROLL_STATE_SETTLING) {
+                    checkLoadMore();
+                }
             }
         });
         RecyclerView.ItemDecoration decoration = new RecyclerView.ItemDecoration() {
@@ -158,6 +174,9 @@ public class DrGramExploreActivity extends BaseFragment implements NotificationC
         FrameLayout.LayoutParams listParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
         listParams.topMargin = AndroidUtilities.dp(88);
         rootLayout.addView(listView, listParams);
+        // first open: if the already-loaded page fills (or under-fills) the
+        // viewport, start pulling the next pages without waiting for a scroll
+        listView.post(this::checkLoadMore);
 
         // ---- empty / loading state ----
         emptyTextView = new TextView(context);
@@ -181,19 +200,43 @@ public class DrGramExploreActivity extends BaseFragment implements NotificationC
         }
     }
 
+    /* Instagram-style infinite scroll: whenever the user is within 12 items
+     * (~4 grid rows) of the loaded edge, the next page is fetched automatically.
+     * The chain continues after every data update while the user is still parked
+     * near the bottom, so the feed never stalls with a dead footer. */
     private void checkLoadMore() {
-        if (listView == null || adapter == null || exploreController == null) {
+        if (listView == null || adapter == null || exploreController == null || layoutManager == null) {
+            return;
+        }
+        int total = adapter.getItemCount();
+        if (total <= 0) {
             return;
         }
         int lastVisible = layoutManager.findLastCompletelyVisibleItemPosition();
+        int partial = layoutManager.findLastVisibleItemPosition();
         if (lastVisible == RecyclerView.NO_POSITION) {
-            lastVisible = layoutManager.findLastVisibleItemPosition();
+            lastVisible = partial;
+        } else if (partial != RecyclerView.NO_POSITION) {
+            lastVisible = Math.max(lastVisible, partial);
         }
-        int total = adapter.getItemCount();
-        if (total > 0 && lastVisible >= total - 9) {
-            if (exploreController.hasMore() && !exploreController.isLoading()) {
-                exploreController.loadMore();
-            }
+        if (lastVisible == RecyclerView.NO_POSITION || lastVisible < total - 12) {
+            return;
+        }
+        if (!exploreController.hasMore() || exploreController.isLoading()) {
+            return;
+        }
+        if (lastChainTotal == total) {
+            // the previous automatic round added nothing (channels exhausted or
+            // MAX_TOTAL_ITEMS cap) — stop the auto-chain until content changes
+            return;
+        }
+        lastChainTotal = total;
+        exploreController.loadMore();
+    }
+
+    private void postCheckLoadMore() {
+        if (listView != null) {
+            listView.post(this::checkLoadMore);
         }
     }
 
@@ -389,6 +432,9 @@ public class DrGramExploreActivity extends BaseFragment implements NotificationC
     public void didReceivedNotification(int id, int account, Object... args) {
         if (id == NotificationCenter.drgramExploreUpdated) {
             updateUIState();
+            // keep the chain alive: after each loaded page, if the user is still
+            // near the bottom, immediately pull the next page (Instagram-style)
+            postCheckLoadMore();
         } else if (id == NotificationCenter.dialogsNeedReload) {
             rebuildChips();
             exploreController.refreshIfNeeded(false);
