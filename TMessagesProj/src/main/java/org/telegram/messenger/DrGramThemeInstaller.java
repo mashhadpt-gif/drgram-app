@@ -37,8 +37,8 @@ import java.io.OutputStream;
 
 public class DrGramThemeInstaller {
 
-    public static final String GOLD_THEME_NAME = "DrGram Gold";
-    public static final String RED_THEME_NAME = "DrGram Red";
+    public static final String GOLD_THEME_NAME = "DrGram Gold Luxe";
+    public static final String RED_THEME_NAME = "DrGram Red Luxe";
 
     // Theme.applyThemeFile normalizes the theme name by appending ".attheme",
     // and ThemeInfo.getKey() returns that normalized name — so this is the key
@@ -211,7 +211,7 @@ public class DrGramThemeInstaller {
      * Current luxury accent color for the dialogs title & chrome accents.
      */
     public static int accentColor() {
-        return isLoveMode() ? 0xFFE63B52 : 0xFFF5B90D;
+        return isLoveMode() ? 0xFFE63B52 : 0xFFFFC94A;
     }
 
     private static boolean copyAsset(Context ctx, String asset, File out) {
