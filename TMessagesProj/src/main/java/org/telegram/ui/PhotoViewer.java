@@ -10312,7 +10312,9 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
                         }
                         manuallyPaused = false;
                         cancelVideoPlayRunnable();
-                        if (sendPhotoType != SELECT_TYPE_AVATAR && currentEditMode == EDIT_MODE_NONE && switchingToMode <= 0) {
+                        if (drgramVerticalNav && sendPhotoType != SELECT_TYPE_AVATAR && currentEditMode == EDIT_MODE_NONE && switchingToMode <= 0) {
+                            playVideoOrWeb(); // DrGram Fix 19: loop videos Reels-style
+                        } else if (sendPhotoType != SELECT_TYPE_AVATAR && currentEditMode == EDIT_MODE_NONE && switchingToMode <= 0) {
                             pauseVideoOrWeb();
                         } else {
                             playVideoOrWeb();
@@ -18099,6 +18101,7 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
     }
 
     public void closePhoto(boolean animated, boolean fromEditMode) {
+        drgramVerticalNav = false; // DrGram Fix 19: reset Reels navigation
         if (stickerMakerView != null) {
             stickerMakerView.isThanosInProgress = false;
             if (cutOutBtn.isCancelState()) {
@@ -18933,7 +18936,64 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
     float longPressX;
     Runnable longPressRunnable = this::onLongPress;
 
+    // DrGram Fix 19: Reels-style vertical navigation ------------------------
+    // When the viewer was opened from the Explore grid, vertical swipes must
+    // scroll between posts instead of dismissing the viewer. We achieve this by
+    // rotating every touch event of the gesture by 90 degrees: a downward swipe
+    // becomes a left swipe (next photo) and an upward swipe becomes a right
+    // swipe (previous photo). The swipe-to-dismiss path therefore never fires.
+    private boolean drgramVerticalNav;
+    private boolean drgramRotatingGesture;
+
+    public void setDrgramVerticalNav(boolean enabled) {
+        drgramVerticalNav = enabled;
+    }
+
+    private MotionEvent drgramMaybeRotateEvent(MotionEvent ev) {
+        int action = ev.getActionMasked();
+        if (drgramVerticalNav) {
+            if (action == MotionEvent.ACTION_DOWN && currentEditMode == EDIT_MODE_NONE
+                    && sendPhotoType == 0 && scale == 1 && !zooming) {
+                drgramRotatingGesture = true;
+            } else if (action == MotionEvent.ACTION_UP || action == MotionEvent.ACTION_CANCEL) {
+                drgramRotatingGesture = false;
+            }
+        } else {
+            drgramRotatingGesture = false;
+        }
+        if (drgramRotatingGesture) {
+            int pointerCount = ev.getPointerCount();
+            MotionEvent.PointerProperties[] props = new MotionEvent.PointerProperties[pointerCount];
+            MotionEvent.PointerCoords[] coords = new MotionEvent.PointerCoords[pointerCount];
+            for (int i = 0; i < pointerCount; i++) {
+                MotionEvent.PointerProperties p = new MotionEvent.PointerProperties();
+                ev.getPointerProperties(i, p);
+                props[i] = p;
+                MotionEvent.PointerCoords c = new MotionEvent.PointerCoords();
+                ev.getPointerCoords(i, c);
+                float x = c.x, y = c.y;
+                c.x = containerView.getHeight() - y;
+                c.y = x;
+                coords[i] = c;
+            }
+            return MotionEvent.obtain(ev.getDownTime(), ev.getEventTime(), ev.getAction(),
+                    pointerCount, props, coords, ev.getMetaState(), ev.getButtonState(),
+                    ev.getXPrecision(), ev.getYPrecision(), ev.getDeviceId(), ev.getEdgeFlags(),
+                    ev.getSource(), ev.getFlags());
+        }
+        return ev;
+    }
+
     private boolean onTouchEvent(MotionEvent ev) {
+        MotionEvent drgramEvent = drgramMaybeRotateEvent(ev);
+        boolean drgramResult = drgramOnTouchEventInternal(drgramEvent);
+        if (drgramEvent != ev) {
+            drgramEvent.recycle();
+        }
+        return drgramResult;
+    }
+
+    private boolean drgramOnTouchEventInternal(MotionEvent ev) {
         lastX = ev.getX();
         if (currentEditMode == EDIT_MODE_PAINT && animationStartTime != 0 && (ev.getActionMasked() == MotionEvent.ACTION_DOWN || ev.getActionMasked() == MotionEvent.ACTION_POINTER_DOWN)) {
             if (ev.getPointerCount() >= 2) {
@@ -19460,7 +19520,7 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
     }
 
     private boolean shouldMessageObjectAutoPlayed(MessageObject messageObject) {
-        return messageObject != null && messageObject.isVideo() && (messageObject.mediaExists || messageObject.attachPathExists || messageObject.hasVideoQualities() || messageObject.canStreamVideo() && SharedConfig.streamMedia) && SharedConfig.isAutoplayVideo();
+        return messageObject != null && messageObject.isVideo() && (messageObject.mediaExists || messageObject.attachPathExists || messageObject.hasVideoQualities() || messageObject.canStreamVideo() && SharedConfig.streamMedia) && (SharedConfig.isAutoplayVideo() || drgramVerticalNav); // DrGram Fix 19: Explore opens videos Reels-style
     }
 
     private boolean shouldIndexAutoPlayed(int index) {

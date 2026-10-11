@@ -378,6 +378,8 @@ public class DrGramExploreActivity extends BaseFragment implements NotificationC
             return;
         }
         PhotoViewer.getInstance().setParentActivity(DrGramExploreActivity.this);
+        // DrGram Fix 19: Reels-style vertical navigation + autoplay
+        PhotoViewer.getInstance().setDrgramVerticalNav(true);
         PhotoViewer.getInstance().openPhoto(currentMedia, position, 0, 0, 0, provider);
     }
 

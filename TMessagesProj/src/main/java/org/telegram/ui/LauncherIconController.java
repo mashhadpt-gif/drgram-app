@@ -34,7 +34,10 @@ public class LauncherIconController {
     }
 
     public enum LauncherIcon {
-        DEFAULT("DefaultIcon", R.drawable.icon_background_sa, R.mipmap.icon_foreground_sa, R.string.AppIconDefault),
+        DEFAULT("DefaultIcon", R.drawable.dg_icon_bg_gold, R.drawable.dg_gold_heart_fg, R.string.AppIconDefault),
+        GOLD_GEM("GoldGemIcon", R.drawable.dg_icon_bg_gold, R.drawable.dg_gold_gem_fg, R.string.AppIconGoldGem),
+        RED_HEART("RedHeartIcon", R.drawable.dg_icon_bg_red, R.drawable.dg_red_heart_fg, R.string.AppIconRedHeart),
+        RED_GEM("RedGemIcon", R.drawable.dg_icon_bg_red, R.drawable.dg_red_gem_fg, R.string.AppIconRedGem),
         VINTAGE("VintageIcon", R.drawable.icon_6_background_sa, R.mipmap.icon_6_foreground_sa, R.string.AppIconVintage),
         AQUA("AquaIcon", R.drawable.icon_4_background_sa, R.mipmap.icon_foreground_sa, R.string.AppIconAqua),
         PREMIUM("PremiumIcon", R.drawable.icon_3_background_sa, R.mipmap.icon_3_foreground_sa, R.string.AppIconPremium, true),

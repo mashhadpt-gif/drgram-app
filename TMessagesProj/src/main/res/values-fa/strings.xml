@@ -88,6 +88,9 @@
     <string name="AppIconPremium">رویال</string>
     <string name="AppIconTurbo">زرشکی</string>
     <string name="AppIconNox">کسوف</string>
+    <string name="AppIconGoldGem">جواهر طلایی</string>
+    <string name="AppIconRedHeart">قلب یاقوتی</string>
+    <string name="AppIconRedGem">جواهر یاقوتی</string>
 
     <!-- Theme display names -->
     <string name="Theme">تم</string>

@@ -1034,7 +1034,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                         drawBlurRect(canvas, 0, blurBounds, actionBarSearchPaint, true);
                     }
                     if (fragmentSearchField != null) {
-                        fragmentSearchField.setTranslationY(top + actionBarHeight - (actionBar.getHeight() + (filterTabsView != null ? filterTabsView.getMeasuredHeight() : 0)) + getSearchFieldAdditionOffset());
+                        fragmentSearchField.setTranslationY(top + actionBarHeight - actionBar.getHeight() + getSearchFieldAdditionOffset()); // DrGram Fix 19: tabs are at the bottom now
                     }
                 }
             } else if (!inPreviewMode) {
@@ -2078,8 +2078,8 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             final float filterTabsVisibility = getFilterTabsVisibilityFactor(false);
             final float topPanelsVisibility = topPanelLayout != null ? topPanelLayout.getMetadata().getTotalVisibility() : 0f;
 
-            t += (int) (dp(36 + 14) * filterTabsVisibility);
-            additionalPadding += (int) (dp(36 + 14) * filterTabsVisibility);
+            // DrGram Fix 19: folder tabs moved to the bottom — their height now
+            // pads the bottom of the list instead of the top (see `b` below)
 
             if (topPanelLayout != null) {
                 final int h = (int) topPanelLayout.getAnimatedHeightWithPadding(lerp((float) dp(14), dp(7), filterTabsVisibility));
@@ -2090,7 +2090,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             t -= dp(5 * Math.max(filterTabsVisibility, topPanelsVisibility));
             additionalPadding -= dp(5 * Math.max(filterTabsVisibility, topPanelsVisibility));
 
-            final int b = calculateListViewPaddingBottom();
+            final int b = calculateListViewPaddingBottom() + (int) (dp(36 + 14) * filterTabsVisibility); // DrGram Fix 19: room for the bottom tab pill
             if (t != topPadding || b != getPaddingBottom()) {
                 setTopGlowOffset(t);
                 setPadding(0, t, 0, b);
@@ -5182,7 +5182,8 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             filterTabsViewBackground.setPadding(dp(6.666f));
             filterTabsView.setPadding(0, dp(7), 0, dp(7));
             filterTabsView.setBlurredBackground(filterTabsViewBackground);
-            contentView.addView(filterTabsView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 36 + 7 + 7, Gravity.TOP, 4, 0, 4, 0));
+            // DrGram Fix 19: folder tabs live at the bottom, above the navigation bar
+            contentView.addView(filterTabsView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 36 + 7 + 7, Gravity.BOTTOM, 4, 0, 4, AndroidUtilities.navigationBarHeight + AndroidUtilities.dp(6)));
         }
 
         if (fragmentSearchField != null) {
@@ -5442,7 +5443,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             fragmentSearchField.editText.setSelection(initialSearchString.length());
             initialSearchString = null;
             if (fragmentSearchField != null) {
-                fragmentSearchField.setTranslationY(-dp(FILTER_TABS_HEIGHT) + getSearchFieldAdditionOffset());
+                fragmentSearchField.setTranslationY(getSearchFieldAdditionOffset()); // DrGram Fix 19: tabs are at the bottom now
             }
         } else if (drgramStartDownloads) {
             drgramStartDownloads = false;
@@ -7721,7 +7722,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 searchViewPager.setVisibility(show ? View.VISIBLE : View.GONE);
             }
             if (fragmentSearchField != null) {
-                fragmentSearchField.setTranslationY((show ? -dp(FILTER_TABS_HEIGHT) : 0) + getSearchFieldAdditionOffset());
+                fragmentSearchField.setTranslationY(getSearchFieldAdditionOffset()); // DrGram Fix 19: tabs are at the bottom now
             }
             if (dialogStoriesCell != null) {
                 if (dialogStoriesCellVisible && !isInPreviewMode() && !show) {
@@ -8893,8 +8894,17 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         }
     }
 
+    // DrGram Fix 19: the bottom folder-tab pill occupies this much space above
+    // the navigation bar — list content and floating buttons must clear it.
+    private int drgramTabsBottomOffset() {
+        if (filterTabsView != null && filterTabsView.getVisibility() == View.VISIBLE) {
+            return dp(36 + 14 + 6);
+        }
+        return 0;
+    }
+
     private void updateFloatingButtonOffset() {
-        final float top = -navigationBarHeight - additionFloatingButtonOffset - additionalFloatingTranslation;
+        final float top = -navigationBarHeight - drgramTabsBottomOffset() - additionFloatingButtonOffset - additionalFloatingTranslation; // DrGram Fix 19
         final float baseTranslationY = top
             - floatingButtonPanOffset;
 
@@ -13837,6 +13847,11 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         final Insets systemInsets = AndroidUtilities.getDefaultWindowInsets(insets, false);
         statusBarHeight = systemInsets.top;
         navigationBarHeight = systemInsets.bottom;
+        if (filterTabsView != null && filterTabsView.getLayoutParams() instanceof FrameLayout.LayoutParams) {
+            // DrGram Fix 19: keep the bottom folder-tab pill above the gesture bar
+            ((FrameLayout.LayoutParams) filterTabsView.getLayoutParams()).bottomMargin = navigationBarHeight + AndroidUtilities.dp(6);
+            filterTabsView.requestLayout();
+        }
         final int imeInsetHeight = insets.getInsets(WindowInsetsCompat.Type.ime()).bottom;
         if (this.imeInsetHeight != imeInsetHeight) {
             this.imeInsetHeight = imeInsetHeight;
@@ -14041,6 +14056,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             filterTabsView.setScaleX(s);
             filterTabsView.setScaleY(s);
             filterTabsView.setVisibility(factor > 0 ? View.VISIBLE : View.GONE);
+            updateFloatingButtonOffset(); // DrGram Fix 19: FAB clears the bottom pill
 
             if (alphaChanged && viewPages[0] != null) {
                 viewPages[0].listView.requestLayout();
@@ -14290,7 +14306,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         checkUi_fadeView();
 
         if (writeButton != null) {
-            writeButton.setTranslationY(-windowInsetsStateHolder.getAnimatedMaxBottomInset());
+            writeButton.setTranslationY(-windowInsetsStateHolder.getAnimatedMaxBottomInset() - drgramTabsBottomOffset()); // DrGram Fix 19
         }
     }
 

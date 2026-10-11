@@ -156,6 +156,7 @@ public class FilterTabsView extends FrameLayout {
                 counterResultWidth = !isDefault && isEditing ? dp(TAB_COUNTER_HEIGHT - 5) : 0;
             }
             width += counterResultWidth;
+            width += drgramIconWidth(this); // DrGram Fix 19: special folder icons
 
             return Math.max(dp(16), width);
         }
@@ -390,6 +391,13 @@ public class FilterTabsView extends FrameLayout {
             float textX = (getMeasuredWidth() - tabWidth) / 2f;
             if (animateTextX) {
                 textX = textX * changeProgress + animateFromTextX * (1f - changeProgress);
+            }
+
+            // DrGram Fix 19: draw the special folder icon before the title
+            int drgramIconW = drgramIconWidth(currentTab);
+            if (drgramIconW > 0) {
+                drgramDrawTabIcon(canvas, currentTab, textX, getMeasuredHeight() / 2f, textPaint.getColor());
+                textX += drgramIconW;
             }
 
             if (!TextUtils.equals(currentTab.title, currentText)) {
@@ -1296,6 +1304,129 @@ public class FilterTabsView extends FrameLayout {
         allTabsWidth += tab.getWidth(true) + dp(TAB_PADDING_WIDTH);
         tabs.add(tab);
     }
+
+    //region DrGram Fix 19: special folder tab icons
+    private android.graphics.Paint drgramIconPaint;
+
+    private int drgramIconWidth(Tab tab) {
+        return drgramTabIconType(tab) != 0 ? AndroidUtilities.dp(22) : 0;
+    }
+
+    private int drgramTabIconType(Tab tab) {
+        if (tab == null) {
+            return 0;
+        }
+        try {
+            ArrayList<MessagesController.DialogFilter> filters = MessagesController.getInstance(UserConfig.selectedAccount).getDialogFilters();
+            if (tab.id < 0 || tab.id >= filters.size()) {
+                return 0;
+            }
+            MessagesController.DialogFilter filter = filters.get(tab.id);
+            if (filter == null) {
+                return 0;
+            }
+            if (filter.isDefault()) {
+                return 1; // all chats -> heart
+            }
+            boolean groups = (filter.flags & MessagesController.DIALOG_FILTER_FLAG_GROUPS) != 0;
+            boolean channels = (filter.flags & MessagesController.DIALOG_FILTER_FLAG_CHANNELS) != 0;
+            boolean bots = (filter.flags & MessagesController.DIALOG_FILTER_FLAG_BOTS) != 0;
+            boolean contacts = (filter.flags & MessagesController.DIALOG_FILTER_FLAG_CONTACTS) != 0;
+            boolean nonContacts = (filter.flags & MessagesController.DIALOG_FILTER_FLAG_NON_CONTACTS) != 0;
+            if (groups && !channels && !bots) {
+                return 3; // groups
+            }
+            if (channels && !groups && !bots) {
+                return 4; // channels
+            }
+            if (bots && !groups && !channels) {
+                return 5; // bots
+            }
+            if ((contacts || nonContacts) && !groups && !channels && !bots) {
+                return 2; // personal
+            }
+        } catch (Exception ignore) {
+        }
+        return 0;
+    }
+
+    private void drgramDrawTabIcon(Canvas canvas, Tab tab, float x, float cy, int color) {
+        int type = drgramTabIconType(tab);
+        if (type == 0) {
+            return;
+        }
+        if (drgramIconPaint == null) {
+            drgramIconPaint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+            drgramIconPaint.setStyle(android.graphics.Paint.Style.STROKE);
+            drgramIconPaint.setStrokeJoin(android.graphics.Paint.Join.ROUND);
+            drgramIconPaint.setStrokeCap(android.graphics.Paint.Cap.ROUND);
+        }
+        drgramIconPaint.setColor(color);
+        drgramIconPaint.setStrokeWidth(AndroidUtilities.dp(1.7f));
+        float s = AndroidUtilities.dp(17);
+        canvas.save();
+        canvas.translate(x, cy - s / 2f);
+        android.graphics.Path path = new android.graphics.Path();
+        switch (type) {
+            case 1: { // heart — filled, the DrGram romantic signature
+                path.moveTo(s / 2f, s * 0.86f);
+                path.cubicTo(-s * 0.10f, s * 0.56f, -s * 0.05f, s * 0.12f, s / 2f, s * 0.34f);
+                path.cubicTo(s * 1.05f, s * 0.12f, s * 1.10f, s * 0.56f, s / 2f, s * 0.86f);
+                path.close();
+                drgramIconPaint.setStyle(android.graphics.Paint.Style.FILL);
+                canvas.drawPath(path, drgramIconPaint);
+                drgramIconPaint.setStyle(android.graphics.Paint.Style.STROKE);
+                break;
+            }
+            case 2: { // personal — one person
+                canvas.drawCircle(s / 2f, s * 0.30f, s * 0.20f, drgramIconPaint);
+                path.moveTo(s * 0.12f, s * 0.86f);
+                path.cubicTo(s * 0.12f, s * 0.58f, s * 0.88f, s * 0.58f, s * 0.88f, s * 0.86f);
+                canvas.drawPath(path, drgramIconPaint);
+                break;
+            }
+            case 3: { // groups — two people
+                canvas.drawCircle(s * 0.36f, s * 0.32f, s * 0.18f, drgramIconPaint);
+                path.moveTo(s * 0.08f, s * 0.84f);
+                path.cubicTo(s * 0.08f, s * 0.60f, s * 0.64f, s * 0.60f, s * 0.64f, s * 0.84f);
+                canvas.drawPath(path, drgramIconPaint);
+                path.moveTo(s * 0.66f, s * 0.16f);
+                path.cubicTo(s * 0.92f, s * 0.22f, s * 0.92f, s * 0.52f, s * 0.70f, s * 0.56f);
+                canvas.drawPath(path, drgramIconPaint);
+                break;
+            }
+            case 4: { // channels — megaphone
+                path.moveTo(s * 0.14f, s * 0.40f);
+                path.lineTo(s * 0.62f, s * 0.16f);
+                path.lineTo(s * 0.62f, s * 0.80f);
+                path.lineTo(s * 0.14f, s * 0.56f);
+                path.close();
+                canvas.drawPath(path, drgramIconPaint);
+                path.moveTo(s * 0.74f, s * 0.30f);
+                path.cubicTo(s * 0.94f, s * 0.36f, s * 0.94f, s * 0.60f, s * 0.74f, s * 0.66f);
+                canvas.drawPath(path, drgramIconPaint);
+                path.moveTo(s * 0.24f, s * 0.56f);
+                path.lineTo(s * 0.24f, s * 0.82f);
+                path.lineTo(s * 0.38f, s * 0.82f);
+                path.lineTo(s * 0.38f, s * 0.62f);
+                canvas.drawPath(path, drgramIconPaint);
+                break;
+            }
+            case 5: { // bots — robot head
+                android.graphics.RectF rect = new android.graphics.RectF(s * 0.16f, s * 0.30f, s * 0.84f, s * 0.84f);
+                canvas.drawRoundRect(rect, s * 0.14f, s * 0.14f, drgramIconPaint);
+                drgramIconPaint.setStyle(android.graphics.Paint.Style.FILL);
+                canvas.drawCircle(s * 0.37f, s * 0.54f, s * 0.05f, drgramIconPaint);
+                canvas.drawCircle(s * 0.63f, s * 0.54f, s * 0.05f, drgramIconPaint);
+                drgramIconPaint.setStyle(android.graphics.Paint.Style.STROKE);
+                canvas.drawLine(s / 2f, s * 0.30f, s / 2f, s * 0.14f, drgramIconPaint);
+                canvas.drawCircle(s / 2f, s * 0.11f, s * 0.045f, drgramIconPaint);
+                break;
+            }
+        }
+        canvas.restore();
+    }
+    //endregion
 
     public int getTabsCount() {
         return tabs.size();

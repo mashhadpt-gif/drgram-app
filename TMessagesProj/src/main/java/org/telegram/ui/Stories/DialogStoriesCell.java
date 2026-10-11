@@ -1611,6 +1611,10 @@ public class DialogStoriesCell extends FrameLayout implements NotificationCenter
                     if (index > 0) {
                         name = name.substring(0, index);
                     }
+                    if (user.id == 777000) {
+                        // DrGram Fix 19: brand the official service story cell
+                        name = "fa".equals(LocaleController.getInstance().getCurrentLocale().getLanguage()) ? "دکترگرام" : "Dr Gram";
+                    }
                     if (user.verified) {
                         if (verifiedDrawable == null) {
                             verifiedDrawable = createVerifiedDrawable();
