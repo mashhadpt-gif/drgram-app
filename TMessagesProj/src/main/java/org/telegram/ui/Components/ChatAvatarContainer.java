@@ -41,6 +41,7 @@ import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
 import org.telegram.messenger.ChatObject;
 import org.telegram.messenger.DialogObject;
+import org.telegram.messenger.DrGramThemeInstaller;
 import org.telegram.messenger.Emoji;
 import org.telegram.messenger.FileLog;
 import org.telegram.messenger.ImageLoader;
@@ -85,6 +86,8 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
     // DrGram premium effect: gold spark burst fired when the avatar is touched
     // (DrGram's answer to Telegram's premium emoji interactions)
     private DrGramSparkEffect drgramAvatarSparks;
+    // DrGram Fix 16: LOVE-mode avatar burst — glowing hearts instead of sparks
+    private DrGramHeartEffect drgramAvatarHearts;
     private SimpleTextView titleTextView;
     private AtomicReference<SimpleTextView> titleTextLargerCopyView = new AtomicReference<>();
     private SimpleTextView subtitleTextView;
@@ -439,6 +442,11 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
             drgramAvatarSparks.onDraw(this, canvas);
             invalidate();
         }
+        // DrGram Fix 16: draw the LOVE-mode avatar hearts on top as well
+        if (drgramAvatarHearts != null && !drgramAvatarHearts.isEmpty()) {
+            drgramAvatarHearts.onDraw(this, canvas);
+            invalidate();
+        }
         canvas.restore();
     }
 
@@ -446,17 +454,26 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
      * DrGram premium effect: gold spark burst centered on the avatar, fired on
      * touch-down (equivalent of Telegram's premium emoji interactions).
      * Gated by SharedConfig.drgramSendSparks.
+     * DrGram Fix 16: theme-aware — in LOVE Mode the avatar touch releases
+     * glowing hearts, in Gold Luxe it releases golden sparks.
      */
     private void drgramSparkAvatar() {
         if (!SharedConfig.drgramSendSparks || avatarImageView == null || avatarImageView.getVisibility() != VISIBLE) {
             return;
         }
-        if (drgramAvatarSparks == null) {
-            drgramAvatarSparks = new DrGramSparkEffect();
-        }
         float cx = avatarImageView.getX() + avatarImageView.getMeasuredWidth() / 2.0f;
         float cy = avatarImageView.getY() + avatarImageView.getMeasuredHeight() / 2.0f;
-        drgramAvatarSparks.burst(cx, cy, 1.35f);
+        if (DrGramThemeInstaller.isLoveMode()) {
+            if (drgramAvatarHearts == null) {
+                drgramAvatarHearts = new DrGramHeartEffect();
+            }
+            drgramAvatarHearts.burst(cx, cy, 1.35f);
+        } else {
+            if (drgramAvatarSparks == null) {
+                drgramAvatarSparks = new DrGramSparkEffect();
+            }
+            drgramAvatarSparks.burst(cx, cy, 1.35f);
+        }
         invalidate();
     }
 

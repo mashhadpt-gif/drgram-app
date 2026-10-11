@@ -36,6 +36,8 @@ import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.text.MeasuredText;
 import android.os.Build;
+import android.os.Handler;
+import android.os.Looper;
 import android.util.Log;
 import android.view.View;
 import android.widget.FrameLayout;
@@ -44,6 +46,7 @@ import androidx.annotation.NonNull;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.DispatchQueue;
+import org.telegram.messenger.DrGramThemeInstaller;
 import org.telegram.messenger.FileLog;
 import org.telegram.messenger.LiteMode;
 import org.telegram.messenger.SharedConfig;
@@ -91,8 +94,47 @@ public class SizeNotifierFrameLayout extends FrameLayout implements Theme.Colora
     SnowflakesEffect snowflakesEffect;
     private DrGramSparkEffect drgramSparkEffect;
     private DrGramGoldRainEffect drgramGoldRainEffect;
+    // DrGram Fix 16: LOVE-mode hearts + ambient theme particle waves
+    private DrGramHeartEffect drgramHeartEffect;
+    private DrGramAmbientEffect drgramAmbientEffect;
+    private final Handler drgramAmbientHandler = new Handler(Looper.getMainLooper());
+    private boolean drgramAmbientScheduled;
+    private final Runnable drgramAmbientWave = new Runnable() {
+        @Override
+        public void run() {
+            drgramAmbientScheduled = false;
+            try {
+                if (SharedConfig.drgramSendSparks && isAttachedToWindow()
+                        && getWindowVisibility() == View.VISIBLE && getMeasuredWidth() > 0) {
+                    if (drgramAmbientEffect == null) {
+                        drgramAmbientEffect = new DrGramAmbientEffect();
+                    }
+                    if (drgramAmbientEffect.isEmpty()) {
+                        drgramAmbientEffect.spawnWave(DrGramThemeInstaller.isLoveMode(),
+                                getMeasuredWidth(), getMeasuredHeight());
+                        invalidate();
+                    }
+                }
+            } catch (Throwable t) {
+                FileLog.e(t);
+            }
+            drgramScheduleAmbient();
+        }
+    };
     public View backgroundView;
     boolean attached;
+
+    /**
+     * DrGram Fix 16: keeps the ambient particle sky alive. Waves last a few
+     * seconds, then the canvas goes fully idle until the next scheduled wave,
+     * so the effect costs nothing while still making every screen feel alive.
+     */
+    private void drgramScheduleAmbient() {
+        if (isAttachedToWindow() && !drgramAmbientScheduled) {
+            drgramAmbientScheduled = true;
+            drgramAmbientHandler.postDelayed(drgramAmbientWave, 15000 + Utilities.random.nextInt(9000));
+        }
+    }
 
     /**
      * DrGram premium effect: spawns a gold spark burst at (x, y) drawn over the chat content.
@@ -104,30 +146,47 @@ public class SizeNotifierFrameLayout extends FrameLayout implements Theme.Colora
 
     /**
      * DrGram premium effect: spark burst with custom intensity (>= 1.5 = grand mode).
+     * DrGram Fix 16: theme-aware — in LOVE Mode the send burst erupts into
+     * glowing hearts instead of gold sparks.
      */
     public void startDrgramSparks(float x, float y, float intensity) {
         if (!SharedConfig.drgramSendSparks) {
             return;
         }
-        if (drgramSparkEffect == null) {
-            drgramSparkEffect = new DrGramSparkEffect();
+        if (DrGramThemeInstaller.isLoveMode()) {
+            if (drgramHeartEffect == null) {
+                drgramHeartEffect = new DrGramHeartEffect();
+            }
+            drgramHeartEffect.burst(x, y, intensity);
+        } else {
+            if (drgramSparkEffect == null) {
+                drgramSparkEffect = new DrGramSparkEffect();
+            }
+            drgramSparkEffect.burst(x, y, intensity);
         }
-        drgramSparkEffect.burst(x, y, intensity);
         invalidate();
     }
 
     /**
      * DrGram premium effect: golden dust rain celebrating a reaction on your message.
      * Gated by SharedConfig.drgramReactionRain.
+     * DrGram Fix 16: theme-aware — in LOVE Mode hearts rise and drizzle instead.
      */
     public void startDrgramGoldRain(float x, float y) {
         if (!SharedConfig.drgramReactionRain) {
             return;
         }
-        if (drgramGoldRainEffect == null) {
-            drgramGoldRainEffect = new DrGramGoldRainEffect();
+        if (DrGramThemeInstaller.isLoveMode()) {
+            if (drgramHeartEffect == null) {
+                drgramHeartEffect = new DrGramHeartEffect();
+            }
+            drgramHeartEffect.rain(x, y, getMeasuredWidth());
+        } else {
+            if (drgramGoldRainEffect == null) {
+                drgramGoldRainEffect = new DrGramGoldRainEffect();
+            }
+            drgramGoldRainEffect.rain(x, y, getMeasuredWidth());
         }
-        drgramGoldRainEffect.rain(x, y, getMeasuredWidth());
         invalidate();
     }
 
@@ -877,9 +936,18 @@ public class SizeNotifierFrameLayout extends FrameLayout implements Theme.Colora
             startBlur();
         }
         super.dispatchDraw(canvas);
+        // DrGram Fix 16: ambient brand particles — golden starfall in Gold Luxe,
+        // drifting hearts in LOVE Mode (low alpha, idle between waves)
+        if (drgramAmbientEffect != null && !drgramAmbientEffect.isEmpty()) {
+            drgramAmbientEffect.onDraw(this, canvas);
+        }
         // DrGram premium sparks overlay (above messages, like confetti)
         if (drgramSparkEffect != null && !drgramSparkEffect.isEmpty()) {
             drgramSparkEffect.onDraw(this, canvas);
+        }
+        // DrGram Fix 16: heart burst/drizzle overlay (LOVE Mode)
+        if (drgramHeartEffect != null && !drgramHeartEffect.isEmpty()) {
+            drgramHeartEffect.onDraw(this, canvas);
         }
         // DrGram premium golden rain overlay
         if (drgramGoldRainEffect != null && !drgramGoldRainEffect.isEmpty()) {
@@ -891,6 +959,7 @@ public class SizeNotifierFrameLayout extends FrameLayout implements Theme.Colora
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
         attached = true;
+        drgramScheduleAmbient(); // DrGram Fix 16: start the ambient particle sky
         if (needBlur && !blurIsRunning) {
             blurIsRunning = true;
             invalidateBlur = true;
@@ -913,6 +982,8 @@ public class SizeNotifierFrameLayout extends FrameLayout implements Theme.Colora
     protected void onDetachedFromWindow() {
         super.onDetachedFromWindow();
         attached = false;
+        drgramAmbientHandler.removeCallbacks(drgramAmbientWave); // DrGram Fix 16
+        drgramAmbientScheduled = false;
         blurPaintTop.setShader(null);
         blurPaintTop2.setShader(null);
         blurPaintBottom.setShader(null);

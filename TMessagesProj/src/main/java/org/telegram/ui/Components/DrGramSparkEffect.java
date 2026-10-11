@@ -36,6 +36,7 @@ public class DrGramSparkEffect {
     private static final int TYPE_DIAMOND = 4;
     private static final int TYPE_HEXSTAR = 5;
     private static final int TYPE_RING    = 6;
+    private static final int TYPE_STAR5   = 7; // DrGram Fix 16: classic five-point star
 
     private static final int[] PALETTE = { GOLD, GOLD, GOLD_LIGHT, GOLD_LIGHT, GOLD_PALE, GOLD_DEEP, CRIMSON };
 
@@ -155,16 +156,18 @@ public class DrGramSparkEffect {
             p.twinkleSpeed = 0.008f + Utilities.random.nextFloat() * 0.012f;
 
             int r = Utilities.random.nextInt(100);
-            if (r < 38) {
+            if (r < 30) {
                 p.type = TYPE_DOT;
-            } else if (r < 62) {
+            } else if (r < 58) {
                 p.type = TYPE_STAR;
-            } else if (r < 78) {
+            } else if (r < 72) {
                 p.type = TYPE_STREAK;
-            } else if (r < 91) {
+            } else if (r < 82) {
                 p.type = TYPE_DIAMOND;
-            } else {
+            } else if (r < 91) {
                 p.type = TYPE_HEXSTAR;
+            } else {
+                p.type = TYPE_STAR5;
             }
             particles.add(p);
         }
@@ -233,6 +236,28 @@ public class DrGramSparkEffect {
         canvas.restore();
     }
 
+    /** Classic five-point star (DrGram Fix 16). */
+    private void drawStar5(Canvas canvas, float cx, float cy, float r, float rotation) {
+        canvas.save();
+        canvas.rotate(rotation, cx, cy);
+        float inner = r * 0.45f;
+        starPath.reset();
+        for (int a = 0; a < 10; a++) {
+            float radius = (a % 2 == 0) ? r : inner;
+            double angle = Math.PI / 5.0 * a - Math.PI / 2.0;
+            float px = cx + (float) Math.cos(angle) * radius;
+            float py = cy + (float) Math.sin(angle) * radius;
+            if (a == 0) {
+                starPath.moveTo(px, py);
+            } else {
+                starPath.lineTo(px, py);
+            }
+        }
+        starPath.close();
+        canvas.drawPath(starPath, paint);
+        canvas.restore();
+    }
+
     /** Rotating gem facet (rhombus body + bright inner highlight). */
     private void drawDiamond(Canvas canvas, float cx, float cy, float r, float rotation, int color, float alpha) {
         canvas.save();
@@ -280,7 +305,7 @@ public class DrGramSparkEffect {
             float progress = particle.currentTime / particle.lifeTime;
             float fade = 1.0f - AndroidUtilities.decelerateInterpolator.getInterpolation(progress);
             float twinkle = 0.65f + 0.35f * (float) Math.sin(particle.twinklePhase + particle.currentTime * particle.twinkleSpeed);
-            boolean sparkly = particle.type == TYPE_STAR || particle.type == TYPE_HEXSTAR || particle.type == TYPE_DIAMOND;
+            boolean sparkly = particle.type == TYPE_STAR || particle.type == TYPE_HEXSTAR || particle.type == TYPE_DIAMOND || particle.type == TYPE_STAR5;
             float alpha = particle.alpha * fade * (sparkly ? twinkle : 1.0f);
             if (alpha <= 0.02f) {
                 continue;
@@ -319,6 +344,14 @@ public class DrGramSparkEffect {
                     paint.setAlpha((int) (255 * alpha));
                     float radius = AndroidUtilities.dp(2.2f) * particle.scale;
                     drawHexStar(canvas, particle.x, particle.y, radius, particle.rotation);
+                    break;
+                }
+                case TYPE_STAR5: {
+                    paint.setStyle(Paint.Style.FILL);
+                    paint.setColor(color);
+                    paint.setAlpha((int) (255 * alpha));
+                    float radius = AndroidUtilities.dp(2.5f) * particle.scale;
+                    drawStar5(canvas, particle.x, particle.y, radius, particle.rotation);
                     break;
                 }
                 case TYPE_DOT: {
