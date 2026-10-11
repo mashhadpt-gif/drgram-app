@@ -13720,6 +13720,9 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                     if (themeActivity != null) {
                         Toast.makeText(themeActivity, getString(R.string.DrGramSetThemeApplyFailed), Toast.LENGTH_LONG).show();
                     }
+                } else if (parentLayout != null) {
+                    // DrGram Fix 13: rebuild fragment views for an instant palette switch.
+                    parentLayout.rebuildAllFragmentViews(true, true);
                 }
             } finally {
                 switchingTheme = false;
