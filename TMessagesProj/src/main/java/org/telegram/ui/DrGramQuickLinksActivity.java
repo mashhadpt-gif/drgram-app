@@ -193,6 +193,18 @@ public class DrGramQuickLinksActivity extends BaseFragment {
         title.setSingleLine(true);
         title.setHint(LocaleController.getString(R.string.DrGramQuickLinksName));
         title.setText(existing == null ? "" : existing.title);
+        // DrGram Fix 14: guaranteed readable text on the dark luxury dialogs —
+        // bare EditTexts resolved a dark framework color on the dark background.
+        title.setTextColor(0xFFF7F0DF);
+        title.setHintTextColor(0x99B9AD95);
+        android.graphics.drawable.GradientDrawable linkFieldBg = new android.graphics.drawable.GradientDrawable();
+        linkFieldBg.setCornerRadius(AndroidUtilities.dp(12));
+        linkFieldBg.setColor(0x1AFFFFFF);
+        linkFieldBg.setStroke(AndroidUtilities.dp(1), 0x59F4D27A);
+        title.setBackground(linkFieldBg);
+        url.setTextColor(0xFFF7F0DF);
+        url.setHintTextColor(0x99B9AD95);
+        url.setBackground(linkFieldBg);
         EditText url = new EditText(context);
         url.setSingleLine(true);
         url.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_URI);
