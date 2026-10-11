@@ -88,6 +88,7 @@ public class DrGramSettingsActivity extends BaseFragment {
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         fragmentView = scroller;
 
+        addSignatureHero(context, LocaleController.getString(R.string.DrGramSetGeneralHint));
         buildGeneralSection(context);
         buildThemeSection(context);
         buildChatListSection(context);
@@ -113,6 +114,77 @@ public class DrGramSettingsActivity extends BaseFragment {
         super.onResume();
         refreshBrandSurfaces();
         refreshDynamicRows();
+    }
+
+
+    /**
+     * DrGram Signature hero: a deliberate luxury/romance brand moment, not a generic settings header.
+     */
+    private void addSignatureHero(Context context, String subtitle) {
+        boolean love = DrGramThemeInstaller.isLoveMode();
+        int accent = DrGramThemeInstaller.accentColor();
+        LinearLayout hero = new LinearLayout(context);
+        hero.setOrientation(LinearLayout.VERTICAL);
+        hero.setGravity(Gravity.CENTER);
+        hero.setPadding(AndroidUtilities.dp(24), AndroidUtilities.dp(30), AndroidUtilities.dp(24), AndroidUtilities.dp(27));
+        android.graphics.drawable.GradientDrawable backdrop = new android.graphics.drawable.GradientDrawable(
+                android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
+                love
+                        ? new int[] {0xFF3A101F, 0xFF1B0A12, 0xFF3A101F}
+                        : new int[] {0xFF49330A, 0xFF171105, 0xFF342307});
+        backdrop.setCornerRadius(AndroidUtilities.dp(26));
+        backdrop.setStroke(AndroidUtilities.dp(1), love ? 0xCCF06A82 : 0xD9F4D27A);
+        hero.setBackground(backdrop);
+        hero.setElevation(AndroidUtilities.dp(7));
+        LinearLayout.LayoutParams hp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        hp.setMargins(AndroidUtilities.dp(16), AndroidUtilities.dp(18), AndroidUtilities.dp(16), AndroidUtilities.dp(8));
+        contentView.addView(hero, hp);
+
+        TextView emblem = new TextView(context);
+        emblem.setText(love ? "♡  ✦  ♡" : "✦  ◈  ✦");
+        emblem.setTextColor(love ? 0xFFFFA4B5 : 0xFFFFE6A0);
+        emblem.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 25);
+        emblem.setGravity(Gravity.CENTER);
+        hero.addView(emblem, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+        TextView brand = new TextView(context);
+        brand.setText(love ? "LOVE  MODE" : "GOLD  LUXE");
+        brand.setTextColor(love ? 0xFFFFDCE3 : 0xFFFFE8AE);
+        brand.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 25);
+        brand.setTypeface(AndroidUtilities.bold());
+        brand.setGravity(Gravity.CENTER);
+        brand.setLetterSpacing(0.10f);
+        LinearLayout.LayoutParams bp = LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT);
+        bp.topMargin = AndroidUtilities.dp(7);
+        hero.addView(brand, bp);
+
+        TextView tagline = new TextView(context);
+        tagline.setText(subtitle);
+        tagline.setTextColor(love ? 0xFFE8B8C3 : 0xFFE4D2A5);
+        tagline.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+        tagline.setGravity(Gravity.CENTER);
+        tagline.setLineSpacing(AndroidUtilities.dp(3), 1f);
+        LinearLayout.LayoutParams tp = LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT);
+        tp.topMargin = AndroidUtilities.dp(8);
+        hero.addView(tagline, tp);
+
+        TextView state = new TextView(context);
+        state.setText(love ? "♥  ROMANTIC • DEEP • ELEGANT" : "✧  CHAMPAGNE • ONYX • TIMELESS");
+        state.setTextColor(accent);
+        state.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 10);
+        state.setGravity(Gravity.CENTER);
+        state.setTypeface(AndroidUtilities.bold());
+        state.setLetterSpacing(0.06f);
+        android.graphics.drawable.GradientDrawable capsule = new android.graphics.drawable.GradientDrawable();
+        capsule.setColor(love ? 0x443D0E1A : 0x443D2D0A);
+        capsule.setCornerRadius(AndroidUtilities.dp(30));
+        capsule.setStroke(AndroidUtilities.dp(1), love ? 0x99F06A82 : 0x99F4D27A);
+        state.setBackground(capsule);
+        state.setPadding(AndroidUtilities.dp(14), AndroidUtilities.dp(8), AndroidUtilities.dp(14), AndroidUtilities.dp(8));
+        LinearLayout.LayoutParams sp = LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT);
+        sp.topMargin = AndroidUtilities.dp(16);
+        hero.addView(state, sp);
     }
 
     //region 1. General
