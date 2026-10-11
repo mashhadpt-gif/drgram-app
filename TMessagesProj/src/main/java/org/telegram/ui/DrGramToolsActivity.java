@@ -79,7 +79,7 @@ public class DrGramToolsActivity extends BaseFragment {
                 android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
                 DrGramThemeInstaller.isLoveMode()
                         ? new int[] {0xFF160A0F, 0xFF251017, 0xFF10090D}
-                        : new int[] {0xFF100E08, 0xFF211A0A, 0xFF100E08}));
+                        : new int[] {0xFF0C0A05, 0xFF261D09, 0xFF0C0A05}));
 
         android.widget.ScrollView scroller = new android.widget.ScrollView(context);
         scroller.setFillViewport(true);
@@ -618,7 +618,7 @@ public class DrGramToolsActivity extends BaseFragment {
 
         TextView hintView = new TextView(context);
         hintView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
-        hintView.setTextColor(0xFFB9AD95);
+        hintView.setTextColor(0xFFC9B98F);
         hintView.setPadding(AndroidUtilities.dp(21), 0, AndroidUtilities.dp(21), AndroidUtilities.dp(8));
         hintView.setText(hint);
         contentView.addView(hintView);
@@ -633,7 +633,7 @@ public class DrGramToolsActivity extends BaseFragment {
                 android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
                 loveMode
                         ? new int[] {0xFF160A0F, 0xFF251017, 0xFF10090D}
-                        : new int[] {0xFF100E08, 0xFF211A0A, 0xFF100E08}));
+                        : new int[] {0xFF0C0A05, 0xFF261D09, 0xFF0C0A05}));
         refreshBrandRows(contentView, loveMode);
     }
 
@@ -651,12 +651,12 @@ public class DrGramToolsActivity extends BaseFragment {
             if (row != contentView && row.getChildCount() == 2 && row.getChildAt(0) instanceof TextView) {
                 android.graphics.drawable.GradientDrawable card = new android.graphics.drawable.GradientDrawable(
                         android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT,
-                        loveMode ? new int[] {0xFF2A1018, 0xFF1C0B11} : new int[] {0xFF2C220B, 0xFF1B1608});
+                        loveMode ? new int[] {0xFF2A1018, 0xFF1C0B11} : new int[] {0xFF3A2C0E, 0xFF211A0A});
                 card.setCornerRadius(AndroidUtilities.dp(17));
-                card.setStroke(AndroidUtilities.dp(1), loveMode ? 0x99E63B52 : 0x99F5B90D);
+                card.setStroke(AndroidUtilities.dp(1), loveMode ? 0xCCE63B52 : 0xCCFFC94A);
                 row.setBackgroundDrawable(card);
                 row.setElevation(AndroidUtilities.dp(2));
-                ((TextView) row.getChildAt(0)).setTextColor(0xFFF7F0DF);
+                ((TextView) row.getChildAt(0)).setTextColor(0xFFFFF6DF);
             }
             refreshBrandRows(row, loveMode);
         }
@@ -670,9 +670,9 @@ public class DrGramToolsActivity extends BaseFragment {
         boolean loveMode = DrGramThemeInstaller.isLoveMode();
         android.graphics.drawable.GradientDrawable card = new android.graphics.drawable.GradientDrawable(
                 android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT,
-                loveMode ? new int[] {0xFF2A1018, 0xFF1C0B11} : new int[] {0xFF2C220B, 0xFF1B1608});
+                loveMode ? new int[] {0xFF2A1018, 0xFF1C0B11} : new int[] {0xFF3A2C0E, 0xFF211A0A});
         card.setCornerRadius(AndroidUtilities.dp(17));
-        card.setStroke(AndroidUtilities.dp(1), loveMode ? 0x99E63B52 : 0x99F5B90D);
+        card.setStroke(AndroidUtilities.dp(1), loveMode ? 0xCCE63B52 : 0xCCFFC94A);
         row.setBackgroundDrawable(card);
         row.setElevation(AndroidUtilities.dp(2));
         row.setPadding(AndroidUtilities.dp(17), AndroidUtilities.dp(14), AndroidUtilities.dp(17), AndroidUtilities.dp(14));
@@ -682,7 +682,7 @@ public class DrGramToolsActivity extends BaseFragment {
 
         TextView titleView = new TextView(context);
         titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
-        titleView.setTextColor(0xFFF7F0DF);
+        titleView.setTextColor(0xFFFFF6DF);
         titleView.setText(title);
         titleView.setGravity(Gravity.START);
         row.addView(titleView, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1f));
