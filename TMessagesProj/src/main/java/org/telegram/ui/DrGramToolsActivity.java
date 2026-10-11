@@ -100,10 +100,13 @@ public class DrGramToolsActivity extends BaseFragment {
         buildSecretarySection(context);
         buildVaultSection(context);
         buildGuardSection(context);
+        buildRadarSection(context);
+        buildVipSection(context);
         buildFavoritesSection(context);
         buildChatTweaksSection(context);
         buildIdFinderSection(context);
         buildMediaSection(context);
+        buildButlerSection(context);
         buildTagsSection(context);
         buildClogSection(context);
 
@@ -124,6 +127,38 @@ public class DrGramToolsActivity extends BaseFragment {
                 LocaleController.getString(R.string.DrGramSettingsCenterHint));
         contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSettingsCenterOpen), v ->
                 presentFragment(new DrGramSettingsActivity())));
+        // DrGram Fix 20: style gallery — the built-in theme presets
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramStyleGallery), v ->
+                presentFragment(new ThemeActivity(ThemeActivity.THEME_TYPE_BASIC))));
+    }
+
+    //endregion
+
+    //region Contact radar (DrGram Fix 20)
+
+    private void buildRadarSection(Context context) {
+        addHeader(context, LocaleController.getString(R.string.DrGramRadarSectionTitle),
+                LocaleController.getString(R.string.DrGramRadarSectionHint));
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramRadarOpen), v ->
+                presentFragment(new DrGramRadarActivity())));
+    }
+
+    private void buildVipSection(Context context) {
+        addHeader(context, LocaleController.getString(R.string.DrGramVipSectionTitle),
+                LocaleController.getString(R.string.DrGramVipSectionHint));
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramVipOpen), v ->
+                presentFragment(new DrGramVipActivity())));
+    }
+
+    //endregion
+
+    //region Storage butler (DrGram Fix 20)
+
+    private void buildButlerSection(Context context) {
+        addHeader(context, LocaleController.getString(R.string.DrGramButlerSectionTitle),
+                LocaleController.getString(R.string.DrGramButlerSectionHint));
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramButlerOpen), v ->
+                presentFragment(new DrGramStorageActivity())));
     }
 
     //endregion
