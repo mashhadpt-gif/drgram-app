@@ -26,13 +26,13 @@ import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import org.telegram.messenger.AndroidUtilities;
-import org.telegram.messenger.ConnectionsManager;
+import org.telegram.messenger.ChatObject;
 import org.telegram.messenger.DrGramThemeInstaller;
 import org.telegram.messenger.FileLog;
 import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.UserObject;
-import org.telegram.tgnet.ChatObject;
+import org.telegram.tgnet.ConnectionsManager;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.Components.AvatarDrawable;
@@ -42,17 +42,17 @@ import java.util.ArrayList;
 
 public class DrGramMembersBar extends FrameLayout {
 
-    private static final ArrayList<Integer> HIDDEN_THIS_SESSION = new ArrayList<>();
+    private static final ArrayList<Long> HIDDEN_THIS_SESSION = new ArrayList<>();
 
     private final int currentAccount;
-    private final int chatId;
+    private final long chatId;
     private final BaseFragment parentFragment;
     private final RecyclerView listView;
     private final MembersAdapter adapter;
     private final ArrayList<TLRPC.User> members = new ArrayList<>();
     private boolean loading;
 
-    public DrGramMembersBar(Context context, int account, int chatId, BaseFragment parent) {
+    public DrGramMembersBar(Context context, int account, long chatId, BaseFragment parent) {
         super(context);
         currentAccount = account;
         this.chatId = chatId;
@@ -98,7 +98,7 @@ public class DrGramMembersBar extends FrameLayout {
 
     private void loadMembers() {
         try {
-            TLRPC.Chat chat = MessagesController.getInstance(currentAccount).getChat((long) chatId);
+            TLRPC.Chat chat = MessagesController.getInstance(currentAccount).getChat(chatId);
             if (chat == null) {
                 return;
             }
@@ -240,7 +240,7 @@ public class DrGramMembersBar extends FrameLayout {
                         return;
                     }
                     Bundle args = new Bundle();
-                    args.putInt("user_id", user.id);
+                    args.putLong("user_id", user.id);
                     parentFragment.presentFragment(new ProfileActivity(args));
                 } catch (Throwable t) {
                     FileLog.e(t);

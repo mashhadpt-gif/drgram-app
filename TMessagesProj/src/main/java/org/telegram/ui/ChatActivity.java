@@ -7030,8 +7030,8 @@ public class ChatActivity extends BaseFragment implements
             try {
                 DrGramMembersBar drgramMembersBar = new DrGramMembersBar(context, currentAccount, currentChat.id, this);
                 contentView.addView(drgramMembersBar, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP, 10, 4, 10, 0));
-            } catch (Throwable t) {
-                FileLog.e(t);
+            } catch (Throwable e21) {
+                FileLog.e(e21);
             }
         }
 
