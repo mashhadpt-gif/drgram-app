@@ -1,6 +1,6 @@
 /*
  * DrGram Advanced Forward — forward with full editing power:
- * edit the text/caption, strip links, strip hashtags, replace words,
+ * edit the text/caption, strip links, strip hashtags, strip @IDs, replace words,
  * rename files, and send as your own clean message or classic forward.
  */
 package org.telegram.ui;
@@ -46,11 +46,14 @@ public class DrGramForwardEditor extends BaseFragment implements DialogsActivity
 
     private static final Pattern LINKS = Pattern.compile("(?i)(https?://\\S+|www\\.\\S+|t\\.me/\\S+)");
     private static final Pattern HASHTAGS = Pattern.compile("#[^\\s#]+");
+    // DrGram Fix 25: @usernames (email-safe: a word char / dot / plus before @ blocks the match)
+    private static final Pattern IDS = Pattern.compile("(?<![A-Za-z0-9._%+-])@[A-Za-z0-9_]{4,32}");
 
     private final ArrayList<MessageObject> messages;
     private final ArrayList<String[]> replaces = new ArrayList<>();
     private boolean stripLinks;
     private boolean stripHashtags;
+    private boolean stripIds;
     private int primaryIndex = -1;
     private int fileIndex = -1;
     private String originalFileName;
@@ -166,10 +169,11 @@ public class DrGramForwardEditor extends BaseFragment implements DialogsActivity
             textSection.addView(textInput, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, 4, 0, 4, 4));
         }
 
-        LinearLayout opsRow = new LinearLayout(context);
-        opsRow.setOrientation(LinearLayout.HORIZONTAL);
-        opsRow.setPadding(0, AndroidUtilities.dp(10), 0, 0);
-        content.addView(opsRow);
+        // DrGram Fix 25: 2x2 grid so four chips never overflow narrow screens
+        LinearLayout opsRow1 = new LinearLayout(context);
+        opsRow1.setOrientation(LinearLayout.HORIZONTAL);
+        opsRow1.setPadding(0, AndroidUtilities.dp(10), 0, 0);
+        content.addView(opsRow1);
 
         TextView linksBtn = makeChip(context, LocaleController.getString(R.string.DrGramAdvFwdRemoveLinks));
         linksBtn.setOnClickListener(v -> {
@@ -179,7 +183,7 @@ public class DrGramForwardEditor extends BaseFragment implements DialogsActivity
             }
             flashStatus(LocaleController.getString(R.string.DrGramAdvFwdRemoveLinks));
         });
-        opsRow.addView(linksBtn, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1f, 4, 0, 4, 0));
+        opsRow1.addView(linksBtn, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1f, 4, 0, 4, 0));
 
         TextView tagsBtn = makeChip(context, LocaleController.getString(R.string.DrGramAdvFwdRemoveHashtags));
         tagsBtn.setOnClickListener(v -> {
@@ -189,11 +193,26 @@ public class DrGramForwardEditor extends BaseFragment implements DialogsActivity
             }
             flashStatus(LocaleController.getString(R.string.DrGramAdvFwdRemoveHashtags));
         });
-        opsRow.addView(tagsBtn, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1f, 4, 0, 4, 0));
+        opsRow1.addView(tagsBtn, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1f, 4, 0, 4, 0));
+
+        LinearLayout opsRow2 = new LinearLayout(context);
+        opsRow2.setOrientation(LinearLayout.HORIZONTAL);
+        opsRow2.setPadding(0, AndroidUtilities.dp(8), 0, 0);
+        content.addView(opsRow2);
+
+        TextView idsBtn = makeChip(context, LocaleController.getString(R.string.DrGramAdvFwdRemoveIds));
+        idsBtn.setOnClickListener(v -> {
+            stripIds = true;
+            if (textInput != null) {
+                textInput.setText(applyOps(textInput.getText().toString()));
+            }
+            flashStatus(LocaleController.getString(R.string.DrGramAdvFwdRemoveIds));
+        });
+        opsRow2.addView(idsBtn, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1f, 4, 0, 4, 0));
 
         TextView replaceBtn = makeChip(context, LocaleController.getString(R.string.DrGramAdvFwdReplace));
         replaceBtn.setOnClickListener(v -> showReplaceDialog());
-        opsRow.addView(replaceBtn, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1f, 4, 0, 4, 0));
+        opsRow2.addView(replaceBtn, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1f, 4, 0, 4, 0));
 
         statusLine = new TextView(context);
         statusLine.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
@@ -361,6 +380,9 @@ public class DrGramForwardEditor extends BaseFragment implements DialogsActivity
         }
         if (stripHashtags) {
             text = HASHTAGS.matcher(text).replaceAll(" ");
+        }
+        if (stripIds) {
+            text = IDS.matcher(text).replaceAll(" ");
         }
         for (int i = 0; i < replaces.size(); i++) {
             String[] r = replaces.get(i);

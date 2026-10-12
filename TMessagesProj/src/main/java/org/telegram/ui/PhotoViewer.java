@@ -6301,6 +6301,24 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
         };
         containerView.addView(pickerView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM | Gravity.LEFT));
 
+        // DrGram Fix 25: Instagram-Reels action rail (like / save / share) — shown in Explore mode
+        drgramRail = new LinearLayout(containerView.getContext());
+        drgramRail.setOrientation(LinearLayout.VERTICAL);
+        drgramRail.setGravity(Gravity.CENTER_HORIZONTAL);
+        drgramRail.setBackgroundResource(R.drawable.drgram_rail_bg);
+        drgramRail.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(12), AndroidUtilities.dp(8), AndroidUtilities.dp(4));
+        drgramRail.setVisibility(View.GONE);
+        containerView.addView(drgramRail, LayoutHelper.createFrame(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.RIGHT | Gravity.CENTER_VERTICAL, 0, 0, 10, 56));
+        drgramLikeBtn = drgramMakeRailButton(R.drawable.drgram_ic_reels_like, LocaleController.getString(R.string.DrGramReelsLike));
+        drgramLikeBtn.setOnClickListener(v -> drgramOnLikeClicked());
+        drgramRail.addView(drgramLikeBtn, LayoutHelper.createLinear(46, 46, 0, 0, 0, 10));
+        drgramSaveBtn = drgramMakeRailButton(R.drawable.drgram_ic_reels_save, LocaleController.getString(R.string.DrGramReelsSave));
+        drgramSaveBtn.setOnClickListener(v -> drgramOnSaveClicked());
+        drgramRail.addView(drgramSaveBtn, LayoutHelper.createLinear(46, 46, 0, 0, 0, 10));
+        drgramShareBtn = drgramMakeRailButton(R.drawable.drgram_ic_reels_share, LocaleController.getString(R.string.DrGramReelsShare));
+        drgramShareBtn.setOnClickListener(v -> drgramOnShareClicked());
+        drgramRail.addView(drgramShareBtn, LayoutHelper.createLinear(46, 46, 0, 0, 0, 0));
+
         docNameTextView = new TextView(containerView.getContext());
         docNameTextView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
         docNameTextView.setTypeface(AndroidUtilities.bold());
@@ -13947,6 +13965,7 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
         openedFromProfile = false;
         needCaptionLayout = false;
         containerView.setTag(1);
+        containerView.post(() -> drgramUpdateRailState()); // DrGram Fix 25
         playerAutoStarted = false;
         isCurrentVideo = false;
         shownControlsByEnd = false;
@@ -15720,6 +15739,7 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
             if (newMessageObject != null) {
                 newMessageObject.openedInViewer = true;
             }
+            drgramUpdateRailState(); // DrGram Fix 25: refresh like state on swipe
             isLivePhoto = newMessageObject.isLivePhoto();
             isVideo = newMessageObject.isVideo();
             if (newMessageObject.isSponsored()) {
@@ -18102,6 +18122,10 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
 
     public void closePhoto(boolean animated, boolean fromEditMode) {
         drgramVerticalNav = false; // DrGram Fix 19: reset Reels navigation
+        drgramLikedLocal.clear(); // DrGram Fix 25: reset optimistic like cache
+        if (drgramRail != null) {
+            drgramRail.setVisibility(View.GONE);
+        }
         if (stickerMakerView != null) {
             stickerMakerView.isThanosInProgress = false;
             if (cutOutBtn.isCancelState()) {
@@ -18951,6 +18975,9 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
 
     private MotionEvent drgramMaybeRotateEvent(MotionEvent ev) {
         int action = ev.getActionMasked();
+        if (action == MotionEvent.ACTION_DOWN && drgramRail != null) {
+            drgramUpdateRailState(); // DrGram Fix 25: keep rail in sync (edit modes, single posts)
+        }
         if (drgramVerticalNav) {
             if (action == MotionEvent.ACTION_DOWN && currentEditMode == EDIT_MODE_NONE
                     && sendPhotoType == 0 && scale == 1 && !zooming) {
@@ -18983,6 +19010,143 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
         }
         return ev;
     }
+
+    //region DrGram Fix 25 — Instagram-Reels action rail (like = reaction · save = Saved Messages · share = advanced forward)
+
+    private LinearLayout drgramRail;
+    private ImageView drgramLikeBtn;
+    private ImageView drgramSaveBtn;
+    private ImageView drgramShareBtn;
+    private final ArrayList<Long> drgramLikedLocal = new ArrayList<>();
+
+    private ImageView drgramMakeRailButton(int iconRes, String description) {
+        ImageView btn = new ImageView(containerView.getContext());
+        btn.setImageResource(iconRes);
+        btn.setContentDescription(description);
+        btn.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        btn.setPadding(AndroidUtilities.dp(11), AndroidUtilities.dp(11), AndroidUtilities.dp(11), AndroidUtilities.dp(11));
+        GradientDrawable railBg = new GradientDrawable();
+        railBg.setShape(GradientDrawable.OVAL);
+        railBg.setColor(0x52000000);
+        railBg.setStroke(AndroidUtilities.dp(1), 0x47F5B90D);
+        btn.setBackground(railBg);
+        btn.setColorFilter(0xFFFFFFFF);
+        return btn;
+    }
+
+    private long drgramRailKey(MessageObject mo) {
+        if (mo == null || mo.messageOwner == null) {
+            return 0;
+        }
+        return ((long) mo.messageOwner.id << 16) ^ mo.getDialogId();
+    }
+
+    private boolean drgramIsLiked(MessageObject mo) {
+        if (mo != null && mo.messageOwner != null && mo.messageOwner.reactions != null && mo.messageOwner.reactions.results != null) {
+            for (int i = 0; i < mo.messageOwner.reactions.results.size(); i++) {
+                TLRPC.ReactionCount rc = mo.messageOwner.reactions.results.get(i);
+                if (rc != null && rc.chosen && rc.reaction instanceof TLRPC.TL_reactionEmoji && "❤".equals(((TLRPC.TL_reactionEmoji) rc.reaction).emoticon)) {
+                    return true;
+                }
+            }
+        }
+        return drgramLikedLocal.contains(drgramRailKey(mo));
+    }
+
+    private void drgramUpdateRailState() {
+        if (drgramRail == null) {
+            return;
+        }
+        boolean show = drgramVerticalNav && sendPhotoType != SELECT_TYPE_AVATAR && currentEditMode == EDIT_MODE_NONE && currentMessageObject != null;
+        int wanted = show ? View.VISIBLE : View.GONE;
+        if (drgramRail.getVisibility() != wanted) {
+            drgramRail.setVisibility(wanted);
+        }
+        if (show) {
+            int tint = drgramIsLiked(currentMessageObject) ? 0xFFE63B52 : 0xFFFFFFFF;
+            if (drgramLikeBtn.getTag() == null || !((Integer) drgramLikeBtn.getTag()).equals(tint)) {
+                drgramLikeBtn.setColorFilter(tint);
+                drgramLikeBtn.setTag(tint);
+            }
+        }
+    }
+
+    private void drgramRailBounce(View v) {
+        try {
+            v.animate().scaleX(1.22f).scaleY(1.22f).setDuration(110).withEndAction(
+                    () -> v.animate().scaleX(1f).scaleY(1f).setDuration(130).start()).start();
+        } catch (Throwable t) {
+            FileLog.e(t);
+        }
+    }
+
+    private void drgramOnLikeClicked() {
+        MessageObject mo = currentMessageObject;
+        if (mo == null || mo.messageOwner == null || parentFragment == null) {
+            return;
+        }
+        long key = drgramRailKey(mo);
+        boolean liked = drgramIsLiked(mo);
+        drgramRailBounce(drgramLikeBtn);
+        try {
+            if (liked) {
+                drgramLikedLocal.remove(key);
+                SendMessagesHelper.getInstance(currentAccount).sendReaction(mo, new ArrayList<>(), null, false, false, parentFragment, null);
+            } else {
+                drgramLikedLocal.add(key);
+                SendMessagesHelper.getInstance(currentAccount).sendReaction(mo, null,
+                        ReactionsLayoutInBubble.VisibleReaction.fromEmojicon("❤"), false, true, parentFragment, null);
+            }
+        } catch (Throwable t) {
+            FileLog.e(t);
+        }
+        drgramUpdateRailState();
+    }
+
+    private void drgramOnSaveClicked() {
+        MessageObject mo = currentMessageObject;
+        if (mo == null || mo.messageOwner == null) {
+            return;
+        }
+        drgramRailBounce(drgramSaveBtn);
+        try {
+            ArrayList<MessageObject> single = new ArrayList<>();
+            single.add(mo);
+            SendMessagesHelper.getInstance(currentAccount).sendMessage(single, UserConfig.getInstance(currentAccount).clientUserId,
+                    false, false, true, 0, null, -1, 0);
+            BulletinFactory.of(containerView, resourcesProvider).createSimpleBulletin(
+                    R.raw.voip_invite, LocaleController.getString(R.string.DrGramReelsSaved)).show();
+        } catch (Throwable t) {
+            FileLog.e(t);
+        }
+    }
+
+    private void drgramOnShareClicked() {
+        MessageObject mo = currentMessageObject;
+        if (mo == null || mo.messageOwner == null) {
+            return;
+        }
+        BaseFragment frag = parentFragment;
+        if (frag == null) {
+            return;
+        }
+        ArrayList<MessageObject> single = new ArrayList<>();
+        single.add(mo);
+        DrGramForwardEditor editor = new DrGramForwardEditor(single);
+        try {
+            if (parentActivity instanceof LaunchActivity) {
+                LaunchActivity launchActivity = (LaunchActivity) parentActivity;
+                launchActivity.presentFragment(editor, false, true);
+            } else {
+                frag.presentFragment(editor);
+            }
+        } catch (Throwable t) {
+            FileLog.e(t);
+            return;
+        }
+        closePhoto(false, false);
+    }
+    //endregion
 
     private boolean onTouchEvent(MotionEvent ev) {
         MotionEvent drgramEvent = drgramMaybeRotateEvent(ev);

@@ -11549,5 +11549,12 @@
     <string name="DrGramAdvFwdTypeSticker">sticker</string>
     <string name="DrGramAdvFwdTypeText">text</string>
     <string name="DrGramAdvFwdTypeOther">other</string>
+
+    <!-- DrGram Fix 25: forward IDs + Reels rail -->
+    <string name="DrGramAdvFwdRemoveIds">Remove IDs</string>
+    <string name="DrGramReelsLike">Like</string>
+    <string name="DrGramReelsSave">Save</string>
+    <string name="DrGramReelsShare">Share</string>
+    <string name="DrGramReelsSaved">Saved to your Saved Messages</string>
 </resources>
 

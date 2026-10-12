@@ -377,7 +377,8 @@ public class DrGramExploreActivity extends BaseFragment implements NotificationC
         if (currentMedia == null || currentMedia.isEmpty() || position >= currentMedia.size()) {
             return;
         }
-        PhotoViewer.getInstance().setParentActivity(DrGramExploreActivity.this);
+        // DrGram Fix 25: pass the fragment so parentFragment is real (needed for reactions/share)
+        PhotoViewer.getInstance().setParentActivity(DrGramExploreActivity.this, DrGramExploreActivity.this, null);
         // DrGram Fix 19: Reels-style vertical navigation + autoplay
         PhotoViewer.getInstance().setDrgramVerticalNav(true);
         PhotoViewer.getInstance().openPhoto(currentMedia, position, 0, 0, 0, provider);

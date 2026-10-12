@@ -571,5 +571,12 @@
     <string name="DrGramAdvFwdTypeSticker">استیکر</string>
     <string name="DrGramAdvFwdTypeText">متن</string>
     <string name="DrGramAdvFwdTypeOther">سایر</string>
+
+    <!-- DrGram Fix 25 -->
+    <string name="DrGramAdvFwdRemoveIds">حذف آیدی‌ها</string>
+    <string name="DrGramReelsLike">لایک</string>
+    <string name="DrGramReelsSave">ذخیره</string>
+    <string name="DrGramReelsShare">اشتراک</string>
+    <string name="DrGramReelsSaved">در پیام‌های ذخیره‌شده ذخیره شد</string>
 </resources>
 
