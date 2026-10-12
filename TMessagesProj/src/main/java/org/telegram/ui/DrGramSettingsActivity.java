@@ -657,12 +657,6 @@ public class DrGramSettingsActivity extends BaseFragment {
         contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSetNotifyOpen), v ->
                 presentFragment(new NotificationsSettingsActivity())));
 
-        Switch stickySwitch = new Switch(context); // DrGram Fix 21
-        stickySwitch.setChecked(SharedConfig.drgramStickyNotifs, false);
-        contentView.addView(makeToggleRow(context, LocaleController.getString(R.string.DrGramSetStickyNotifs), stickySwitch, () -> {
-            SharedConfig.toggleDrgramStickyNotifs();
-            stickySwitch.setChecked(SharedConfig.drgramStickyNotifs, false);
-        }));
     }
 
     //endregion

@@ -547,9 +547,6 @@
     <string name="NotificationHiddenChatName">دکتر گرام</string>
     <string name="DrGramSetMembersBar">نوار اعضای گروه</string>
     <string name="DrGramSetJalaliDates">تاریخ خورشیدی</string>
-    <string name="DrGramSetStickyNotifs">اعلان‌های چسبان</string>
-    <string name="DrGramSetStickyNotifsHint">پیام‌های جدید به شکل کارت‌های کوچک روی تب‌های پایین می‌چسبند تا وقتی بخوانی یا ببندی‌شان.</string>
-    <string name="DrGramStickyMedia">رسانه‌ای برایت فرستاد</string>
 
     <string name="DrGramAdvFwdTitle">فوروارد پیشرفته</string>
     <string name="DrGramAdvFwdHint">متن را ویرایش کنید، لینک‌ها و هشتگ‌ها را حذف کنید، کلمه‌ها را جایگزین کنید و نام فایل‌ها را عوض کنید — بعد یک پیام تمیز بفرستید.</string>

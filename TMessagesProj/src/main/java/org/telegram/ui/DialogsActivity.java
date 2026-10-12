@@ -523,7 +523,6 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     private int undoViewIndex;
     private UndoView[] undoView = new UndoView[2];
     private FilterTabsView filterTabsView;
-    private DrGramStickyNotifBar drgramStickyBar; // DrGram Fix 21
     private boolean askingForPermissions;
     private int searchViewPagerIndex;
     @Nullable
@@ -5186,9 +5185,6 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             // DrGram Fix 19: folder tabs live at the bottom, above the navigation bar
             contentView.addView(filterTabsView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 36 + 7 + 7, Gravity.BOTTOM, 4, 0, 4, AndroidUtilities.navigationBarHeight + AndroidUtilities.dp(6)));
 
-        // DrGram Fix 21: sticky notifications — floating cards above the bottom pill
-        drgramStickyBar = new DrGramStickyNotifBar(context, this, currentAccount);
-        contentView.addView(drgramStickyBar, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.BOTTOM, 10, 0, 10, AndroidUtilities.navigationBarHeight + AndroidUtilities.dp(66)));
         }
 
         if (fragmentSearchField != null) {
@@ -7063,9 +7059,6 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     @Override
     public void onResume() {
         super.onResume();
-        if (drgramStickyBar != null) {
-            drgramStickyBar.refresh(); // DrGram Fix 21
-        }
         if (dialogStoriesCell != null) {
             dialogStoriesCell.onResume();
         }
