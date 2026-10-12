@@ -35,7 +35,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 
-public class DrGramRadarActivity extends BaseFragment {
+public class DrGramRadarActivity extends BaseFragment implements NotificationCenter.NotificationCenterDelegate {
 
     private LinearLayout content;
     private TextView statsLine;
