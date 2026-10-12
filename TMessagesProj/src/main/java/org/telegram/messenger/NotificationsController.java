@@ -1029,6 +1029,11 @@ public class NotificationsController extends BaseController implements Notificat
         } catch (Throwable ignore) {
         }
 
+        try {
+            DrGramStickyNotifs.getInstance(currentAccount).collect(messageObjects); // DrGram Fix 21: sticky notifications
+        } catch (Throwable ignore) {
+        }
+
         if (messageObjects != null) {
             for (int i = 0; i < messageObjects.size(); ++i) {
                 final MessageObject messageObject = messageObjects.get(i);

@@ -7023,6 +7023,18 @@ public class ChatActivity extends BaseFragment implements
 
         contentView.addView(chatListView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
 
+        // DrGram Fix 21: group members bar — a floating avatar strip right under the header
+        if (SharedConfig.drgramMembersBar && currentChat != null && !currentChat.broadcast
+                && !ChatObject.isForum(currentChat)
+                && (ChatObject.isMegagroup(currentChat) || !ChatObject.isChannel(currentChat))) {
+            try {
+                DrGramMembersBar drgramMembersBar = new DrGramMembersBar(context, currentAccount, currentChat.id, this);
+                contentView.addView(drgramMembersBar, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP, 10, 4, 10, 0));
+            } catch (Throwable t) {
+                FileLog.e(t);
+            }
+        }
+
         chatActivityFadeView = new ChatActivityFadeView(context);
         chatActivityFadeView.setup(navbarContentDrawableFactory);
         chatActivityFadeView.setFadeHeightTop(dp(48));

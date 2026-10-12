@@ -11523,5 +11523,10 @@
     <string name="DrGramSetFavOpen">Favorite messages</string>
     <string name="DrGramSetTagsOpen">Hashtag stream</string>
     <string name="DrGramLoginNoConnection">No connection to Telegram. Check your internet or VPN, then try again.</string>
+    <string name="DrGramSetMembersBar">Group members bar</string>
+    <string name="DrGramSetJalaliDates">Solar (Jalali) dates</string>
+    <string name="DrGramSetStickyNotifs">Sticky notifications</string>
+    <string name="DrGramSetStickyNotifsHint">New messages stick as small cards above the folder tabs until you read or dismiss them.</string>
+    <string name="DrGramStickyMedia">Sent you media</string>
 </resources>
 

@@ -413,6 +413,20 @@ public class DrGramSettingsActivity extends BaseFragment {
             SharedConfig.toggleDrgramReactionRain();
             rainSwitch.setChecked(SharedConfig.drgramReactionRain, false);
         }));
+
+        Switch membersBarSwitch = new Switch(context); // DrGram Fix 21
+        membersBarSwitch.setChecked(SharedConfig.drgramMembersBar, false);
+        contentView.addView(makeToggleRow(context, LocaleController.getString(R.string.DrGramSetMembersBar), membersBarSwitch, () -> {
+            SharedConfig.toggleDrgramMembersBar();
+            membersBarSwitch.setChecked(SharedConfig.drgramMembersBar, false);
+        }));
+
+        Switch jalaliSwitch = new Switch(context); // DrGram Fix 21
+        jalaliSwitch.setChecked(SharedConfig.drgramJalaliDates, false);
+        contentView.addView(makeToggleRow(context, LocaleController.getString(R.string.DrGramSetJalaliDates), jalaliSwitch, () -> {
+            SharedConfig.toggleDrgramJalaliDates();
+            jalaliSwitch.setChecked(SharedConfig.drgramJalaliDates, false);
+        }));
     }
 
     //endregion
@@ -642,6 +656,13 @@ public class DrGramSettingsActivity extends BaseFragment {
                 LocaleController.getString(R.string.DrGramSetNotifyHint));
         contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSetNotifyOpen), v ->
                 presentFragment(new NotificationsSettingsActivity())));
+
+        Switch stickySwitch = new Switch(context); // DrGram Fix 21
+        stickySwitch.setChecked(SharedConfig.drgramStickyNotifs, false);
+        contentView.addView(makeToggleRow(context, LocaleController.getString(R.string.DrGramSetStickyNotifs), stickySwitch, () -> {
+            SharedConfig.toggleDrgramStickyNotifs();
+            stickySwitch.setChecked(SharedConfig.drgramStickyNotifs, false);
+        }));
     }
 
     //endregion

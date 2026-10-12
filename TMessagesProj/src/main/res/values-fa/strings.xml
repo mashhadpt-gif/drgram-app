@@ -545,5 +545,10 @@
     <string name="SecretChatName">دکتر گرام</string>
     <string name="NotificationHiddenName">دکتر گرام</string>
     <string name="NotificationHiddenChatName">دکتر گرام</string>
+    <string name="DrGramSetMembersBar">نوار اعضای گروه</string>
+    <string name="DrGramSetJalaliDates">تاریخ خورشیدی</string>
+    <string name="DrGramSetStickyNotifs">اعلان‌های چسبان</string>
+    <string name="DrGramSetStickyNotifsHint">پیام‌های جدید به شکل کارت‌های کوچک روی تب‌های پایین می‌چسبند تا وقتی بخوانی یا ببندی‌شان.</string>
+    <string name="DrGramStickyMedia">رسانه‌ای برایت فرستاد</string>
 </resources>
 

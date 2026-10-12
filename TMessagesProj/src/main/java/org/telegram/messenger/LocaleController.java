@@ -2084,6 +2084,9 @@ public class LocaleController {
 
     public static String formatDateChat(long date, boolean checkYear) {
         try {
+            if (SharedConfig.drgramJalaliDates) { // DrGram Fix 21: solar dates
+                return DrGramJalaliDate.formatChat(date, checkYear);
+            }
             Calendar calendar = Calendar.getInstance();
             calendar.setTimeInMillis(System.currentTimeMillis());
             int currentYear = calendar.get(Calendar.YEAR);
@@ -2105,6 +2108,9 @@ public class LocaleController {
     }
     public static String formatSmallDateChat(long date, boolean full) {
         try {
+            if (SharedConfig.drgramJalaliDates) { // DrGram Fix 21: solar dates
+                return DrGramJalaliDate.formatSmall(date, full);
+            }
             Calendar calendar = Calendar.getInstance();
             calendar.setTimeInMillis(System.currentTimeMillis());
             int currentYear = calendar.get(Calendar.YEAR);
@@ -2126,6 +2132,9 @@ public class LocaleController {
     }
     public static String formatDate(long date, boolean withToday) {
         try {
+            if (SharedConfig.drgramJalaliDates) { // DrGram Fix 21: solar dates
+                return DrGramJalaliDate.formatDialog(date, withToday);
+            }
             date *= 1000;
             Calendar rightNow = Calendar.getInstance();
             int day = rightNow.get(Calendar.DAY_OF_YEAR);

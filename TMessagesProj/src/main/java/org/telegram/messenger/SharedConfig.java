@@ -368,6 +368,10 @@ public class SharedConfig {
     // DrGram luxury theme (Fix 8)
     public static boolean drgramThemeApplied = false;
     public static boolean drgramThemeRed = false;
+    // DrGram Fix 21
+    public static boolean drgramMembersBar = true;
+    public static boolean drgramJalaliDates = true;
+    public static boolean drgramStickyNotifs = true;
 
     public static boolean isFloatingDebugActive;
     public static LiteMode liteMode;
@@ -692,6 +696,10 @@ public class SharedConfig {
             drgramSpecialContact = preferences.getLong("drgramSpecialContact", 0);
             drgramThemeApplied = preferences.getBoolean("drgramThemeApplied", false);
             drgramThemeRed = preferences.getBoolean("drgramThemeRed", false);
+            // DrGram Fix 21
+            drgramMembersBar = preferences.getBoolean("drgramMembersBar", true);
+            drgramJalaliDates = preferences.getBoolean("drgramJalaliDates", true);
+            drgramStickyNotifs = preferences.getBoolean("drgramStickyNotifs", true);
             hasEmailLogin = preferences.getBoolean("hasEmailLogin", false);
             isFloatingDebugActive = preferences.getBoolean("floatingDebugActive", false);
             updateStickersOrderOnSend = preferences.getBoolean("updateStickersOrderOnSend", true);
@@ -1349,6 +1357,25 @@ public class SharedConfig {
         drgramReactionRain = !drgramReactionRain;
         ApplicationLoader.applicationContext.getSharedPreferences("mainconfig", Activity.MODE_PRIVATE)
                 .edit().putBoolean("drgramReactionRain", drgramReactionRain).apply();
+    }
+
+    // DrGram Fix 21
+    public static void toggleDrgramMembersBar() {
+        drgramMembersBar = !drgramMembersBar;
+        ApplicationLoader.applicationContext.getSharedPreferences("mainconfig", Activity.MODE_PRIVATE)
+                .edit().putBoolean("drgramMembersBar", drgramMembersBar).apply();
+    }
+
+    public static void toggleDrgramJalaliDates() {
+        drgramJalaliDates = !drgramJalaliDates;
+        ApplicationLoader.applicationContext.getSharedPreferences("mainconfig", Activity.MODE_PRIVATE)
+                .edit().putBoolean("drgramJalaliDates", drgramJalaliDates).apply();
+    }
+
+    public static void toggleDrgramStickyNotifs() {
+        drgramStickyNotifs = !drgramStickyNotifs;
+        ApplicationLoader.applicationContext.getSharedPreferences("mainconfig", Activity.MODE_PRIVATE)
+                .edit().putBoolean("drgramStickyNotifs", drgramStickyNotifs).apply();
     }
 
     public static void toggleRaiseToListen() {
