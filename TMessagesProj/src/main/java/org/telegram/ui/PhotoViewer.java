@@ -18974,6 +18974,18 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
         drgramVerticalNav = enabled;
     }
 
+    // DrGram Fix 28: real vertical Reels paging ------------------------------
+    // The Reels gesture rotates touches, so a vertical swipe drives the
+    // internal X paging axis. When this returns true the RENDERING axis is
+    // flipped as well: internal X offsets are drawn on screen Y, so the next
+    // post slides in from the BOTTOM and the previous one from the TOP
+    // (Instagram style). Horizontal swipes stay locked (no dismiss, no zoom).
+    private boolean drgramIsVerticalPaging() {
+        return drgramVerticalNav && currentEditMode == EDIT_MODE_NONE
+                && sendPhotoType != SELECT_TYPE_AVATAR && sendPhotoType != SELECT_TYPE_STICKER
+                && scale == 1f && !zoomAnimation && !zooming;
+    }
+
     private MotionEvent drgramMaybeRotateEvent(MotionEvent ev) {
         int action = ev.getActionMasked();
         if (action == MotionEvent.ACTION_DOWN && drgramRail != null) {
@@ -19221,7 +19233,7 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
                 scroller.abortAnimation();
             }
             if (!draggingDown && !changingPage) {
-                if (canZoom && ev.getPointerCount() == 2) {
+                if (canZoom && !drgramVerticalNav && ev.getPointerCount() == 2) { // DrGram Fix 28: Reels never zooms
                     if (paintViewTouched == 1) {
                         MotionEvent event = MotionEvent.obtain(0, 0, MotionEvent.ACTION_CANCEL, 0, 0, 0);
                         photoPaintView.onTouch(event);
@@ -19358,7 +19370,7 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
                         return true;
                     }
                 }
-                if (placeProvider.canScrollAway() && currentEditMode == EDIT_MODE_NONE && sendPhotoType != SELECT_TYPE_AVATAR && sendPhotoType != SELECT_TYPE_STICKER && canDragDown && !draggingDown && scale == 1 && dy >= dp(30) && dy / 2 > dx) {
+                if (placeProvider.canScrollAway() && !drgramVerticalNav && currentEditMode == EDIT_MODE_NONE && sendPhotoType != SELECT_TYPE_AVATAR && sendPhotoType != SELECT_TYPE_STICKER && canDragDown && !draggingDown && scale == 1 && dy >= dp(30) && dy / 2 > dx) { // DrGram Fix 28: horizontal swipes locked in Reels
                     draggingDown = true;
                     hidePressedDrawables();
                     moving = false;
@@ -19566,7 +19578,8 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
             extra = (getContainerViewWidth() - centerImage.getImageWidth()) / 2 * scale;
         }
         switchImageAfterAnimation = 1;
-        animateTo(scale, minX - getContainerViewWidth() - extra - dp(30) / 2, translationY, false);
+        float drgramTravel = drgramIsVerticalPaging() ? getContainerViewHeight() : getContainerViewWidth(); // DrGram Fix 28
+        animateTo(scale, minX - drgramTravel - extra - dp(30) / 2, translationY, false);
     }
 
     private void goToPrev() {
@@ -19575,7 +19588,8 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
             extra = (getContainerViewWidth() - centerImage.getImageWidth()) / 2 * scale;
         }
         switchImageAfterAnimation = 2;
-        animateTo(scale, maxX + getContainerViewWidth() + extra + dp(30) / 2, translationY, false);
+        float drgramTravel = drgramIsVerticalPaging() ? getContainerViewHeight() : getContainerViewWidth(); // DrGram Fix 28
+        animateTo(scale, maxX + drgramTravel + extra + dp(30) / 2, translationY, false);
     }
 
     private void cancelMoveZoomAnimation() {
@@ -19975,16 +19989,23 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
             changingPage = sideImage != null;
         }
 
+        boolean drgramVPage = drgramIsVerticalPaging(); // DrGram Fix 28: render paging axis on screen Y
         for (int a = 0; a < 3; a++) {
             float offsetX;
             if (a == 1) {
                 offsetX = 0;
             } else if (a == 2) {
-                offsetX = -containerView.getMeasuredWidth() - dp(15) + (currentTranslationX - maxX);
+                offsetX = -(drgramVPage ? containerView.getMeasuredHeight() : containerView.getMeasuredWidth()) - dp(15) + (currentTranslationX - maxX);
             } else {
                 offsetX = currentTranslationX < minX ? (currentTranslationX - minX) : 0;
             }
-            fullscreenButton[a].setTranslationX(offsetX + containerView.getMeasuredWidth() - dp(48));
+            if (drgramVPage) {
+                fullscreenButton[a].setTranslationX(containerView.getMeasuredWidth() - dp(48));
+                fullscreenButton[a].setTranslationY(offsetX);
+            } else {
+                fullscreenButton[a].setTranslationX(offsetX + containerView.getMeasuredWidth() - dp(48));
+                fullscreenButton[a].setTranslationY(0);
+            }
         }
 
         if (sideImage == rightImage) {
@@ -19992,15 +20013,19 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
             float scaleDiff = 0;
             float alpha = 1;
             if (!zoomAnimation && translateX < minX) {
-                alpha = Math.min(1.0f, (minX - translateX) / containerWidth);
+                alpha = Math.min(1.0f, (minX - translateX) / (drgramVPage ? containerHeight : containerWidth)); // DrGram Fix 28
                 scaleDiff = (1.0f - alpha) * 0.3f;
-                translateX = -containerWidth - dp(30) / 2;
+                translateX = -(drgramVPage ? containerHeight : containerWidth) - dp(30) / 2;
             }
 
             if (sideImage.hasBitmapImage()) {
                 canvas.save();
                 canvas.translate(containerWidth / 2, containerHeight / 2);
-                canvas.translate(containerWidth + dp(30) / 2 + translateX, 0);
+                if (drgramVPage) {
+                    canvas.translate(0, containerHeight + dp(30) / 2 + translateX); // DrGram Fix 28: next post comes from the bottom
+                } else {
+                    canvas.translate(containerWidth + dp(30) / 2 + translateX, 0);
+                }
                 canvas.scale(1.0f - scaleDiff, 1.0f - scaleDiff);
                 int bitmapWidth = sideImage.getBitmapWidth();
                 int bitmapHeight = sideImage.getBitmapHeight();
@@ -20048,8 +20073,12 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
 
             if (seekSpeedDrawable == null || !seekSpeedDrawable.isShown()) {
                 canvas.save();
-                canvas.translate(translateX, currentTranslationY / currentScale);
-                canvas.translate((containerWidth * (scale + 1) + dp(30)) / 2, -currentTranslationY / currentScale);
+                if (drgramVPage) {
+                    canvas.translate(0, translateX + containerHeight + dp(30) / 2); // DrGram Fix 28
+                } else {
+                    canvas.translate(translateX, currentTranslationY / currentScale);
+                    canvas.translate((containerWidth * (scale + 1) + dp(30)) / 2, -currentTranslationY / currentScale);
+                }
                 photoProgressViews[1].setScale(1.0f - scaleDiff);
                 photoProgressViews[1].setAlpha(alpha);
                 photoProgressViews[1].onDraw(canvas);
@@ -20070,7 +20099,7 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
         float scaleDiff = 0;
         float alpha = 1;
         if (!zoomAnimation && translateX > maxX && (currentEditMode == EDIT_MODE_NONE || currentEditMode == EDIT_MODE_STICKER_MASK) && sendPhotoType != SELECT_TYPE_AVATAR) {
-            alpha = Math.min(1.0f, (translateX - maxX) / containerWidth);
+            alpha = Math.min(1.0f, (translateX - maxX) / (drgramVPage ? containerHeight : containerWidth)); // DrGram Fix 28
             scaleDiff = alpha * 0.3f;
             alpha = 1.0f - alpha;
             translateX = maxX;
@@ -20126,8 +20155,13 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
             canvas.save();
             canvas.translate(containerWidth / 2f + getAdditionX(currentEditMode), containerHeight / 2f + getAdditionY(currentEditMode));
             centerImageTransform.preTranslate(containerWidth / 2f + getAdditionX(currentEditMode), containerHeight / 2f + getAdditionY(currentEditMode));
-            canvas.translate(translateX, currentTranslationY + (currentEditMode != EDIT_MODE_PAINT ? currentPanTranslationY : 0));
-            centerImageTransform.preTranslate(translateX, currentTranslationY + (currentEditMode != EDIT_MODE_PAINT ? currentPanTranslationY : 0));
+            if (drgramVPage) {
+                canvas.translate(currentTranslationY + (currentEditMode != EDIT_MODE_PAINT ? currentPanTranslationY : 0), translateX); // DrGram Fix 28: paging moves content vertically
+                centerImageTransform.preTranslate(currentTranslationY + (currentEditMode != EDIT_MODE_PAINT ? currentPanTranslationY : 0), translateX);
+            } else {
+                canvas.translate(translateX, currentTranslationY + (currentEditMode != EDIT_MODE_PAINT ? currentPanTranslationY : 0));
+                centerImageTransform.preTranslate(translateX, currentTranslationY + (currentEditMode != EDIT_MODE_PAINT ? currentPanTranslationY : 0));
+            }
             canvas.scale(currentScale - scaleDiff, currentScale - scaleDiff);
             centerImageTransform.preScale(currentScale - scaleDiff, currentScale - scaleDiff);
             canvas.rotate(currentRotation);
@@ -20430,7 +20464,11 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
             if (sideImage.hasBitmapImage()) {
                 canvas.save();
                 canvas.translate(containerWidth / 2, containerHeight / 2);
-                canvas.translate(-(containerWidth * (scale + 1) + dp(30)) / 2 + currentTranslationX, 0);
+                if (drgramVPage) {
+                    canvas.translate(0, -(containerHeight + dp(30) / 2) + currentTranslationX); // DrGram Fix 28: previous post comes from the top
+                } else {
+                    canvas.translate(-(containerWidth * (scale + 1) + dp(30)) / 2 + currentTranslationX, 0);
+                }
                 int bitmapWidth = sideImage.getBitmapWidth();
                 int bitmapHeight = sideImage.getBitmapHeight();
                 if (!leftImageIsVideo && leftCropState != null && leftCropTransform.hasViewTransform()) {
@@ -20476,8 +20514,12 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
 
             if (seekSpeedDrawable == null || !seekSpeedDrawable.isShown()) {
                 canvas.save();
-                canvas.translate(currentTranslationX, currentTranslationY / currentScale);
-                canvas.translate(-(containerWidth * (scale + 1) + dp(30)) / 2, -currentTranslationY / currentScale);
+                if (drgramVPage) {
+                    canvas.translate(0, currentTranslationX - (containerHeight + dp(30) / 2)); // DrGram Fix 28
+                } else {
+                    canvas.translate(currentTranslationX, currentTranslationY / currentScale);
+                    canvas.translate(-(containerWidth * (scale + 1) + dp(30)) / 2, -currentTranslationY / currentScale);
+                }
                 photoProgressViews[2].setScale(1.0f);
                 photoProgressViews[2].setAlpha(1.0f);
                 photoProgressViews[2].onDraw(canvas);
@@ -20672,7 +20714,8 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
             }
             if (seekSpeedDrawable == null || !seekSpeedDrawable.isShown()) {
                 canvas.save();
-                canvas.translate(tx, ty);
+                boolean drgramVPage = drgramIsVerticalPaging(); // DrGram Fix 28
+                canvas.translate(drgramVPage ? ty : tx, drgramVPage ? tx : ty);
                 photoProgressViews[0].setScale(1.0f);
                 photoProgressViews[0].setAlpha(progressAlpha);
                 photoProgressViews[0].onDraw(canvas);
@@ -20686,7 +20729,11 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
         }
         if (drawMiniProgress && !pipAnimationInProgress) {
             canvas.save();
-            canvas.translate(miniProgressView.getLeft() + translateX, miniProgressView.getTop() + currentTranslationY / currentScale);
+            if (drgramIsVerticalPaging()) {
+                canvas.translate(miniProgressView.getLeft() + currentTranslationY / currentScale, miniProgressView.getTop() + translateX); // DrGram Fix 28
+            } else {
+                canvas.translate(miniProgressView.getLeft() + translateX, miniProgressView.getTop() + currentTranslationY / currentScale);
+            }
             miniProgressView.draw(canvas);
             canvas.restore();
         }
@@ -21209,7 +21256,7 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
                 }
             }
         }
-        if (!canZoom || scale == 1.0f && (translationY != 0 || translationX != 0)) {
+        if (!canZoom || drgramVerticalNav || scale == 1.0f && (translationY != 0 || translationX != 0)) { // DrGram Fix 28
             return false;
         }
         if (animationStartTime != 0 || animationInProgress != 0) {
