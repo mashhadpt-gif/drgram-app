@@ -11528,5 +11528,29 @@
     <string name="DrGramSetStickyNotifs">Sticky notifications</string>
     <string name="DrGramSetStickyNotifsHint">New messages stick as small cards above the folder tabs until you read or dismiss them.</string>
     <string name="DrGramStickyMedia">Sent you media</string>
+
+    <string name="DrGramAdvFwdTitle">Advanced Forward</string>
+    <string name="DrGramAdvFwdHint">Edit the text, strip links or hashtags, replace words, rename files — then send a clean, polished message.</string>
+    <string name="DrGramAdvFwdCount">%d message(s) selected</string>
+    <string name="DrGramAdvFwdTextEdit">Message text / caption</string>
+    <string name="DrGramAdvFwdRemoveLinks">Remove links</string>
+    <string name="DrGramAdvFwdRemoveHashtags">Remove hashtags</string>
+    <string name="DrGramAdvFwdReplace">Replace word</string>
+    <string name="DrGramAdvFwdReplaceFind">Find</string>
+    <string name="DrGramAdvFwdReplaceWith">Replace with</string>
+    <string name="DrGramAdvFwdCaseSensitive">Case sensitive</string>
+    <string name="DrGramAdvFwdReplaced">Replaced</string>
+    <string name="DrGramAdvFwdFileName">File name</string>
+    <string name="DrGramAdvFwdFileNameHint">Applied to the first file in the batch</string>
+    <string name="DrGramAdvFwdFromMyName">Send as my own message (no Forwarded label)</string>
+    <string name="DrGramAdvFwdPick">Choose destination</string>
+    <string name="DrGramAdvFwdNoText">This batch has no text — media will be forwarded as is.</string>
+    <string name="DrGramAdvFwdTypePhoto">photo</string>
+    <string name="DrGramAdvFwdTypeVideo">video</string>
+    <string name="DrGramAdvFwdTypeFile">file</string>
+    <string name="DrGramAdvFwdTypeVoice">voice</string>
+    <string name="DrGramAdvFwdTypeSticker">sticker</string>
+    <string name="DrGramAdvFwdTypeText">text</string>
+    <string name="DrGramAdvFwdTypeOther">other</string>
 </resources>
 

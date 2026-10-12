@@ -550,5 +550,29 @@
     <string name="DrGramSetStickyNotifs">اعلان‌های چسبان</string>
     <string name="DrGramSetStickyNotifsHint">پیام‌های جدید به شکل کارت‌های کوچک روی تب‌های پایین می‌چسبند تا وقتی بخوانی یا ببندی‌شان.</string>
     <string name="DrGramStickyMedia">رسانه‌ای برایت فرستاد</string>
+
+    <string name="DrGramAdvFwdTitle">فوروارد پیشرفته</string>
+    <string name="DrGramAdvFwdHint">متن را ویرایش کنید، لینک‌ها و هشتگ‌ها را حذف کنید، کلمه‌ها را جایگزین کنید و نام فایل‌ها را عوض کنید — بعد یک پیام تمیز بفرستید.</string>
+    <string name="DrGramAdvFwdCount">%d پیام انتخاب شده</string>
+    <string name="DrGramAdvFwdTextEdit">متن پیام / کپشن</string>
+    <string name="DrGramAdvFwdRemoveLinks">حذف لینک‌ها</string>
+    <string name="DrGramAdvFwdRemoveHashtags">حذف هشتگ‌ها</string>
+    <string name="DrGramAdvFwdReplace">جایگزینی کلمه</string>
+    <string name="DrGramAdvFwdReplaceFind">جستجو</string>
+    <string name="DrGramAdvFwdReplaceWith">جایگزین</string>
+    <string name="DrGramAdvFwdCaseSensitive">تطبیق بزرگ و کوچکی حروف</string>
+    <string name="DrGramAdvFwdReplaced">جایگزینی انجام شد</string>
+    <string name="DrGramAdvFwdFileName">نام فایل</string>
+    <string name="DrGramAdvFwdFileNameHint">روی اولین فایل این دسته اعمال می‌شود</string>
+    <string name="DrGramAdvFwdFromMyName">ارسال از طرف خودم (بدون عبارت فوروارد شده)</string>
+    <string name="DrGramAdvFwdPick">انتخاب مقصد</string>
+    <string name="DrGramAdvFwdNoText">این دسته متنی ندارد — رسانه‌ها بدون تغییر فوروارد می‌شوند.</string>
+    <string name="DrGramAdvFwdTypePhoto">عکس</string>
+    <string name="DrGramAdvFwdTypeVideo">ویدیو</string>
+    <string name="DrGramAdvFwdTypeFile">فایل</string>
+    <string name="DrGramAdvFwdTypeVoice">وویس</string>
+    <string name="DrGramAdvFwdTypeSticker">استیکر</string>
+    <string name="DrGramAdvFwdTypeText">متن</string>
+    <string name="DrGramAdvFwdTypeOther">سایر</string>
 </resources>
 

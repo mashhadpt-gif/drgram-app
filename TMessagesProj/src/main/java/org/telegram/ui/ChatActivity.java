@@ -12382,16 +12382,21 @@ public class ChatActivity extends BaseFragment implements
         if (selectionReactionsOverlay != null && selectionReactionsOverlay.isVisible()) {
             selectionReactionsOverlay.setHiddenByScroll(true);
         }
-        Bundle args = new Bundle();
-        args.putBoolean("onlySelect", true);
-        args.putInt("dialogsType", DialogsActivity.DIALOGS_TYPE_FORWARD);
-        args.putInt("messagesCount", canForwardMessagesCount);
-        args.putInt("hasPoll", hasPoll);
-        args.putBoolean("hasInvoice", hasInvoice);
-        args.putBoolean("canSelectTopics", true);
-        DialogsActivity fragment = new DialogsActivity(args);
-        fragment.setDelegate(ChatActivity.this);
-        presentFragment(fragment);
+        ArrayList<MessageObject> drgramFwd = new ArrayList<>();
+        for (int a = 1; a >= 0; a--) {
+            ArrayList<Integer> drgramIds = new ArrayList<>();
+            for (int b = 0; b < selectedMessagesIds[a].size(); b++) {
+                drgramIds.add(selectedMessagesIds[a].keyAt(b));
+            }
+            Collections.sort(drgramIds);
+            for (int b = 0; b < drgramIds.size(); b++) {
+                MessageObject mo = selectedMessagesIds[a].get(drgramIds.get(b));
+                if (mo != null) {
+                    drgramFwd.add(mo);
+                }
+            }
+        }
+        drgramPresentAdvancedForward(drgramFwd);
     }
 
     public void showBottomOverlayProgress(boolean show, boolean animated) {
@@ -33629,6 +33634,14 @@ public class ChatActivity extends BaseFragment implements
         MediaController.saveFile(path, getParentActivity(), messageObject.isVideo() ? 1 : 0, null, null);
     }
 
+    private void drgramPresentAdvancedForward(ArrayList<MessageObject> messages) {
+        if (getParentActivity() == null || messages == null || messages.isEmpty()) {
+            return;
+        }
+        presentFragment(new DrGramForwardEditor(messages));
+        clearSelectionMode();
+    }
+
     private void processSelectedOption(int option) {
         if (selectedObject == null || getParentActivity() == null) {
             return;
@@ -33691,21 +33704,13 @@ public class ChatActivity extends BaseFragment implements
                     selectedObjectGroup = null;
                     return;
                 }
-                forwardingMessage = selectedObject;
-                forwardingMessageGroup = selectedObjectGroup;
-                Bundle args = new Bundle();
-                args.putBoolean("onlySelect", true);
-                args.putInt("dialogsType", DialogsActivity.DIALOGS_TYPE_FORWARD);
-                args.putInt("messagesCount", 1);
-                args.putInt("hasPoll", forwardingMessage.isTodo() ? 3 : forwardingMessage.isPoll() ? (forwardingMessage.isPublicPoll() ? 2 : 1) : 0);
-                if (ChatObject.isMonoForum(currentChat) && ChatObject.canManageMonoForum(currentAccount, currentChat) && currentChat.linked_monoforum_id != 0) {
-                    args.putLong("forward_into_channel", -currentChat.linked_monoforum_id);
+                ArrayList<MessageObject> drgramFwd = new ArrayList<>();
+                if (selectedObjectGroup != null) {
+                    drgramFwd.addAll(selectedObjectGroup.messages);
+                } else {
+                    drgramFwd.add(selectedObject);
                 }
-                args.putBoolean("hasInvoice", forwardingMessage.isInvoice());
-                args.putBoolean("canSelectTopics", true);
-                DialogsActivity fragment = new DialogsActivity(args);
-                fragment.setDelegate(this);
-                presentFragment(fragment);
+                drgramPresentAdvancedForward(drgramFwd);
                 break;
             }
             case OPTION_COPY: {
