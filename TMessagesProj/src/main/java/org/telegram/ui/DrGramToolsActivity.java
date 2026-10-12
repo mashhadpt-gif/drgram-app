@@ -41,6 +41,7 @@ import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.Components.DrGramLuxDecor;
 import org.telegram.ui.Components.LayoutHelper;
 
 import java.util.ArrayList;
@@ -92,6 +93,7 @@ public class DrGramToolsActivity extends BaseFragment {
 
         try {
             addSignatureHero(context, LocaleController.getString(R.string.DrGramToolsHero));
+            contentView.addView(DrGramLuxDecor.ornamentDivider(context, DrGramThemeInstaller.isLoveMode())); // DrGram Fix 24
         } catch (Throwable t) {
             // DrGram Fix 14 (hardening): decoration must never crash the page.
             FileLog.e(t);
@@ -110,6 +112,12 @@ public class DrGramToolsActivity extends BaseFragment {
         buildTagsSection(context);
         buildClogSection(context);
 
+        try {
+            contentView.addView(DrGramLuxDecor.signatureFooter(context, DrGramThemeInstaller.isLoveMode())); // DrGram Fix 24
+        } catch (Throwable t) {
+            FileLog.e(t);
+        }
+
         return fragmentView;
     }
 
@@ -126,13 +134,33 @@ public class DrGramToolsActivity extends BaseFragment {
         addHeader(context, LocaleController.getString(R.string.DrGramSettingsCenter),
                 LocaleController.getString(R.string.DrGramSettingsCenterHint));
         contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSettingsCenterOpen), v ->
-                presentFragment(new DrGramSettingsActivity())));
+                drgramOpenSettingsCenter())); // DrGram Fix 24: guarded, never crash the tools page
         // DrGram Fix 20: style gallery — the built-in theme presets
         contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramStyleGallery), v ->
                 presentFragment(new ThemeActivity(ThemeActivity.THEME_TYPE_BASIC))));
     }
 
     //endregion
+
+    /**
+     * DrGram Fix 24: the control center previously failed to open on some devices
+     * (class-verify crash — DrGramSettingsActivity was the only DrGram page with a
+     * raw java.util.function.Consumer dependency, an API-24+ class). The dependency
+     * is now gone and the open itself is guarded: worst case the user lands in the
+     * native Telegram settings instead of losing the section to a crash.
+     */
+    private void drgramOpenSettingsCenter() {
+        try {
+            presentFragment(new DrGramSettingsActivity());
+        } catch (Throwable t) {
+            FileLog.e(t);
+            try {
+                presentFragment(new SettingsActivity());
+            } catch (Throwable ignore) {
+                FileLog.e(ignore);
+            }
+        }
+    }
 
     //region Contact radar (DrGram Fix 20)
 
@@ -684,6 +712,7 @@ public class DrGramToolsActivity extends BaseFragment {
         backdrop.setStroke(AndroidUtilities.dp(1), love ? 0xCCF06A82 : 0xD9F4D27A);
         hero.setBackground(backdrop);
         hero.setElevation(AndroidUtilities.dp(7));
+        DrGramLuxDecor.frameHero(hero, love); // DrGram Fix 24
         LinearLayout.LayoutParams hp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         hp.setMargins(AndroidUtilities.dp(16), AndroidUtilities.dp(18), AndroidUtilities.dp(16), AndroidUtilities.dp(8));
@@ -743,13 +772,13 @@ public class DrGramToolsActivity extends BaseFragment {
         header.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
         header.setTypeface(AndroidUtilities.bold());
         header.setTextColor(DrGramThemeInstaller.accentColor());
-        header.setText("💎  " + title);
+        header.setText("❖  " + title); // DrGram Fix 24: tintable luxury glyph (emoji broke the palette)
         header.setPadding(AndroidUtilities.dp(21), AndroidUtilities.dp(22), AndroidUtilities.dp(21), AndroidUtilities.dp(2));
         contentView.addView(header);
 
         TextView hintView = new TextView(context);
         hintView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
-        hintView.setTextColor(0xFFC9B98F);
+        hintView.setTextColor(DrGramThemeInstaller.isLoveMode() ? 0xFFD8A8B4 : 0xFFC9B98F); // DrGram Fix 24
         hintView.setPadding(AndroidUtilities.dp(21), 0, AndroidUtilities.dp(21), AndroidUtilities.dp(8));
         hintView.setText(hint);
         contentView.addView(hintView);
@@ -772,7 +801,7 @@ public class DrGramToolsActivity extends BaseFragment {
         int accent = DrGramThemeInstaller.accentColor();
         for (int index = 0; index < group.getChildCount(); index++) {
             View child = group.getChildAt(index);
-            if (child instanceof TextView && ((TextView) child).getText().toString().startsWith("💎")) {
+            if (child instanceof TextView && ((TextView) child).getText().toString().startsWith("❖")) {
                 ((TextView) child).setTextColor(accent);
             }
             if (!(child instanceof ViewGroup)) {
@@ -806,6 +835,7 @@ public class DrGramToolsActivity extends BaseFragment {
         card.setStroke(AndroidUtilities.dp(1), loveMode ? 0xCCE63B52 : 0xCCFFC94A);
         row.setBackgroundDrawable(card);
         row.setElevation(AndroidUtilities.dp(2));
+        DrGramLuxDecor.polishRow(row, loveMode); // DrGram Fix 24
         row.setPadding(AndroidUtilities.dp(17), AndroidUtilities.dp(14), AndroidUtilities.dp(17), AndroidUtilities.dp(14));
         LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         rowParams.setMargins(AndroidUtilities.dp(16), AndroidUtilities.dp(4), AndroidUtilities.dp(16), AndroidUtilities.dp(4));
@@ -890,17 +920,22 @@ public class DrGramToolsActivity extends BaseFragment {
     @Override
     public void onInsets(int left, int top, int right, int bottom) {
         super.onInsets(left, top, right, bottom);
-        if (fragmentView instanceof ViewGroup) {
-            ViewGroup root = (ViewGroup) fragmentView;
-            ViewGroup target = root;
-            if (root instanceof android.widget.ScrollView
-                    && root.getChildCount() > 0
-                    && root.getChildAt(0) instanceof ViewGroup) {
-                target = (ViewGroup) root.getChildAt(0);
+        // DrGram Fix 24: inset handling is cosmetic — never fatal.
+        try {
+            if (fragmentView instanceof ViewGroup) {
+                ViewGroup root = (ViewGroup) fragmentView;
+                ViewGroup target = root;
+                if (root instanceof android.widget.ScrollView
+                        && root.getChildCount() > 0
+                        && root.getChildAt(0) instanceof ViewGroup) {
+                    target = (ViewGroup) root.getChildAt(0);
+                }
+                int newBottom = Math.max(target.getPaddingBottom(), bottom + AndroidUtilities.dp(16));
+                target.setPadding(target.getPaddingLeft(), target.getPaddingTop(), target.getPaddingRight(), newBottom);
+                target.setClipToPadding(false);
             }
-            int newBottom = Math.max(target.getPaddingBottom(), bottom + AndroidUtilities.dp(16));
-            target.setPadding(target.getPaddingLeft(), target.getPaddingTop(), target.getPaddingRight(), newBottom);
-            target.setClipToPadding(false);
+        } catch (Throwable t) {
+            FileLog.e(t);
         }
     }
 }
