@@ -62,6 +62,69 @@ public class DrGramSettingsActivity extends BaseFragment {
 
     @Override
     public View createView(Context context) {
+        // DrGram Fix 27: the hub must never take the app down. Whatever throws
+        // inside gets logged, shown as a one-line diagnostic and replaced by a
+        // minimal golden fallback view.
+        try {
+            return drgramCreateViewInternal(context);
+        } catch (Throwable t) {
+            return drgramFallbackView(context, t);
+        }
+    }
+
+    private View drgramFallbackView(Context context, Throwable t) {
+        FileLog.e(t);
+        try {
+            MessagesController.getGlobalMainSettings().edit()
+                    .putString("drgram_cc_error", android.util.Log.getStackTraceString(t)).commit();
+        } catch (Throwable ignore) {}
+        try {
+            android.widget.Toast.makeText(ApplicationLoader.applicationContext,
+                    LocaleController.formatString("DrGramCCFallback", R.string.DrGramCCFallback, t.getClass().getSimpleName()),
+                    android.widget.Toast.LENGTH_LONG).show();
+        } catch (Throwable ignore) {}
+        try {
+            actionBar.setBackButtonImage(R.drawable.ic_ab_back);
+            actionBar.setAllowOverlayTitle(true);
+            actionBar.setTitle(LocaleController.getString(R.string.DrGramSettingsCenter));
+            actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
+                @Override
+                public void onItemClick(int id) {
+                    if (id == -1) {
+                        finishFragment();
+                    }
+                }
+            });
+        } catch (Throwable ignore) {}
+        LinearLayout fb = new LinearLayout(context);
+        fb.setOrientation(LinearLayout.VERTICAL);
+        fb.setGravity(Gravity.CENTER);
+        fb.setBackgroundColor(0xFF0C0A05);
+        TextView tv = new TextView(context);
+        tv.setTextColor(0xFFFFC94A);
+        tv.setGravity(Gravity.CENTER);
+        tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
+        tv.setPadding(AndroidUtilities.dp(28), AndroidUtilities.dp(28), AndroidUtilities.dp(28), AndroidUtilities.dp(28));
+        tv.setText(LocaleController.getString(R.string.DrGramCCFallbackText));
+        fb.addView(tv, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+        fragmentView = fb;
+        return fb;
+    }
+
+    @Override
+    protected void onViewCreated(View view) {
+        super.onViewCreated(view);
+        // DrGram Fix 27: the GlassEngine post-draw hook is our prime suspect for
+        // the frame-time crash on some devices — the hub does not need glass,
+        // so the listener is detached right away.
+        try {
+            glassEngine.setRoot(null);
+        } catch (Throwable t) {
+            FileLog.e(t);
+        }
+    }
+
+    private View drgramCreateViewInternal(Context context) {
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
         actionBar.setAllowOverlayTitle(true);
         actionBar.setTitle(LocaleController.getString(R.string.DrGramSettingsCenter));

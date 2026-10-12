@@ -584,5 +584,9 @@
     <string name="DrGramSetConnectionHint">پروکسی خودکار ام‌تی‌پروتو — telegramvpn.org</string>
     <string name="DrGramSetAutoProxy">وصل شدن خودکار به پروکسی</string>
     <string name="DrGramAutoProxyOn">پروکسی خودکار وصل شد · %s</string>
+
+    <!-- DrGram Fix 27 -->
+    <string name="DrGramCCFallback">مرکز کنترل باز نشد (%1$s)</string>
+    <string name="DrGramCCFallbackText">مرکز کنترل به خطای غیرمنتظره‌ای خورد. دوباره تلاش کنید — اگر تکرار شد، همین پیام را برای تیم دکترگرام بفرستید.</string>
 </resources>
 

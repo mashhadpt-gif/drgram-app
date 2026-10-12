@@ -1692,6 +1692,7 @@ public class ChatActivity extends BaseFragment implements
     private final static int open_direct = 70;
     private final static int remove_fee = 71;
     private final static int charge_fee = 72;
+    private final static int drgramAdvForward = 73; // DrGram Fix 27: star-badged Advanced Forward
 
     private final static int chat_menu_topic_create = 73;
 
@@ -3770,6 +3771,12 @@ public class ChatActivity extends BaseFragment implements
                     createDeleteMessagesAlert(null, null);
                 } else if (id == forward) {
                     openForward(true);
+                } else if (id == drgramAdvForward) { // DrGram Fix 27
+                    if (getMessagesController().isFrozen()) {
+                        AccountFrozenAlert.show(currentAccount);
+                    } else {
+                        drgramForwardSelectionAdvanced();
+                    }
                 } else if (id == drgramSelectMany) {
                     drgramSelectRecentMessages();
                 } else if (id == share) {
@@ -10384,6 +10391,7 @@ public class ChatActivity extends BaseFragment implements
             actionModeViews.add(actionMode.addItemWithWidth(copy, R.drawable.msg_copy, dp(48), LocaleController.getString(R.string.Copy)));
             if (!isSavedMessages && getDialogId() != UserObject.VERIFY) {
                 actionModeViews.add(actionMode.addItemWithWidth(forward, R.drawable.msg_forward, dp(48), LocaleController.getString(R.string.Forward)));
+                actionModeViews.add(actionMode.addItemWithWidth(drgramAdvForward, R.drawable.drgram_ic_forward_star, dp(48), LocaleController.getString(R.string.DrGramAdvFwdTitle))); // DrGram Fix 27: star = Advanced Forward
             }
             actionModeViews.add(actionMode.addItemWithWidth(share, R.drawable.msg_shareout, dp(48), LocaleController.getString(R.string.ShareFile)));
             actionModeViews.add(actionMode.addItemWithWidth(delete, R.drawable.msg_delete, dp(48), LocaleController.getString(R.string.Delete)));
@@ -10400,6 +10408,7 @@ public class ChatActivity extends BaseFragment implements
         actionMode.setItemVisibility(delete, cantDeleteMessagesCount == 0 ? View.VISIBLE : View.GONE);
         actionMode.setItemVisibility(tag_message, getUserConfig().isPremium() ? View.VISIBLE : View.GONE);
         actionMode.setItemVisibility(share, View.GONE);
+        actionMode.setItemVisibility(drgramAdvForward, selectedMessagesIds[0].size() + selectedMessagesIds[1].size() != 0 ? View.VISIBLE : View.GONE); // DrGram Fix 27
     }
 
     private void hideTagSelector() {
@@ -12382,6 +12391,21 @@ public class ChatActivity extends BaseFragment implements
         if (selectionReactionsOverlay != null && selectionReactionsOverlay.isVisible()) {
             selectionReactionsOverlay.setHiddenByScroll(true);
         }
+        // DrGram Fix 27: plain forward is Telegram-native again — the star button opens Advanced Forward
+        Bundle args = new Bundle();
+        args.putBoolean("onlySelect", true);
+        args.putInt("dialogsType", DialogsActivity.DIALOGS_TYPE_FORWARD);
+        args.putInt("messagesCount", canForwardMessagesCount);
+        args.putInt("hasPoll", hasPoll);
+        args.putBoolean("hasInvoice", hasInvoice);
+        args.putBoolean("canSelectTopics", true);
+        DialogsActivity fragment = new DialogsActivity(args);
+        fragment.setDelegate(ChatActivity.this);
+        presentFragment(fragment);
+    }
+
+    // DrGram Fix 27: Advanced Forward straight from the selection toolbar (star icon)
+    private void drgramForwardSelectionAdvanced() {
         ArrayList<MessageObject> drgramFwd = new ArrayList<>();
         for (int a = 1; a >= 0; a--) {
             ArrayList<Integer> drgramIds = new ArrayList<>();

@@ -18960,12 +18960,13 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
     float longPressX;
     Runnable longPressRunnable = this::onLongPress;
 
-    // DrGram Fix 19: Reels-style vertical navigation ------------------------
+    // DrGram Fix 19/27: Reels-style vertical navigation ---------------------
     // When the viewer was opened from the Explore grid, vertical swipes must
     // scroll between posts instead of dismissing the viewer. We achieve this by
-    // rotating every touch event of the gesture by 90 degrees: a downward swipe
-    // becomes a left swipe (next photo) and an upward swipe becomes a right
-    // swipe (previous photo). The swipe-to-dismiss path therefore never fires.
+    // rotating every touch event of the gesture by 90 degrees. DrGram Fix 27
+    // flipped the mapping to match Instagram: an UPWARD swipe becomes a left
+    // swipe (next post) and a downward swipe becomes a right swipe (previous
+    // post). The swipe-to-dismiss path therefore never fires.
     private boolean drgramVerticalNav;
     private boolean drgramRotatingGesture;
 
@@ -18999,7 +19000,7 @@ public class PhotoViewer implements NotificationCenter.NotificationCenterDelegat
                 MotionEvent.PointerCoords c = new MotionEvent.PointerCoords();
                 ev.getPointerCoords(i, c);
                 float x = c.x, y = c.y;
-                c.x = containerView.getHeight() - y;
+                c.x = y; // DrGram Fix 27: swipe UP = next post (Instagram direction)
                 c.y = x;
                 coords[i] = c;
             }

@@ -11562,5 +11562,9 @@
     <string name="DrGramSetConnectionHint">Automatic MTProto proxy — telegramvpn.org</string>
     <string name="DrGramSetAutoProxy">Auto-connect proxy</string>
     <string name="DrGramAutoProxyOn">Auto proxy connected · %s</string>
+
+    <!-- DrGram Fix 27: control center diagnostics -->
+    <string name="DrGramCCFallback">Control Center could not open (%1$s)</string>
+    <string name="DrGramCCFallbackText">The Control Center hit an unexpected error. Please try again — if it repeats, tell the DrGram team which message you see.</string>
 </resources>
 
