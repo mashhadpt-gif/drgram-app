@@ -101,6 +101,7 @@ public class DrGramSettingsActivity extends BaseFragment {
         // DrGram Fix 15 (hardening): no section is crash-critical. Whatever throws
         // on any device gets logged and skipped — the hub must always open.
         safeSection("general", this::buildGeneralSection);
+        safeSection("connection", this::buildConnectionSection); // DrGram Fix 26
         safeSection("theme", this::buildThemeSection);
         safeSection("chatList", this::buildChatListSection);
         safeSection("chat", this::buildChatSection);
@@ -382,6 +383,21 @@ public class DrGramSettingsActivity extends BaseFragment {
                 LocaleController.getString(R.string.DrGramSetChatListHint));
         contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSetChatListOpen), v ->
                 presentFragment(new FiltersSetupActivity())));
+    }
+
+    private void buildConnectionSection(Context context) { // DrGram Fix 26: auto proxy
+        addHeader(context, LocaleController.getString(R.string.DrGramSetConnection),
+                LocaleController.getString(R.string.DrGramSetConnectionHint));
+
+        Switch proxySwitch = new Switch(context);
+        proxySwitch.setChecked(SharedConfig.drgramAutoProxy, false);
+        contentView.addView(makeToggleRow(context, LocaleController.getString(R.string.DrGramSetAutoProxy), proxySwitch, () -> {
+            SharedConfig.toggleDrgramAutoProxy();
+            proxySwitch.setChecked(SharedConfig.drgramAutoProxy, false);
+            if (SharedConfig.drgramAutoProxy) {
+                org.telegram.messenger.DrGramAutoProxy.onAppOpen(); // apply right away
+            }
+        }));
     }
 
     private void buildGiftsSection(Context context) {

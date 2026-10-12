@@ -578,5 +578,11 @@
     <string name="DrGramReelsSave">ذخیره</string>
     <string name="DrGramReelsShare">اشتراک</string>
     <string name="DrGramReelsSaved">در پیام‌های ذخیره‌شده ذخیره شد</string>
+
+    <!-- DrGram Fix 26 -->
+    <string name="DrGramSetConnection">اتصال</string>
+    <string name="DrGramSetConnectionHint">پروکسی خودکار ام‌تی‌پروتو — telegramvpn.org</string>
+    <string name="DrGramSetAutoProxy">وصل شدن خودکار به پروکسی</string>
+    <string name="DrGramAutoProxyOn">پروکسی خودکار وصل شد · %s</string>
 </resources>
 

@@ -448,6 +448,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
         }
         Theme.createCommonChatResources();
         Theme.createDialogsResources(this);
+        AndroidUtilities.runOnUIThread(() -> org.telegram.messenger.DrGramAutoProxy.onAppOpen(), 6500); // DrGram Fix 26: auto proxy
         if (SharedConfig.passcodeHash.length() != 0 && SharedConfig.appLocked) {
             SharedConfig.lastPauseTime = (int) (SystemClock.elapsedRealtime() / 1000);
         }

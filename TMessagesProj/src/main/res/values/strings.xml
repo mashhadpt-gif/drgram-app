@@ -11556,5 +11556,11 @@
     <string name="DrGramReelsSave">Save</string>
     <string name="DrGramReelsShare">Share</string>
     <string name="DrGramReelsSaved">Saved to your Saved Messages</string>
+
+    <!-- DrGram Fix 26: auto proxy -->
+    <string name="DrGramSetConnection">Connection</string>
+    <string name="DrGramSetConnectionHint">Automatic MTProto proxy — telegramvpn.org</string>
+    <string name="DrGramSetAutoProxy">Auto-connect proxy</string>
+    <string name="DrGramAutoProxyOn">Auto proxy connected · %s</string>
 </resources>
 
