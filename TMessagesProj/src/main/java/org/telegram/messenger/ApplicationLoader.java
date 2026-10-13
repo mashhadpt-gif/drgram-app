@@ -294,6 +294,8 @@ public class ApplicationLoader extends Application {
 
         super.onCreate();
 
+        DrGramCrashSaver.install(); // DrGram Fix 29: capture any crash to a shareable log
+
         // AndroidUtilities must be initialized before FileLog
         final String helloWorld = AndroidUtilities.getHelloWorld();
 

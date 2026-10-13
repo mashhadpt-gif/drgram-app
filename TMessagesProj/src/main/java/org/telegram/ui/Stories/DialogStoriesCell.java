@@ -1613,7 +1613,7 @@ public class DialogStoriesCell extends FrameLayout implements NotificationCenter
                     }
                     if (user.id == 777000) {
                         // DrGram Fix 19: brand the official service story cell
-                        name = "fa".equals(LocaleController.getInstance().getCurrentLocale().getLanguage()) ? "دکترگرام" : "Dr Gram";
+                        name = "fa".equals(LocaleController.getInstance().getCurrentLocale().getLanguage()) ? "لوکس‌گرام" : "LuxGram";
                     }
                     if (user.verified) {
                         if (verifiedDrawable == null) {

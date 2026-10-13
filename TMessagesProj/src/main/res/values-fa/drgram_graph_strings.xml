@@ -52,10 +52,10 @@
     <string name="DrGramFakeNotificationSend">نمایش اعلان محلی</string>
     <string name="DrGramFakeNotificationTitleRequired">برای پیش‌نمایش، عنوان یا متن اعلان را وارد کن.</string>
     <string name="DrGramFakeNotificationPermTitle">اجازه اعلان‌ها</string>
-    <string name="DrGramFakeNotificationPermMessage">اعلان‌های DrGram در اندروید غیرفعال‌اند. برای نمایش پیش‌نمایش محلی، آن‌ها را فعال کن.</string>
+    <string name="DrGramFakeNotificationPermMessage">اعلان‌های LuxGram در اندروید غیرفعال‌اند. برای نمایش پیش‌نمایش محلی، آن‌ها را فعال کن.</string>
     <string name="DrGramFakeNotificationOpenSettings">باز کردن تنظیمات</string>
     <string name="DrGramFakeNotificationSent">اعلان آزمایشی محلی نمایش داده شد.</string>
-    <string name="DrGramFakeNotificationChannel">پیش‌نمایش‌های محلی DrGram</string>
-    <string name="DrGramToolsHero">پنل فرمان زرین‌پوش تو — همه‌ی قدرت‌های دکتر گرام، یک‌جا</string>
-    <string name="DrGramSettingsHero">مرکز فرمانروایی دکتر گرام — لوکس، رمانتیک، ماندگار</string>
+    <string name="DrGramFakeNotificationChannel">پیش‌نمایش‌های محلی LuxGram</string>
+    <string name="DrGramToolsHero">پنل فرمان زرین‌پوش تو — همه‌ی قدرت‌های لوکس گرام، یک‌جا</string>
+    <string name="DrGramSettingsHero">مرکز فرمانروایی لوکس گرام — لوکس، رمانتیک، ماندگار</string>
 </resources>

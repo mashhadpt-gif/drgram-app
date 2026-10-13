@@ -75,7 +75,7 @@ public class DrGramMembersBar extends FrameLayout {
         listView.setVerticalScrollBarEnabled(false);
         listView.setOverScrollMode(View.OVER_SCROLL_NEVER);
         listView.setAdapter(adapter);
-        addView(listView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, AndroidUtilities.dp(42), Gravity.CENTER));
+        addView(listView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 38, Gravity.CENTER)); // DrGram Fix 29: LayoutHelper converts dp itself (was double-converted, rendered ~3x too big)
 
         // DrGram Fix 21: long-press hides the bar for this chat until the app restarts.
         setOnLongClickListener(v -> {
@@ -198,22 +198,22 @@ public class DrGramMembersBar extends FrameLayout {
 
             FrameLayout avatarWrap = new FrameLayout(context);
             View avatar = new View(context);
-            avatarWrap.addView(avatar, LayoutHelper.createFrame(AndroidUtilities.dp(32), AndroidUtilities.dp(32), Gravity.CENTER));
+            avatarWrap.addView(avatar, LayoutHelper.createFrame(26, 26, Gravity.CENTER)); // DrGram Fix 29
             View dot = new View(context);
             GradientDrawable dotBackground = new GradientDrawable();
             dotBackground.setShape(GradientDrawable.OVAL);
             dotBackground.setColor(0xFF35D07F);
             dot.setBackgroundDrawable(dotBackground);
-            avatarWrap.addView(dot, LayoutHelper.createFrame(AndroidUtilities.dp(9), AndroidUtilities.dp(9), Gravity.BOTTOM | Gravity.END, 0, 0, AndroidUtilities.dp(1), AndroidUtilities.dp(1)));
+            avatarWrap.addView(dot, LayoutHelper.createFrame(8, 8, Gravity.BOTTOM | Gravity.END, 0, 0, 1, 1)); // DrGram Fix 29
             cell.addView(avatarWrap, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT));
 
             TextView name = new TextView(context);
-            name.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 10);
+            name.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 9); // DrGram Fix 29
             name.setTextColor(0xE6FFF6DF);
             name.setMaxLines(1);
             name.setEllipsize(TextUtils.TruncateAt.END);
             name.setGravity(Gravity.CENTER);
-            cell.addView(name, LayoutHelper.createLinear(AndroidUtilities.dp(58), LayoutHelper.WRAP_CONTENT, 0, AndroidUtilities.dp(2), 0, 0));
+            cell.addView(name, LayoutHelper.createLinear(52, LayoutHelper.WRAP_CONTENT, 0, 2, 0, 0)); // DrGram Fix 29
 
             return new Holder(cell, avatar, name, dot);
         }

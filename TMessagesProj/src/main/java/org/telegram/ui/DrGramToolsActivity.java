@@ -62,6 +62,16 @@ public class DrGramToolsActivity extends BaseFragment {
 
     @Override
     public View createView(Context context) {
+        // DrGram Fix 29: the tools page must never take the app down — a failure
+        // lands on a minimal golden fallback so the crash reporter stays reachable.
+        try {
+            return drgramCreateViewInternal(context);
+        } catch (Throwable t) {
+            return drgramFallbackView(context, t);
+        }
+    }
+
+    private View drgramCreateViewInternal(Context context) {
         actionBar.setBackButtonImage(R.drawable.ic_ab_back);
         actionBar.setAllowOverlayTitle(true);
         actionBar.setTitle(LocaleController.getString(R.string.DrGramToolsTitle));
@@ -135,6 +145,9 @@ public class DrGramToolsActivity extends BaseFragment {
                 LocaleController.getString(R.string.DrGramSettingsCenterHint));
         contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSettingsCenterOpen), v ->
                 drgramOpenSettingsCenter())); // DrGram Fix 24: guarded, never crash the tools page
+        // DrGram Fix 29: one tap -> the exact crash log, shareable to support
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSendCrash), v ->
+                drgramShareLastCrash()));
         // DrGram Fix 20: style gallery — the built-in theme presets
         contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramStyleGallery), v ->
                 presentFragment(new ThemeActivity(ThemeActivity.THEME_TYPE_BASIC))));
@@ -160,6 +173,62 @@ public class DrGramToolsActivity extends BaseFragment {
                 FileLog.e(ignore);
             }
         }
+    }
+
+    /**
+     * DrGram Fix 29: share the last recorded crash log so a bug report carries
+     * the exact stack trace — no adb or logcat needed.
+     */
+    private void drgramShareLastCrash() {
+        try {
+            if (getParentActivity() == null) {
+                return;
+            }
+            String text = org.telegram.messenger.DrGramCrashSaver.lastCrashText();
+            if (text == null) {
+                android.widget.Toast.makeText(getParentActivity(),
+                        LocaleController.getString(R.string.DrGramNoCrash),
+                        android.widget.Toast.LENGTH_LONG).show();
+                return;
+            }
+            android.content.Intent intent = new android.content.Intent(android.content.Intent.ACTION_SEND);
+            intent.setType("text/plain");
+            intent.putExtra(android.content.Intent.EXTRA_TEXT, text);
+            getParentActivity().startActivity(android.content.Intent.createChooser(intent,
+                    LocaleController.getString(R.string.DrGramSendCrash)));
+        } catch (Throwable t) {
+            FileLog.e(t);
+        }
+    }
+
+    private View drgramFallbackView(Context context, Throwable t) {
+        org.telegram.messenger.DrGramCrashSaver.recordNonFatal("tools_page", t); // DrGram Fix 29
+        try {
+            actionBar.setBackButtonImage(R.drawable.ic_ab_back);
+            actionBar.setAllowOverlayTitle(true);
+            actionBar.setTitle(LocaleController.getString(R.string.DrGramToolsTitle));
+            actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
+                @Override
+                public void onItemClick(int id) {
+                    if (id == -1) {
+                        finishFragment();
+                    }
+                }
+            });
+        } catch (Throwable ignore) {}
+        LinearLayout fb = new LinearLayout(context);
+        fb.setOrientation(LinearLayout.VERTICAL);
+        fb.setGravity(Gravity.CENTER);
+        fb.setBackgroundColor(0xFF0C0A05);
+        TextView tv = new TextView(context);
+        tv.setTextColor(0xFFFFC94A);
+        tv.setGravity(Gravity.CENTER);
+        tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
+        tv.setPadding(AndroidUtilities.dp(28), AndroidUtilities.dp(28), AndroidUtilities.dp(28), AndroidUtilities.dp(28));
+        tv.setText(LocaleController.getString(R.string.DrGramCCFallbackText));
+        fb.addView(tv, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+        fragmentView = fb;
+        return fb;
     }
 
     //region Contact radar (DrGram Fix 20)

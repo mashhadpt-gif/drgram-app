@@ -760,6 +760,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
     private Long statusDrawableGiftId;
     private Drawable logoDrawable;
     private AnimatedEmojiDrawable.SwapAnimatedEmojiDrawable statusDrawable;
+    private CharSequence drgramBrandTitle; // DrGram Fix 29: luxury wordmark reference
     private AnimatedStatusView animatedStatusView;
     public RightSlidingDialogContainer rightSlidingDialogContainer;
 
@@ -3192,13 +3193,32 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
 
     @Override
     public void setTitleOverlayText(String title, int titleId, Runnable action) {
-        super.setTitleOverlayText(title, titleId, action);
+        // DrGram Fix 29: the luxury brand header must never be lost. In the default
+        // chat list only connection-state notices may replace the wordmark; any
+        // other overlay (stale titles like the "Telegram" service-chat name) is
+        // refused and the gold brand header is re-applied.
+        boolean brandState = initialDialogsType == DIALOGS_TYPE_DEFAULT && !onlySelect
+                && folderId == 0 && communityId == 0 && !drgramDownloadsMode;
+        boolean connectionNotice = title != null && (title.equals("WaitingForNetwork")
+                || title.equals("Updating") || title.equals("Connecting")
+                || title.equals("ConnectingToProxyWithDots"));
+        if (brandState && actionBar != null && drgramBrandTitle != null
+                && (title == null || !connectionNotice)) {
+            actionBar.setTitleOverlayText(null, 0, action);
+            actionBar.setTitle(drgramBrandTitle, statusDrawable);
+            actionBar.setSubtitle(LocaleController.getString(R.string.DrGramTagline));
+            if (dialogStoriesCell != null) {
+                dialogStoriesCell.setTitleOverlayText(null, 0);
+            }
+        } else {
+            super.setTitleOverlayText(title, titleId, action);
+            if (dialogStoriesCell != null) {
+                dialogStoriesCell.setTitleOverlayText(title, titleId);
+            }
+        }
         if (actionBar != null && selectAnimatedEmojiDialog != null && selectAnimatedEmojiDialog.getContentView() instanceof SelectAnimatedEmojiDialog) {
             SimpleTextView textView = actionBar.getTitleTextView();
             ((SelectAnimatedEmojiDialog) selectAnimatedEmojiDialog.getContentView()).setScrimDrawable(textView != null && textView.getRightDrawable() == statusDrawable ? statusDrawable : null, textView);
-        }
-        if (dialogStoriesCell != null) {
-            dialogStoriesCell.setTitleOverlayText(title, titleId);
         }
     }
 
@@ -3545,6 +3565,7 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
                 }, 0, ssb.length(), Spanned.SPAN_EXCLUSIVE_EXCLUSIVE);
                 actionBar.setTitle(ssb, statusDrawable);
                 actionBar.setSubtitle(LocaleController.getString(R.string.DrGramTagline));
+                drgramBrandTitle = ssb; // DrGram Fix 29: kept for the header shield
                 updateStatus(UserConfig.getInstance(currentAccount).getCurrentUser(), false);
             }
             if (folderId == 0) {
@@ -7063,6 +7084,21 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
         }
         if (rightSlidingDialogContainer != null) {
             rightSlidingDialogContainer.onResume();
+        }
+        // DrGram Fix 29: back on the list — the luxury brand header must always show
+        try {
+            boolean brandState = initialDialogsType == DIALOGS_TYPE_DEFAULT && !onlySelect
+                    && folderId == 0 && communityId == 0 && !drgramDownloadsMode;
+            if (brandState && actionBar != null && drgramBrandTitle != null
+                    && !actionBar.isActionModeShowed()) {
+                SimpleTextView tv = actionBar.getTitleTextView();
+                if (tv != null && tv.getText() != drgramBrandTitle) {
+                    actionBar.setTitle(drgramBrandTitle, statusDrawable);
+                    actionBar.setSubtitle(LocaleController.getString(R.string.DrGramTagline));
+                }
+            }
+        } catch (Throwable t) {
+            FileLog.e(t);
         }
         if (!parentLayout.isInPreviewMode() && blurredView != null && blurredView.getVisibility() == View.VISIBLE) {
             blurredView.setVisibility(View.GONE);

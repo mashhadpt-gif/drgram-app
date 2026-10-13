@@ -74,6 +74,7 @@ public class DrGramSettingsActivity extends BaseFragment {
 
     private View drgramFallbackView(Context context, Throwable t) {
         FileLog.e(t);
+        org.telegram.messenger.DrGramCrashSaver.recordNonFatal("control_center", t); // DrGram Fix 29
         try {
             MessagesController.getGlobalMainSettings().edit()
                     .putString("drgram_cc_error", android.util.Log.getStackTraceString(t)).commit();

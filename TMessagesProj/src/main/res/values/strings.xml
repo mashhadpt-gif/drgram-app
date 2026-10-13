@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="AppName">DrGram</string>
-    <string name="AppNameBeta">DrGram Beta</string>
+    <string name="AppName">LuxGram</string>
+    <string name="AppNameBeta">LuxGram Beta</string>
     <string name="LanguageName">English</string>
     <string name="English">English</string>
     <string name="LanguageNameInEnglish">English</string>
@@ -1808,8 +1808,8 @@
     <string name="NotificationGroupFew">%1$s sent %3$s to the group %2$s</string>
     <string name="NotificationGroupAlbum">%1$s sent an album to the group %2$s</string>
     <string name="NotificationGroupForwardedFew">%1$s forwarded %3$s to the group %2$s</string>
-    <string name="NotificationHiddenName">DrGram</string>
-    <string name="NotificationHiddenChatName">DrGram</string>
+    <string name="NotificationHiddenName">LuxGram</string>
+    <string name="NotificationHiddenChatName">LuxGram</string>
     <string name="NotificationHiddenChatUserName">User</string>
     <string name="NotificationHiddenMessage">New message</string>
     <string name="Reply">Reply</string>
@@ -1879,7 +1879,7 @@
     <string name="NotificationActionMissedCallConference">You missed a call from %1$s</string>
     <string name="NotificationActionMissedCallConferenceOther_one">You missed a call from %2$s and %1$d other</string>
     <string name="NotificationActionMissedCallConferenceOther_other">You missed a call from %2$s and %1$d others</string>
-    <string name="SecretChatName">DrGram</string>
+    <string name="SecretChatName">LuxGram</string>
     <!--contacts view-->
     <string name="SelectContact">Select Contact</string>
     <string name="ShareContactTitle">Share Contact</string>
@@ -2477,9 +2477,9 @@
     <string name="LanguageUnknownCustomAlert">Unfortunately, this custom language pack (**%1$s**) doesn\'t contain data for Telegram Android.</string>
     <string name="AskAQuestionInfo">Please note that Telegram Support is done by volunteers. We try to respond as quickly as possible, but it may take a while.\n\nPlease take a look at the <![CDATA[<a href=\"https://telegram.org/faq#general-questions\">Telegram FAQ</a>]]>: it has answers to most questions and important tips for <![CDATA[<a href=\"https://telegram.org/faq#troubleshooting\">troubleshooting</a>]]>.</string>
     <string name="AskButton">Ask a volunteer</string>
-    <string name="TelegramFAQ">DrGram FAQ</string>
+    <string name="TelegramFAQ">LuxGram FAQ</string>
     <string name="TelegramFaq">Telegram FAQ</string>
-    <string name="TelegramFeatures">DrGram Features</string>
+    <string name="TelegramFeatures">LuxGram Features</string>
     <string name="TelegramFeaturesUrl">https://t.me/TelegramTips</string>
     <string name="AddAccount">Add Account</string>
     <string name="SwitchAccountHint">"Long tap to switch accounts"</string>
@@ -2627,7 +2627,7 @@
     <string name="DirectShareInfo">Show recent chats in Android share menu</string>
     <string name="Emoji">Emoji</string>
     <string name="LargeEmoji">Large Emoji</string>
-    <string name="TelegramVersion">DrGram for Android %1$s</string>
+    <string name="TelegramVersion">LuxGram for Android %1$s</string>
     <string name="DebugMenu">Debug Menu</string>
     <string name="DebugMenuLongPress">Long press again for debug menu</string>
     <string name="DebugSendLogs">Send Logs</string>
@@ -4124,8 +4124,8 @@
     <string name="PermissionDrawAboveOtherApps">Telegram needs access to draw above other apps to play videos in Picture-in-Picture mode.</string>
     <string name="PermissionDrawAboveOtherAppsGroupCall">Overlay mode lets you use push-to-talk and see who is talking even when you are outside of Telegram.</string>
     <string name="PermissionOpenSettings">SETTINGS</string>
-    <string name="PermissionXiaomiLockscreen">Please allow DrGram to be shown on the lock screen so that calls can work properly.</string>
-    <string name="PermissionFSILockscreen">Please allow DrGram to be shown on the lock screen so that calls can work properly.</string>
+    <string name="PermissionXiaomiLockscreen">Please allow LuxGram to be shown on the lock screen so that calls can work properly.</string>
+    <string name="PermissionFSILockscreen">Please allow LuxGram to be shown on the lock screen so that calls can work properly.</string>
     <string name="PermissionBackgroundLocation">To share your live location in this chat, Telegram needs access to your location all the time, including while the app is in the background.\n\nWe will access your location only for the duration you choose, and you can stop sharing it any time. We won\'t use your location for any purpose other than sharing it in this chat.</string>
     <string name="PermissionDrawAboveOtherAppsTitle">Picture-in-Picture</string>
     <string name="PermissionDrawAboveOtherAppsGroupCallTitle">Voice Chat Overlay</string>
@@ -4199,27 +4199,27 @@
     <string name="ViewMessageStatistic">Message Statistic</string>
     <string name="ViewMessage">Open Message</string>
     <!--Intro view-->
-    <string name="Page1Title">DrGram</string>
+    <string name="Page1Title">LuxGram</string>
     <string name="Page2Title">Fast</string>
     <string name="Page3Title">Free</string>
     <string name="Page4Title">Secure</string>
     <string name="Page5Title">Powerful</string>
     <string name="Page6Title">Cloud-Based</string>
     <string name="Page1Message">The **luxury** messenger.\nBuilt for the **special** ones.</string>
-    <string name="Page2Message">**DrGram** delivers messages faster than\nany other application.</string>
-    <string name="Page3Message">**DrGram** provides free unlimited cloud storage for chats and media.</string>
-    <string name="Page4Message">**DrGram** keeps your messages safe\nfrom hacker attacks.</string>
-    <string name="Page5Message">**DrGram** has no limits on\nthe size of your media and chats.</string>
-    <string name="Page6Message">**DrGram** lets you access your messages\nfrom multiple devices.</string>
+    <string name="Page2Message">**LuxGram** delivers messages faster than\nany other application.</string>
+    <string name="Page3Message">**LuxGram** provides free unlimited cloud storage for chats and media.</string>
+    <string name="Page4Message">**LuxGram** keeps your messages safe\nfrom hacker attacks.</string>
+    <string name="Page5Message">**LuxGram** has no limits on\nthe size of your media and chats.</string>
+    <string name="Page6Message">**LuxGram** lets you access your messages\nfrom multiple devices.</string>
     <string name="StartMessaging">Enter the Luxury World</string>
 
     <!--DrGram Fix 8: luxury branding-->
     <string name="DrGramTagline">The Luxury Messenger</string>
-    <string name="DrGramSetTheme">DrGram Brand Mode</string>
-    <string name="DrGramSetThemeHint">Choose Gold Mode (luxury) or LOVE Mode (romantic). DrGram keeps one of its own themes active and never selects the default Telegram theme.</string>
+    <string name="DrGramSetTheme">LuxGram Brand Mode</string>
+    <string name="DrGramSetThemeHint">Choose Gold Mode (luxury) or LOVE Mode (romantic). LuxGram keeps one of its own themes active and never selects the default Telegram theme.</string>
     <string name="DrGramSetThemeGold">Gold Mode (Luxury)</string>
     <string name="DrGramSetThemeRed">LOVE Mode (Romantic)</string>
-    <string name="DrGramSetThemeApplyFailed">Could not apply the DrGram mode. Please restart the app and try again.</string>
+    <string name="DrGramSetThemeApplyFailed">Could not apply the LuxGram mode. Please restart the app and try again.</string>
     <string name="DrGramQuickLinksTitle">Quick Links</string>
     <string name="DrGramQuickLinksHint">Save links you use often. Stored only on this device.</string>
     <string name="DrGramQuickLinksAdd">Add quick link</string>
@@ -4238,7 +4238,7 @@
     <string name="DrGramHiddenAccountsHiddenResult">Account hidden from account pickers. Manage hidden accounts here to restore it.</string>
     <string name="DrGramHiddenAccountsVisibleResult">Account is visible in account pickers again.</string>
     <string name="DrGramOpenToolsTitle">Auto reply &amp; advanced tools</string>
-    <string name="DrGramOpenToolsHint">Automatic replies, presence alerts, hidden chats and other DrGram tools.</string>
+    <string name="DrGramOpenToolsHint">Automatic replies, presence alerts, hidden chats and other LuxGram tools.</string>
     <string name="DrGramSetExploreOpen">Explore media from joined channels</string>
     <string name="DrGramSetChatList">Chat list / home page</string>
     <string name="DrGramSetChatListHint">Manage the native Telegram chat folders and filters.</string>
@@ -4247,7 +4247,7 @@
     <string name="DrGramSetGiftsHint">Open the native Telegram gift recipient selector.</string>
     <string name="DrGramSetGiftsOpen">Send a gift</string>
     <string name="DrGramSetHotNotifications">Hot notifications</string>
-    <string name="DrGramSetHotNotificationsHint">Open DrGram online alerts and automatic-reply tools.</string>
+    <string name="DrGramSetHotNotificationsHint">Open LuxGram online alerts and automatic-reply tools.</string>
     <string name="DrGramPrivateContactsTitle">Private contacts</string>
     <string name="DrGramPrivateContactsHint">Hide selected contacts from the standard contacts list without deleting them from Telegram. This setting is local to this account and device.</string>
     <string name="DrGramPrivateContactsEmpty">No loaded contacts are available yet.</string>
@@ -5815,12 +5815,12 @@
     <string name="AppIconGoldGem">Golden Gem</string>
     <string name="AppIconRedHeart">Ruby Heart</string>
     <string name="AppIconRedGem">Ruby Gem</string>
-    <string name="DrGramPremium">DrGram Premium</string>
+    <string name="DrGramPremium">LuxGram Premium</string>
     <string name="SparksOnSend">Sparks on send</string>
     <string name="SparksOnSendInfo">Golden spark animation when you send a message</string>
     <string name="GoldRainOnReactions">Gold rain on reactions</string>
     <string name="GoldRainOnReactionsInfo">Golden rain for message reactions, sparks when you react to stories</string>
-    <string name="SparksOnSendHint">DrGram premium effects: send sparks &amp; reaction gold rain</string>
+    <string name="SparksOnSendHint">LuxGram premium effects: send sparks &amp; reaction gold rain</string>
     <string name="DrGramGlassUI">Glass UI</string>
     <string name="DrGramGlassUIInfo">Real blur glass on the action bar and chat panel with golden strokes</string>
     <string name="DrGramGoldChat">Golden chat</string>
@@ -11297,16 +11297,16 @@
     <string name="RoundVideoComposition">Composition</string>
     <string name="RoundVideoCompositionEnabled">Round video styling</string>
     <string name="RoundVideoCompositionInfo">Disable styling to record a plain square without outside-circle blur, dimming or Telegram overlays.</string>
-    <string name="DrGramToolsTitle">DrGram Tools</string>
-    <string name="DrGramToolsDrawer">DrGram Tools</string>
-    <string name="DrGramSecretaryTitle">DrGram Secretary</string>
+    <string name="DrGramToolsTitle">LuxGram Tools</string>
+    <string name="DrGramToolsDrawer">LuxGram Tools</string>
+    <string name="DrGramSecretaryTitle">LuxGram Secretary</string>
     <string name="DrGramSecretaryHint">Replies to incoming chats for you while you are busy.</string>
     <string name="DrGramSecretaryEnable">Auto reply</string>
     <string name="DrGramSecretaryText">Reply text</string>
     <string name="DrGramSecretaryEditTitle">Reply text</string>
     <string name="DrGramSecretaryGroups">Also reply in groups</string>
     <string name="DrGramSave">Save</string>
-    <string name="DrGramVaultSection">DrGram Vault</string>
+    <string name="DrGramVaultSection">LuxGram Vault</string>
     <string name="DrGramVaultHint">Hide chats from every list. Open them by typing your secret code in the main search field.</string>
     <string name="DrGramVaultSetCode">Set secret code</string>
     <string name="DrGramVaultCodeTitle">Secret code</string>
@@ -11316,27 +11316,27 @@
     <string name="DrGramVaultEmpty">The vault is empty. Hide a chat from its menu in the top right corner.</string>
     <string name="DrGramVaultRowHint">Hold to return the chat to the list</string>
     <string name="DrGramVaultHide">Hide in vault</string>
-    <string name="DrGramVaultHideConfirm">This chat will disappear from all lists on this device. You can bring it back from DrGram Tools at any time.</string>
+    <string name="DrGramVaultHideConfirm">This chat will disappear from all lists on this device. You can bring it back from LuxGram Tools at any time.</string>
     <string name="DrGramVaultHiddenDone">Chat moved to the vault</string>
     <string name="DrGramVaultUnhideTitle">Return chat to list</string>
     <string name="DrGramVaultUnhideText">“%1$s” will appear in the chat list again.</string>
     <string name="DrGramVaultUnhideYes">Return</string>
-    <string name="DrGramGuardTitle">DrGram Online Guard</string>
+    <string name="DrGramGuardTitle">LuxGram Online Guard</string>
     <string name="DrGramGuardHint">Notifies you when a chosen contact comes online.</string>
     <string name="DrGramGuardEnable">Online guard</string>
     <string name="DrGramGuardAdd">Add contact to guard</string>
     <string name="DrGramGuardUnknownUser">Contact</string>
-    <string name="DrGramGuardNotificationTitle">DrGram Online Guard</string>
+    <string name="DrGramGuardNotificationTitle">LuxGram Online Guard</string>
     <string name="DrGramGuardNotificationText">%1$s is now online</string>
     <string name="DrGramGuardChannelName">Online guard</string>
     <string name="DrGramSelectMany">Select many</string>
     <string name="DrGramSelectManyLimit">Selected up to 100 messages</string>
-    <string name="DrGramVaultTitle">DrGram Vault</string>
-    <string name="DrGramFavSection">DrGram Favorites</string>
+    <string name="DrGramVaultTitle">LuxGram Vault</string>
+    <string name="DrGramFavSection">LuxGram Favorites</string>
     <string name="DrGramFavHint">Messages you star are kept here on this device. Tap a row to jump back to the original message.</string>
     <string name="DrGramFavOpen">Open favorites</string>
     <string name="DrGramFavCount">Saved messages</string>
-    <string name="DrGramFavTitle">DrGram Favorites</string>
+    <string name="DrGramFavTitle">LuxGram Favorites</string>
     <string name="DrGramFavEmpty">Nothing saved yet. Hold a message and choose Add to favorites.</string>
     <string name="DrGramFavRowHint">Hold to remove</string>
     <string name="DrGramFavAdd">Add to favorites</string>
@@ -11353,7 +11353,7 @@
     <string name="DrGramMsgEdited">Edited</string>
     <string name="DrGramShowFull">Show full message</string>
     <string name="DrGramCopyId">Copy ID</string>
-    <string name="DrGramIdSection">DrGram ID tracker</string>
+    <string name="DrGramIdSection">LuxGram ID tracker</string>
     <string name="DrGramIdHint">Open any profile by numeric ID, @username or a t.me link.</string>
     <string name="DrGramIdAction">Find by ID</string>
     <string name="DrGramIdInputHint">Numeric ID, @username or t.me link</string>
@@ -11423,7 +11423,7 @@
     <string name="DrGramButlerFreed">%1$s freed</string>
     <string name="DrGramButlerRealNames">Keep original file names</string>
     <string name="DrGramButlerRealNamesHint">Prefer the original names when saving media from chats (applies to new saves).</string>
-    <string name="DrGramButlerPath">Where DrGram keeps media</string>
+    <string name="DrGramButlerPath">Where LuxGram keeps media</string>
     <string name="DrGramButlerCopied">Path copied</string>
     <string name="DrGramButlerImages">Image cache</string>
     <string name="DrGramButlerVideos">Video cache</string>
@@ -11433,7 +11433,7 @@
 
     <string name="DrGramClogOpen">Open change log</string>
     <string name="DrGramClogTitle">Contact changes</string>
-    <string name="DrGramClogEmpty">No changes recorded yet. DrGram compares your contacts each time the app starts.</string>
+    <string name="DrGramClogEmpty">No changes recorded yet. LuxGram compares your contacts each time the app starts.</string>
     <string name="DrGramClogName">name</string>
     <string name="DrGramClogUsername">username</string>
     <string name="DrGramClogPhoto">photo</string>
@@ -11453,8 +11453,8 @@
     <string name="DrGramTagsClearText">Your whole hashtag collection will be cleared on this device.</string>
     <string name="DrGramTagsUsedCount">Used %1$d times</string>
     <string name="DrGramTagsFromSearch">From search history</string>
-    <string name="DrGramSettingsCenter">DrGram Control Center</string>
-    <string name="DrGramSettingsCenterHint">Everything DrGram can do, gathered in one place</string>
+    <string name="DrGramSettingsCenter">LuxGram Control Center</string>
+    <string name="DrGramSettingsCenterHint">Everything LuxGram can do, gathered in one place</string>
     <string name="DrGramSettingsCenterOpen">Open the control center</string>
     <string name="DrGramSetGeneral">General</string>
     <string name="DrGramSetGeneralHint">Profile, appearance and language</string>
@@ -11462,7 +11462,7 @@
     <string name="DrGramSetAppearance">Appearance and themes</string>
     <string name="DrGramSetLanguage">Language</string>
     <string name="DrGramSetChat">Chat feel</string>
-    <string name="DrGramSetChatHint">Signature DrGram touches inside conversations</string>
+    <string name="DrGramSetChatHint">Signature LuxGram touches inside conversations</string>
     <string name="DrGramSetGoldChats">Golden accents in chats</string>
     <string name="DrGramSetSparks">Sparks when sending</string>
     <string name="DrGramSetGlass">Glass surfaces</string>
@@ -11565,6 +11565,14 @@
 
     <!-- DrGram Fix 27: control center diagnostics -->
     <string name="DrGramCCFallback">Control Center could not open (%1$s)</string>
-    <string name="DrGramCCFallbackText">The Control Center hit an unexpected error. Please try again — if it repeats, tell the DrGram team which message you see.</string>
+    <string name="DrGramCCFallbackText">The Control Center hit an unexpected error. Please try again — if it repeats, tell the LuxGram team which message you see.</string>
+    <!-- DrGram Fix 29: crash diagnostics + special options -->
+    <string name="DrGramSendCrash">Send last crash to support</string>
+    <string name="DrGramNoCrash">No crash recorded yet</string>
+    <string name="DrGramAddSpecialContact">Set as special contact</string>
+    <string name="DrGramSpecialContactDone">%1$s became your special contact</string>
+    <string name="DrGramShareUsername">Share username</string>
+    <string name="DrGramCopyMentionId">Copy mention ID</string>
+    <string name="DrGramIdCopied">ID copied</string>
 </resources>
 
