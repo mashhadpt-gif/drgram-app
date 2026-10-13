@@ -508,6 +508,24 @@ public class DrGramSettingsActivity extends BaseFragment {
         cardParams.setMargins(AndroidUtilities.dp(2), 0, AndroidUtilities.dp(2), 0);
         cardsRow.addView(themeCardGold, cardParams);
         cardsRow.addView(themeCardRed, cardParams);
+        // DrGram Fix 32c: the two brand cards measured different heights whenever
+        // one title/subtitle wrapped while the other didn't ("one small, one big"
+        // in the user's screenshot). After the first layout pass, lock both cards
+        // to the taller sibling's height so they always render as equal twins.
+        cardsRow.post(() -> {
+            try {
+                int goldH = themeCardGold.getMeasuredHeight();
+                int redH = themeCardRed.getMeasuredHeight();
+                int target = Math.max(goldH, redH);
+                if (target > 0 && (goldH != redH)) {
+                    themeCardGold.setMinimumHeight(target);
+                    themeCardRed.setMinimumHeight(target);
+                    cardsRow.requestLayout();
+                }
+            } catch (Throwable t) {
+                FileLog.e(t);
+            }
+        });
 
         themeCardGold.setOnClickListener(v -> applyBrandMode(false));
         themeCardRed.setOnClickListener(v -> applyBrandMode(true));
