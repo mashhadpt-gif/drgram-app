@@ -11629,5 +11629,46 @@
     <string name="DrGramThemeNameSoftDark">Soft Dark</string>
     <string name="DrGramThemeNameSkyBlue">Sky Blue</string>
     <string name="DrGramThemeNameDracula">Dracula</string>
+
+    <!-- DrGram Fix 35: Smart Reply -->
+    <string name="DrGramSmartSectionTitle">Smart Reply</string>
+    <string name="DrGramSmartSectionHint">Register commands — private chats and groups answer automatically.</string>
+    <string name="DrGramSmartReplyOpen">Open Smart Reply</string>
+    <string name="DrGramSmartReplyTitle">Smart Reply</string>
+    <string name="DrGramSmartHero">Register commands and answers go out automatically — private chats for everyone, groups only for you.</string>
+    <string name="DrGramSmartModules">Modules</string>
+    <string name="DrGramSmartPvSwitch">Private-chat commands</string>
+    <string name="DrGramSmartPvHint">Anyone writing a command in your private chat gets the automatic answer.</string>
+    <string name="DrGramSmartGroupSwitch">Group admin commands</string>
+    <string name="DrGramSmartGroupHint">Only you can send these inside groups where you are admin; the command text itself is never posted.</string>
+    <string name="DrGramSmartPvSection">Private-chat commands</string>
+    <string name="DrGramSmartGroupSection">Group admin commands</string>
+    <string name="DrGramSmartAddCommand">Add new command</string>
+    <string name="DrGramSmartEditTrigger">Edit command</string>
+    <string name="DrGramSmartTriggerHint">Command word</string>
+    <string name="DrGramSmartReplyHint">Reply text</string>
+    <string name="DrGramSmartPlaceholderHint">You can use {نام} {ایدی} {ساعت} {تاریخ} in the reply text.</string>
+    <string name="DrGramSmartDeleteCmd">Delete command</string>
+    <string name="DrGramSmartEmptyTrigger">Command word and reply text cannot be empty</string>
+    <string name="DrGramSmartNeedReply">First reply to the target message</string>
+    <string name="DrGramSmartNeedAdmin">You need admin rights for this command</string>
+    <string name="DrGramSmartMegaOnly">This command only works in supergroups</string>
+    <string name="DrGramSmartFailed">Action failed</string>
+    <string name="DrGramSmartCmdTime">Exact time</string>
+    <string name="DrGramSmartCmdDate">Solar + Gregorian date</string>
+    <string name="DrGramSmartCmdId">Sender ID</string>
+    <string name="DrGramSmartCmdUsername">Sender username</string>
+    <string name="DrGramSmartCmdBattery">Phone battery</string>
+    <string name="DrGramSmartCmdMe">My card</string>
+    <string name="DrGramSmartCmdHelp">Command guide</string>
+    <string name="DrGramSmartCmdKick">Remove member (with reply)</string>
+    <string name="DrGramSmartCmdPin">Pin message (with reply)</string>
+    <string name="DrGramSmartCmdDel">Delete message (with reply)</string>
+    <string name="DrGramSmartCmdDelAll">Delete all their messages (with reply)</string>
+    <string name="DrGramSmartCmdLink">Group invite link</string>
+    <string name="DrGramSmartCmdMute">Mute member (with reply)</string>
+    <string name="DrGramSmartCmdBan">Ban member (with reply)</string>
+    <string name="DrGramSmartCmdUnban">Unban member (with reply)</string>
+    <string name="DrGramSmartCmdPromote">Promote to admin (with reply)</string>
 </resources>
 

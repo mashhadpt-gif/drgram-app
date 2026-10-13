@@ -649,5 +649,46 @@
     <string name="DrGramThemeNameSoftDark">تاریک لطیف</string>
     <string name="DrGramThemeNameSkyBlue">آبی آسمانی</string>
     <string name="DrGramThemeNameDracula">دراکولا</string>
+
+    <!-- DrGram Fix 35: Smart Reply -->
+    <string name="DrGramSmartSectionTitle">پاسخ هوشمند</string>
+    <string name="DrGramSmartSectionHint">دستور ثبت کن؛ پی‌وی و گروه خودکار پاسخ بگیرند.</string>
+    <string name="DrGramSmartReplyOpen">باز کردن پاسخ هوشمند</string>
+    <string name="DrGramSmartReplyTitle">پاسخ هوشمند</string>
+    <string name="DrGramSmartHero">دستورها ثبت کن تا خودکار جواب برود — پی‌وی برای همه، گروه فقط برای خودت.</string>
+    <string name="DrGramSmartModules">ماژول‌ها</string>
+    <string name="DrGramSmartPvSwitch">دستورهای پی‌وی</string>
+    <string name="DrGramSmartPvHint">هرکس در پی‌وی‌ات دستور بنویسد، جواب خودکار می‌گیرد.</string>
+    <string name="DrGramSmartGroupSwitch">دستورهای گروه</string>
+    <string name="DrGramSmartGroupHint">فقط خودت می‌توانی در گروه‌ها بفرستی (باید ادمین باشی)؛ خودِ دستور به گروه ارسال نمی‌شود.</string>
+    <string name="DrGramSmartPvSection">دستورهای پی‌وی</string>
+    <string name="DrGramSmartGroupSection">دستورهای گروه</string>
+    <string name="DrGramSmartAddCommand">افزودن دستور جدید</string>
+    <string name="DrGramSmartEditTrigger">ویرایش دستور</string>
+    <string name="DrGramSmartTriggerHint">کلمه دستور</string>
+    <string name="DrGramSmartReplyHint">متن پاسخ</string>
+    <string name="DrGramSmartPlaceholderHint">در متن پاسخ می‌توانی از {نام} {ایدی} {ساعت} {تاریخ} استفاده کنی.</string>
+    <string name="DrGramSmartDeleteCmd">حذف دستور</string>
+    <string name="DrGramSmartEmptyTrigger">کلمه دستور و متن پاسخ نمی‌تواند خالی باشد</string>
+    <string name="DrGramSmartNeedReply">اول روی پیام موردنظر ریپلی کن</string>
+    <string name="DrGramSmartNeedAdmin">برای این دستور باید اجازه مدیریتی داشته باشی</string>
+    <string name="DrGramSmartMegaOnly">این دستور فقط در سوپرگروه کار می‌کند</string>
+    <string name="DrGramSmartFailed">انجام نشد</string>
+    <string name="DrGramSmartCmdTime">ساعت دقیق</string>
+    <string name="DrGramSmartCmdDate">تاریخ شمسی و میلادی</string>
+    <string name="DrGramSmartCmdId">ایدی فرستنده</string>
+    <string name="DrGramSmartCmdUsername">یوزرنیم فرستنده</string>
+    <string name="DrGramSmartCmdBattery">باطری گوشی</string>
+    <string name="DrGramSmartCmdMe">کارت من</string>
+    <string name="DrGramSmartCmdHelp">راهنمای دستورها</string>
+    <string name="DrGramSmartCmdKick">اخراج عضو (با ریپلی)</string>
+    <string name="DrGramSmartCmdPin">سنجاق پیام (با ریپلی)</string>
+    <string name="DrGramSmartCmdDel">حذف پیام (با ریپلی)</string>
+    <string name="DrGramSmartCmdDelAll">حذف همه پیام‌های او (با ریپلی)</string>
+    <string name="DrGramSmartCmdLink">لینک گروه</string>
+    <string name="DrGramSmartCmdMute">بی‌صدا کردن (با ریپلی)</string>
+    <string name="DrGramSmartCmdBan">بن کردن (با ریپلی)</string>
+    <string name="DrGramSmartCmdUnban">رفع بن (با ریپلی)</string>
+    <string name="DrGramSmartCmdPromote">ادمین کردن (با ریپلی)</string>
 </resources>
 

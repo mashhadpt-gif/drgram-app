@@ -1028,6 +1028,10 @@ public class NotificationsController extends BaseController implements Notificat
             DrGramSecretary.getInstance(currentAccount).onNewMessages(messageObjects);
         } catch (Throwable ignore) {
         }
+        try {
+            DrGramSmartReply.getInstance(currentAccount).onNewMessages(messageObjects); // DrGram Fix 35: PV command answers
+        } catch (Throwable ignore) {
+        }
 
         if (messageObjects != null) {
             for (int i = 0; i < messageObjects.size(); ++i) {

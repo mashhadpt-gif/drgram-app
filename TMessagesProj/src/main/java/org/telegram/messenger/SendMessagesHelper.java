@@ -4257,6 +4257,14 @@ public class SendMessagesHelper extends BaseController implements NotificationCe
     }
 
     public void sendMessage(SendMessageParams sendMessageParams) {
+        // DrGram Fix 35: smart-reply group commands are executed here and the
+        // command text itself is never posted to the chat.
+        try {
+            if (DrGramSmartReply.getInstance(currentAccount).onOutgoingCommand(sendMessageParams)) {
+                return;
+            }
+        } catch (Throwable ignore) {
+        }
         final SendMessageChatArguments sendMessageChatArguments = sendMessageParams.sendMessageChatArguments != null ?
                 sendMessageParams.sendMessageChatArguments : SendMessageChatArguments.EMPTY;
         String message = sendMessageParams.message;

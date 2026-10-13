@@ -112,6 +112,7 @@ public class DrGramToolsActivity extends BaseFragment {
         }
         buildSettingsCenterSection(context);
         buildSecretarySection(context);
+        buildSmartReplySection(context); // DrGram Fix 35
         buildVaultSection(context);
         buildGuardSection(context);
         buildRadarSection(context);
@@ -319,6 +320,17 @@ public class DrGramToolsActivity extends BaseFragment {
                 DrGramSecretary.getInstance(currentAccount).setReplyText(input.getText().toString()));
         builder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
         builder.show();
+    }
+
+    //endregion
+
+    //region Smart reply (DrGram Fix 35)
+
+    private void buildSmartReplySection(Context context) {
+        addHeader(context, LocaleController.getString(R.string.DrGramSmartSectionTitle),
+                LocaleController.getString(R.string.DrGramSmartSectionHint));
+        addSectionRow(makeActionRow(context, LocaleController.getString(R.string.DrGramSmartReplyOpen), v ->
+                presentFragment(new DrGramSmartReplyActivity())));
     }
 
     //endregion
