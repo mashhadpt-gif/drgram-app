@@ -16,14 +16,19 @@
  */
 package org.telegram.messenger;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.util.LongSparseArray;
 
 import org.telegram.tgnet.ConnectionsManager;
+import org.telegram.tgnet.TLObject;
 import org.telegram.tgnet.TLRPC;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Set;
 
 public class DrGramExploreController extends BaseController {
 
@@ -70,6 +75,17 @@ public class DrGramExploreController extends BaseController {
     private int activeRequests;
     private Runnable pendingNextRunnable;
 
+    // DrGram Fix 30: channels hidden from the Explore list (long-press a channel chip)
+    private final Set<Long> hiddenChannels = new HashSet<>();
+    private boolean hiddenLoaded;
+
+    // DrGram Fix 30: search mode — hashtag search over joined channels (@ID search resolves first)
+    private final ArrayList<MessageObject> searchMedia = new ArrayList<>();
+    private final HashSet<String> searchKeys = new HashSet<>();
+    private boolean searchMode;
+    private boolean searchLoading;
+    private String searchQuery;
+
     public static class ChannelInfo {
         public long dialogId;
         public TLRPC.Chat chat;
@@ -93,6 +109,9 @@ public class DrGramExploreController extends BaseController {
             if (!ChatObject.isChannelAndNotMegaGroup(chat)) {
                 continue; // broadcast channels only — an Explore of publications
             }
+            if (isChannelHidden(dialog.id)) {
+                continue; // DrGram Fix 30: hidden via long-press on the chip
+            }
             ChannelInfo info = new ChannelInfo();
             info.dialogId = dialog.id;
             info.chat = chat;
@@ -109,9 +128,17 @@ public class DrGramExploreController extends BaseController {
         // always return a copy so the UI / PhotoViewer never hold a reference
         // to the live list that refresh() clears and loadMore() appends to
         ArrayList<MessageObject> result = new ArrayList<>();
+        if (searchMode) {
+            result.addAll(searchMedia);
+            return result;
+        }
         for (int a = 0; a < exploreMedia.size(); a++) {
             MessageObject messageObject = exploreMedia.get(a);
             if (dialogId == 0 || (messageObject != null && messageObject.getDialogId() == dialogId)) {
+                // DrGram Fix 30: posts opened by the user never come back
+                if (messageObject != null && DrGramExploreSeen.isSeen(currentAccount, messageObject.getDialogId(), messageObject.getId())) {
+                    continue;
+                }
                 result.add(messageObject);
             }
         }
@@ -119,10 +146,13 @@ public class DrGramExploreController extends BaseController {
     }
 
     public boolean isLoading() {
-        return loading;
+        return loading || searchLoading;
     }
 
     public boolean hasMore() {
+        if (searchMode) {
+            return false;
+        }
         return !moreQueue.isEmpty() || !refreshQueue.isEmpty();
     }
 
@@ -134,7 +164,7 @@ public class DrGramExploreController extends BaseController {
      * Entry point used by the UI. Safe to call repeatedly — de-duplicated.
      */
     public void refreshIfNeeded(boolean force) {
-        if (loading) {
+        if (searchMode || loading) {
             return;
         }
         if (!force && isCacheFresh()) {
@@ -149,6 +179,7 @@ public class DrGramExploreController extends BaseController {
         }
         cancelPendingNext();
         loading = true;
+        clearSearchState(); // DrGram Fix 30: a manual refresh returns to the normal feed
 
         refreshQueue.clear();
         moreQueue.clear();
@@ -181,7 +212,7 @@ public class DrGramExploreController extends BaseController {
      * Called by the UI when the user scrolls near the bottom of the grid.
      */
     public void loadMore() {
-        if (loading) {
+        if (searchMode || loading) {
             return;
         }
         if (!refreshQueue.isEmpty()) {
@@ -319,6 +350,12 @@ public class DrGramExploreController extends BaseController {
                 continue;
             }
             long dialogId = -message.peer_id.channel_id;
+            if (isChannelHidden(dialogId)) {
+                continue; // DrGram Fix 30: hidden channels never feed the grid
+            }
+            if (DrGramExploreSeen.isSeen(currentAccount, dialogId, message.id)) {
+                continue; // DrGram Fix 30: seen posts never come back
+            }
             String key = dialogId + "_" + message.id;
             if (mediaKeys.containsKey(key)) {
                 continue;
@@ -345,7 +382,11 @@ public class DrGramExploreController extends BaseController {
     }
 
     private void sortMedia() {
-        Collections.sort(exploreMedia, (o1, o2) -> {
+        sortMediaList(exploreMedia);
+    }
+
+    private static void sortMediaList(ArrayList<MessageObject> list) {
+        Collections.sort(list, (o1, o2) -> {
             if (o1.messageOwner.date != o2.messageOwner.date) {
                 return o2.messageOwner.date - o1.messageOwner.date;
             }
@@ -355,6 +396,196 @@ public class DrGramExploreController extends BaseController {
 
     private void notifyExploreUpdated() {
         getNotificationCenter().postNotificationName(NotificationCenter.drgramExploreUpdated);
+    }
+    //endregion
+
+    //region Hidden channels (DrGram Fix 30)
+
+    private SharedPreferences explorePrefs() {
+        return ApplicationLoader.applicationContext.getSharedPreferences(
+                "drgramexplore_" + currentAccount, Context.MODE_PRIVATE);
+    }
+
+    private void loadHiddenIfNeeded() {
+        if (hiddenLoaded) {
+            return;
+        }
+        hiddenLoaded = true;
+        try {
+            Set<String> raw = explorePrefs().getStringSet("hidden", null);
+            hiddenChannels.clear();
+            if (raw != null) {
+                for (String s : raw) {
+                    try {
+                        hiddenChannels.add(Long.parseLong(s));
+                    } catch (Exception ignore) {}
+                }
+            }
+        } catch (Throwable t) {
+            FileLog.e(t);
+        }
+    }
+
+    public boolean isChannelHidden(long dialogId) {
+        loadHiddenIfNeeded();
+        return hiddenChannels.contains(dialogId);
+    }
+
+    public int getHiddenCount() {
+        loadHiddenIfNeeded();
+        return hiddenChannels.size();
+    }
+
+    public ArrayList<Long> getHiddenList() {
+        loadHiddenIfNeeded();
+        ArrayList<Long> list = new ArrayList<>(hiddenChannels);
+        Collections.sort(list);
+        return list;
+    }
+
+    public void setHidden(long dialogId, boolean hidden) {
+        loadHiddenIfNeeded();
+        boolean changed = hidden ? hiddenChannels.add(dialogId) : hiddenChannels.remove(dialogId);
+        if (!changed) {
+            return;
+        }
+        try {
+            Set<String> raw = new HashSet<>();
+            for (Long id : hiddenChannels) {
+                raw.add(String.valueOf(id));
+            }
+            explorePrefs().edit().putStringSet("hidden", raw).commit();
+        } catch (Throwable t) {
+            FileLog.e(t);
+        }
+        if (hidden) {
+            for (int a = exploreMedia.size() - 1; a >= 0; a--) {
+                MessageObject messageObject = exploreMedia.get(a);
+                if (messageObject != null && messageObject.getDialogId() == dialogId) {
+                    mediaKeys.remove(messageObject.getDialogId() + "_" + messageObject.getId());
+                    exploreMedia.remove(a);
+                }
+            }
+        }
+        notifyExploreUpdated();
+    }
+    //endregion
+
+    //region Search mode (DrGram Fix 30)
+
+    public boolean isSearchMode() {
+        return searchMode;
+    }
+
+    public String getSearchQuery() {
+        return searchQuery;
+    }
+
+    public boolean isSearchLoading() {
+        return searchLoading;
+    }
+
+    private void clearSearchState() {
+        searchMode = false;
+        searchQuery = null;
+        searchLoading = false;
+        searchMedia.clear();
+        searchKeys.clear();
+    }
+
+    public void clearSearch() {
+        clearSearchState();
+        notifyExploreUpdated();
+    }
+
+    /** Puts the UI into the searching state before the network call resolves. */
+    public void beginSearch(String label) {
+        if (label == null || label.trim().isEmpty()) {
+            return;
+        }
+        searchMode = true;
+        searchQuery = label.trim();
+        searchLoading = true;
+        searchMedia.clear();
+        searchKeys.clear();
+        notifyExploreUpdated();
+    }
+
+    /** Instagram-style hashtag search: official messages.searchGlobal over the user's own joined channels. */
+    public void searchHashtag(String tag) {
+        if (tag == null || tag.trim().isEmpty()) {
+            return;
+        }
+        TLRPC.TL_messages_searchGlobal request = new TLRPC.TL_messages_searchGlobal();
+        request.q = tag.trim();
+        request.filter = new TLRPC.TL_inputMessagesFilterPhotoVideo();
+        request.limit = 60;
+        request.offset_rate = 0;
+        request.offset_id = 0;
+        request.broadcasts_only = true;
+        // mirror upstream FilteredSearchView: fresh search uses an empty offset peer
+        // and searches across every folder of the user's own dialogs
+        request.offset_peer = new TLRPC.TL_inputPeerEmpty();
+        request.flags |= 1;
+        request.folder_id = 1;
+        runSearch(request, request.q);
+    }
+
+    /** Official messages.search restricted to ONE peer the user explicitly asked for (@id search). */
+    public void searchChannel(long dialogId, String label) {
+        TLRPC.InputPeer peer = getMessagesController().getInputPeer(dialogId);
+        if (peer == null) {
+            clearSearch();
+            return;
+        }
+        TLRPC.TL_messages_search request = new TLRPC.TL_messages_search();
+        request.peer = peer;
+        request.q = "";
+        request.limit = 60;
+        request.offset_id = 0;
+        request.max_id = 0;
+        request.min_date = 0;
+        request.max_date = 0;
+        request.filter = new TLRPC.TL_inputMessagesFilterPhotoVideo();
+        runSearch(request, label);
+    }
+
+    private void runSearch(TLObject request, final String label) {
+        beginSearch(label);
+        getConnectionsManager().sendRequest(request, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
+            searchLoading = false;
+            if (!searchMode) {
+                return;
+            }
+            if (response instanceof TLRPC.messages_Messages) {
+                TLRPC.messages_Messages res = (TLRPC.messages_Messages) response;
+                getMessagesController().putUsers(res.users, false);
+                getMessagesController().putChats(res.chats, false);
+                ArrayList<TLRPC.Message> messages = res.messages;
+                for (int a = 0; a < messages.size(); a++) {
+                    TLRPC.Message message = messages.get(a);
+                    if (message == null || message.action != null || message.peer_id == null || message.peer_id.channel_id <= 0) {
+                        continue;
+                    }
+                    long dialogId = -message.peer_id.channel_id;
+                    if (isChannelHidden(dialogId) || DrGramExploreSeen.isSeen(currentAccount, dialogId, message.id)) {
+                        continue;
+                    }
+                    String key = dialogId + "_" + message.id;
+                    if (searchKeys.contains(key)) {
+                        continue;
+                    }
+                    MessageObject messageObject = new MessageObject(currentAccount, message, false, true);
+                    if (!(messageObject.isPhoto() || messageObject.isVideo())) {
+                        continue;
+                    }
+                    searchKeys.add(key);
+                    searchMedia.add(messageObject);
+                }
+                sortMediaList(searchMedia);
+            }
+            notifyExploreUpdated();
+        }), ConnectionsManager.RequestFlagFailOnServerErrors);
     }
     //endregion
 
@@ -368,6 +599,9 @@ public class DrGramExploreController extends BaseController {
         nextOffsetId.clear();
         exploreMedia.clear();
         mediaKeys.clear();
+        clearSearchState();
+        hiddenLoaded = false;
+        hiddenChannels.clear();
         hasEverLoaded = false;
         lastRefreshTime = 0;
     }

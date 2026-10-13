@@ -66,6 +66,17 @@ public class DrGramSettingsActivity extends BaseFragment {
         // inside gets logged, shown as a one-line diagnostic and replaced by a
         // minimal golden fallback view.
         try {
+            // DrGram Fix 30: if the full hub failed recently, open the light
+            // version first so the user ALWAYS gets a usable page (and can send
+            // the recorded crash log). One tap restores the full hub.
+            long failTs = MessagesController.getGlobalMainSettings().getLong("drgram_cc_fail_ts", 0);
+            if (failTs > 0 && System.currentTimeMillis() - failTs < 30 * 60 * 1000L) {
+                View lite = drgramLiteView(context);
+                try {
+                    MessagesController.getGlobalMainSettings().edit().putLong("drgram_cc_fail_ts", 0).commit();
+                } catch (Throwable ignore) {}
+                return lite;
+            }
             return drgramCreateViewInternal(context);
         } catch (Throwable t) {
             return drgramFallbackView(context, t);
@@ -77,7 +88,9 @@ public class DrGramSettingsActivity extends BaseFragment {
         org.telegram.messenger.DrGramCrashSaver.recordNonFatal("control_center", t); // DrGram Fix 29
         try {
             MessagesController.getGlobalMainSettings().edit()
-                    .putString("drgram_cc_error", android.util.Log.getStackTraceString(t)).commit();
+                    .putString("drgram_cc_error", android.util.Log.getStackTraceString(t))
+                    .putLong("drgram_cc_fail_ts", System.currentTimeMillis()) // DrGram Fix 30: triggers lite mode
+                    .commit();
         } catch (Throwable ignore) {}
         try {
             android.widget.Toast.makeText(ApplicationLoader.applicationContext,
@@ -123,6 +136,132 @@ public class DrGramSettingsActivity extends BaseFragment {
         } catch (Throwable t) {
             FileLog.e(t);
         }
+    }
+
+    /**
+     * DrGram Fix 30: light control center — plain widgets, hardcoded palette,
+     * zero dependency on section builders or dynamic data. Used after a recorded
+     * failure so the page always opens; the full hub returns on the next tap.
+     */
+    private View drgramLiteView(Context context) {
+        View built;
+        try {
+            built = drgramBuildLiteInternal(context);
+        } catch (Throwable t) {
+            return drgramFallbackView(context, t);
+        }
+        fragmentView = built;
+        return built;
+    }
+
+    private View drgramBuildLiteInternal(Context context) {
+        actionBar.setBackButtonImage(R.drawable.ic_ab_back);
+        actionBar.setAllowOverlayTitle(true);
+        actionBar.setTitle(LocaleController.getString(R.string.DrGramSettingsCenter));
+        actionBar.setActionBarMenuOnItemClick(new ActionBar.ActionBarMenuOnItemClick() {
+            @Override
+            public void onItemClick(int id) {
+                if (id == -1) {
+                    finishFragment();
+                }
+            }
+        });
+
+        LinearLayout content = new LinearLayout(context);
+        content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(0, 0, 0, AndroidUtilities.dp(28));
+        content.setBackground(new android.graphics.drawable.GradientDrawable(
+                android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
+                DrGramThemeInstaller.isLoveMode()
+                        ? new int[] {0xFF160A0F, 0xFF251017, 0xFF10090D}
+                        : new int[] {0xFF0C0A05, 0xFF261D09, 0xFF0C0A05}));
+        android.widget.ScrollView scroller = new android.widget.ScrollView(context);
+        scroller.setFillViewport(true);
+        scroller.addView(content, new android.widget.FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        TextView badge = new TextView(context);
+        badge.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
+        badge.setTextColor(0xFFFFC94A);
+        badge.setGravity(Gravity.CENTER);
+        badge.setPadding(AndroidUtilities.dp(24), AndroidUtilities.dp(26), AndroidUtilities.dp(24), 0);
+        badge.setText(LocaleController.getString(R.string.DrGramCCLiteTitle));
+        content.addView(badge);
+
+        TextView text = new TextView(context);
+        text.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+        text.setTextColor(0xFFE4D2A5);
+        text.setGravity(Gravity.CENTER);
+        text.setLineSpacing(AndroidUtilities.dp(3), 1f);
+        text.setPadding(AndroidUtilities.dp(24), AndroidUtilities.dp(8), AndroidUtilities.dp(24), AndroidUtilities.dp(12));
+        text.setText(LocaleController.getString(R.string.DrGramCCLiteText));
+        content.addView(text);
+
+        content.addView(makeLiteRow(context, LocaleController.getString(R.string.DrGramCCOpenFull), v -> {
+            try {
+                presentFragment(new DrGramSettingsActivity());
+            } catch (Throwable t) {
+                FileLog.e(t);
+            }
+        }));
+        content.addView(makeLiteRow(context, LocaleController.getString(R.string.DrGramSendCrash), v -> {
+            try {
+                if (getParentActivity() == null) {
+                    return;
+                }
+                String crash = org.telegram.messenger.DrGramCrashSaver.lastCrashText();
+                if (crash == null) {
+                    android.widget.Toast.makeText(getParentActivity(),
+                            LocaleController.getString(R.string.DrGramNoCrash), android.widget.Toast.LENGTH_SHORT).show();
+                    return;
+                }
+                android.content.Intent intent = new android.content.Intent(android.content.Intent.ACTION_SEND);
+                intent.setType("text/plain");
+                intent.putExtra(android.content.Intent.EXTRA_TEXT, crash);
+                getParentActivity().startActivity(android.content.Intent.createChooser(intent, LocaleController.getString(R.string.DrGramSendCrash)));
+            } catch (Throwable t) {
+                FileLog.e(t);
+            }
+        }));
+        content.addView(makeLiteRow(context, LocaleController.getString(R.string.DrGramOpenToolsTitle), v -> {
+            try {
+                presentFragment(new DrGramToolsActivity());
+            } catch (Throwable t) {
+                FileLog.e(t);
+            }
+        }));
+        content.addView(makeLiteRow(context, LocaleController.getString(R.string.DrGramSetExploreOpen), v -> {
+            try {
+                presentFragment(new DrGramExploreActivity());
+            } catch (Throwable t) {
+                FileLog.e(t);
+            }
+        }));
+        return scroller;
+    }
+
+    private LinearLayout makeLiteRow(Context context, String title, View.OnClickListener listener) {
+        LinearLayout row = new LinearLayout(context);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        boolean loveMode = DrGramThemeInstaller.isLoveMode();
+        android.graphics.drawable.GradientDrawable card = new android.graphics.drawable.GradientDrawable(
+                android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT,
+                loveMode ? new int[] {0xFF2A1018, 0xFF1C0B11} : new int[] {0xFF3A2C0E, 0xFF211A0A});
+        card.setCornerRadius(AndroidUtilities.dp(17));
+        card.setStroke(AndroidUtilities.dp(1), loveMode ? 0xCCE63B52 : 0xCCFFC94A);
+        row.setBackgroundDrawable(card);
+        row.setPadding(AndroidUtilities.dp(17), AndroidUtilities.dp(14), AndroidUtilities.dp(17), AndroidUtilities.dp(14));
+        LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        rowParams.setMargins(AndroidUtilities.dp(16), AndroidUtilities.dp(4), AndroidUtilities.dp(16), AndroidUtilities.dp(4));
+        row.setLayoutParams(rowParams);
+        row.setOnClickListener(listener);
+        TextView titleView = new TextView(context);
+        titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
+        titleView.setTextColor(0xFFFFF6DF);
+        titleView.setText(title);
+        row.addView(titleView);
+        return row;
     }
 
     private View drgramCreateViewInternal(Context context) {

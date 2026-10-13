@@ -13,28 +13,39 @@ package org.telegram.ui;
 import android.content.Context;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
+import android.text.InputType;
 import android.text.TextUtils;
 import android.util.TypedValue;
 import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.inputmethod.EditorInfo;
+import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.HorizontalScrollView;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.recyclerview.widget.GridLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.ChatObject;
 import org.telegram.messenger.DrGramExploreController;
+import org.telegram.messenger.DrGramExploreSeen;
+import org.telegram.messenger.FileLog;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.NotificationCenter;
 import org.telegram.messenger.R;
+import org.telegram.tgnet.ConnectionsManager;
+import org.telegram.tgnet.TLObject;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.ActionBar;
+import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Cells.DrGramExploreMediaCell;
@@ -58,6 +69,7 @@ public class DrGramExploreActivity extends BaseFragment implements NotificationC
     private LinearLayout chipsContainer;
     private HorizontalScrollView chipsScroll;
     private TextView emptyTextView;
+    private EditText searchField; // DrGram Fix 30
 
     private long selectedChannelId; // 0 = all channels
     private ArrayList<MessageObject> currentMedia = new ArrayList<>();
@@ -123,6 +135,9 @@ public class DrGramExploreActivity extends BaseFragment implements NotificationC
         rootLayout.addView(chipsScroll);
         rebuildChips();
 
+        // DrGram Fix 30: Instagram-style search bar — hashtags and @channel/group ids
+        rootLayout.addView(createSearchRow(context));
+
         // ---- media grid ----
         listView = new RecyclerListView(context);
         layoutManager = new GridLayoutManager(context, columnsCount);
@@ -172,7 +187,7 @@ public class DrGramExploreActivity extends BaseFragment implements NotificationC
         adapter = new ExploreAdapter(context);
         listView.setAdapter(adapter);
         FrameLayout.LayoutParams listParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
-        listParams.topMargin = AndroidUtilities.dp(88);
+        listParams.topMargin = AndroidUtilities.dp(88 + 48); // chips + search bar (DrGram Fix 30)
         rootLayout.addView(listView, listParams);
         // first open: if the already-loaded page fills (or under-fills) the
         // viewport, start pulling the next pages without waiting for a scroll
@@ -249,7 +264,11 @@ public class DrGramExploreActivity extends BaseFragment implements NotificationC
         boolean empty = currentMedia.isEmpty();
         if (empty) {
             emptyTextView.setVisibility(View.VISIBLE);
-            if (exploreController.isLoading()) {
+            if (exploreController.isSearchMode()) {
+                // DrGram Fix 30: dedicated search states
+                emptyTextView.setText(LocaleController.getString(exploreController.isSearchLoading()
+                        ? R.string.ExploreLoading : R.string.DrGramExploreSearchEmpty));
+            } else if (exploreController.isLoading()) {
                 emptyTextView.setText(LocaleController.getString(R.string.ExploreLoading));
             } else {
                 emptyTextView.setText(LocaleController.getString(R.string.ExploreEmpty));
@@ -268,6 +287,15 @@ public class DrGramExploreActivity extends BaseFragment implements NotificationC
             return;
         }
         chipsContainer.removeAllViews();
+
+        // DrGram Fix 30: while a search is active the chip row shows the query + clear
+        if (exploreController.isSearchMode()) {
+            chipsContainer.addView(makeClearResultsChip(context));
+            chipsContainer.addView(makeQueryChip(context, exploreController.getSearchQuery()));
+            chipsContainer.requestLayout();
+            return;
+        }
+
         ArrayList<DrGramExploreController.ChannelInfo> channels = exploreController.getChannels();
 
         // verify the selected channel still exists, otherwise reset to "All"
@@ -287,6 +315,9 @@ public class DrGramExploreActivity extends BaseFragment implements NotificationC
         chipsContainer.addView(makeAllChip(context));
         for (int a = 0; a < channels.size(); a++) {
             chipsContainer.addView(makeChannelChip(context, channels.get(a)));
+        }
+        if (exploreController.getHiddenCount() > 0) {
+            chipsContainer.addView(makeHiddenChip(context)); // DrGram Fix 30: hidden channels manager
         }
         chipsContainer.requestLayout();
     }
@@ -341,6 +372,11 @@ public class DrGramExploreActivity extends BaseFragment implements NotificationC
             rebuildChips();
             updateUIState();
         });
+        // DrGram Fix 30: HOLD on a channel chip -> delete / hide options
+        cell.setOnLongClickListener(v -> {
+            drgramShowChannelOptions(info);
+            return true;
+        });
 
         FrameLayout avatarHolder = new FrameLayout(context);
         GradientDrawable ring = new GradientDrawable();
@@ -376,6 +412,15 @@ public class DrGramExploreActivity extends BaseFragment implements NotificationC
     private void openMedia(DrGramExploreMediaCell cell, int position) {
         if (currentMedia == null || currentMedia.isEmpty() || position >= currentMedia.size()) {
             return;
+        }
+        // DrGram Fix 30: a post the user opens never returns to the feed
+        try {
+            MessageObject opened = currentMedia.get(position);
+            if (opened != null) {
+                DrGramExploreSeen.markSeen(currentAccount, opened.getDialogId(), opened.getId());
+            }
+        } catch (Throwable t) {
+            FileLog.e(t);
         }
         // DrGram Fix 25: pass the fragment so parentFragment is real (needed for reactions/share);
         // activity resolves itself from fragment.getParentActivity()
@@ -427,7 +472,381 @@ public class DrGramExploreActivity extends BaseFragment implements NotificationC
             }
             return null;
         }
+
+        @Override
+        public void willSwitchFromPhoto(MessageObject messageObject, TLRPC.FileLocation fileLocation, int index) {
+            // DrGram Fix 30: every post swiped to in the Reels viewer counts as seen
+            try {
+                if (messageObject != null && messageObject.getDialogId() < 0) {
+                    DrGramExploreSeen.markSeen(currentAccount, messageObject.getDialogId(), messageObject.getId());
+                }
+            } catch (Throwable t) {
+                FileLog.e(t);
+            }
+        }
+
+        @Override
+        public void onClose() {
+            // DrGram Fix 30: once the viewer is gone, drop seen posts from the grid
+            try {
+                if (listView != null) {
+                    listView.postDelayed(() -> updateUIState(), 420);
+                }
+            } catch (Throwable t) {
+                FileLog.e(t);
+            }
+        }
     };
+    //endregion
+
+    //region DrGram Fix 30: search bar + channel options
+
+    private View createSearchRow(Context context) {
+        FrameLayout searchRow = new FrameLayout(context);
+        searchRow.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
+
+        FrameLayout capsule = new FrameLayout(context);
+        GradientDrawable capsuleBg = new GradientDrawable();
+        capsuleBg.setCornerRadius(AndroidUtilities.dp(23));
+        capsuleBg.setColor(getThemedColor(Theme.key_graySection));
+        capsuleBg.setStroke(AndroidUtilities.dp(1), 0x33F5B90D);
+        capsule.setBackgroundDrawable(capsuleBg);
+        searchRow.addView(capsule, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, AndroidUtilities.dp(40), Gravity.CENTER, 8, 4, 8, 4));
+
+        ImageView searchIcon = new ImageView(context);
+        searchIcon.setImageResource(R.drawable.outline_search_1_24);
+        searchIcon.setColorFilter(GOLD);
+        capsule.addView(searchIcon, LayoutHelper.createFrame(20, 20, Gravity.CENTER_VERTICAL, 14, 0, 0, 0));
+
+        searchField = new EditText(context);
+        searchField.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
+        searchField.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
+        searchField.setHintTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));
+        searchField.setHint(LocaleController.getString(R.string.DrGramExploreSearchHint));
+        searchField.setSingleLine(true);
+        searchField.setBackgroundDrawable(null);
+        searchField.setPadding(0, 0, 0, 0);
+        searchField.setInputType(InputType.TYPE_CLASS_TEXT);
+        searchField.setImeOptions(EditorInfo.IME_ACTION_SEARCH | EditorInfo.IME_FLAG_NO_EXTRACT_UI);
+        capsule.addView(searchField, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.CENTER_VERTICAL, 42, 0, 10, 0));
+        searchField.setOnEditorActionListener((v, actionId, event) -> {
+            if (actionId == EditorInfo.IME_ACTION_SEARCH
+                    || (event != null && event.getAction() == KeyEvent.ACTION_DOWN && event.getKeyCode() == KeyEvent.KEYCODE_ENTER)) {
+                submitSearch(searchField.getText().toString());
+                AndroidUtilities.hideKeyboard(searchField);
+                return true;
+            }
+            return false;
+        });
+
+        FrameLayout.LayoutParams params = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, AndroidUtilities.dp(48), Gravity.TOP);
+        params.topMargin = AndroidUtilities.dp(88);
+        searchRow.setLayoutParams(params);
+        return searchRow;
+    }
+
+    private void submitSearch(String raw) {
+        String query = raw == null ? "" : raw.trim();
+        if (query.isEmpty()) {
+            clearSearchResults();
+            return;
+        }
+        String username = extractUsername(query);
+        if (username != null) {
+            drgramResolveAndSearch(username);
+            return;
+        }
+        selectedChannelId = 0;
+        exploreController.searchHashtag(query);
+        rebuildChips();
+        updateUIState();
+    }
+
+    private static String extractUsername(String query) {
+        String candidate;
+        if (query.startsWith("@")) {
+            candidate = query.substring(1).trim();
+        } else {
+            java.util.regex.Matcher matcher = java.util.regex.Pattern
+                    .compile("(?i)(?:https?://)?(?:t\\.me|telegram\\.me)/([A-Za-z0-9_]{4,64})/?")
+                    .matcher(query);
+            candidate = matcher.matches() ? matcher.group(1) : null;
+        }
+        if (candidate == null || !candidate.matches("[A-Za-z0-9_]{4,64}")) {
+            return null;
+        }
+        return candidate;
+    }
+
+    private void drgramResolveAndSearch(String username) {
+        if (getParentActivity() == null) {
+            return;
+        }
+        selectedChannelId = 0;
+        rebuildChips();
+        updateUIState();
+        exploreController.beginSearch("@" + username);
+        TLRPC.TL_contacts_resolveUsername request = new TLRPC.TL_contacts_resolveUsername();
+        request.username = username;
+        getConnectionsManager().sendRequest(request, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
+            if (fragmentView == null || !exploreController.isSearchMode()) {
+                return;
+            }
+            if (response instanceof TLRPC.TL_contacts_resolvedPeer) {
+                TLRPC.TL_contacts_resolvedPeer resolved = (TLRPC.TL_contacts_resolvedPeer) response;
+                getMessagesController().putUsers(resolved.users, false);
+                getMessagesController().putChats(resolved.chats, false);
+                TLRPC.Peer peer = resolved.peer;
+                TLRPC.Chat chat = peer != null && peer.channel_id != 0 ? getMessagesController().getChat(peer.channel_id) : null;
+                if (chat != null && ChatObject.isChannel(chat)) {
+                    exploreController.searchChannel(-chat.id, "@" + username);
+                    rebuildChips();
+                    updateUIState();
+                    return;
+                }
+                Toast.makeText(getParentActivity(), LocaleController.getString(R.string.DrGramExploreSearchUserOnly), Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(getParentActivity(), LocaleController.getString(R.string.DrGramExploreSearchNoPeer), Toast.LENGTH_SHORT).show();
+            }
+            exploreController.clearSearch();
+            rebuildChips();
+            updateUIState();
+        }), ConnectionsManager.RequestFlagFailOnServerErrors);
+    }
+
+    private void clearSearchResults() {
+        exploreController.clearSearch();
+        if (searchField != null) {
+            searchField.setText("");
+        }
+        rebuildChips();
+        updateUIState();
+    }
+
+    private LinearLayout makeClearResultsChip(Context context) {
+        LinearLayout cell = new LinearLayout(context);
+        cell.setOrientation(LinearLayout.VERTICAL);
+        cell.setGravity(Gravity.CENTER_HORIZONTAL);
+        cell.setPadding(AndroidUtilities.dp(7), AndroidUtilities.dp(6), AndroidUtilities.dp(7), AndroidUtilities.dp(4));
+        cell.setOnClickListener(v -> clearSearchResults());
+
+        FrameLayout avatarHolder = new FrameLayout(context);
+        GradientDrawable circle = new GradientDrawable();
+        circle.setShape(GradientDrawable.OVAL);
+        circle.setColor(0x22F5B90D);
+        circle.setStroke(AndroidUtilities.dp(2), GOLD);
+        avatarHolder.setBackgroundDrawable(circle);
+
+        TextView clear = new TextView(context);
+        clear.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 20);
+        clear.setTextColor(GOLD);
+        clear.setGravity(Gravity.CENTER);
+        clear.setText("✕");
+        avatarHolder.addView(clear, LayoutHelper.createFrame(24, 24, Gravity.CENTER));
+
+        TextView label = new TextView(context);
+        label.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11);
+        label.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
+        label.setTypeface(AndroidUtilities.bold());
+        label.setPadding(0, AndroidUtilities.dp(4), 0, 0);
+        label.setText(LocaleController.getString(R.string.DrGramExploreClearResults));
+
+        cell.addView(avatarHolder, LayoutHelper.createLinear(56, 56));
+        cell.addView(label, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL));
+        return cell;
+    }
+
+    private LinearLayout makeQueryChip(Context context, String query) {
+        LinearLayout cell = new LinearLayout(context);
+        cell.setOrientation(LinearLayout.VERTICAL);
+        cell.setGravity(Gravity.CENTER_HORIZONTAL);
+        cell.setPadding(AndroidUtilities.dp(7), AndroidUtilities.dp(6), AndroidUtilities.dp(7), AndroidUtilities.dp(4));
+        cell.setOnClickListener(v -> {
+            if (searchField != null) {
+                searchField.requestFocus();
+            }
+        });
+
+        FrameLayout avatarHolder = new FrameLayout(context);
+        GradientDrawable ring = new GradientDrawable();
+        ring.setShape(GradientDrawable.OVAL);
+        ring.setStroke(AndroidUtilities.dp(2), GOLD);
+        avatarHolder.setBackgroundDrawable(ring);
+
+        TextView glyph = new TextView(context);
+        glyph.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 20);
+        glyph.setTextColor(GOLD);
+        glyph.setGravity(Gravity.CENTER);
+        glyph.setText("✦");
+        avatarHolder.addView(glyph, LayoutHelper.createFrame(24, 24, Gravity.CENTER));
+
+        TextView label = new TextView(context);
+        label.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11);
+        label.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
+        label.setMaxLines(1);
+        label.setSingleLine(true);
+        label.setEllipsize(TextUtils.TruncateAt.END);
+        label.setMaxWidth(AndroidUtilities.dp(150));
+        label.setPadding(0, AndroidUtilities.dp(4), 0, 0);
+        label.setText(LocaleController.getString(R.string.DrGramExploreResultsFor) + " " + (query == null ? "" : query));
+
+        cell.addView(avatarHolder, LayoutHelper.createLinear(56, 56));
+        cell.addView(label, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL));
+        return cell;
+    }
+
+    private LinearLayout makeHiddenChip(Context context) {
+        LinearLayout cell = new LinearLayout(context);
+        cell.setOrientation(LinearLayout.VERTICAL);
+        cell.setGravity(Gravity.CENTER_HORIZONTAL);
+        cell.setPadding(AndroidUtilities.dp(7), AndroidUtilities.dp(6), AndroidUtilities.dp(7), AndroidUtilities.dp(4));
+        cell.setOnClickListener(v -> drgramManageHidden());
+
+        FrameLayout avatarHolder = new FrameLayout(context);
+        GradientDrawable circle = new GradientDrawable();
+        circle.setShape(GradientDrawable.OVAL);
+        circle.setColor(0x1F888888);
+        circle.setStroke(AndroidUtilities.dp(2), 0x66888888);
+        avatarHolder.setBackgroundDrawable(circle);
+
+        ImageView hiddenIcon = new ImageView(context);
+        hiddenIcon.setImageResource(R.drawable.mini_ephemeral_hidden_16);
+        hiddenIcon.setColorFilter(0xFF888888);
+        avatarHolder.addView(hiddenIcon, LayoutHelper.createFrame(24, 24, Gravity.CENTER));
+
+        TextView label = new TextView(context);
+        label.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11);
+        label.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
+        label.setPadding(0, AndroidUtilities.dp(4), 0, 0);
+        label.setText(LocaleController.getString(R.string.DrGramExploreHiddenChip));
+
+        cell.addView(avatarHolder, LayoutHelper.createLinear(56, 56));
+        cell.addView(label, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL));
+        return cell;
+    }
+
+    private void drgramManageHidden() {
+        if (getParentActivity() == null) {
+            return;
+        }
+        ArrayList<Long> hidden = exploreController.getHiddenList();
+        if (hidden.isEmpty()) {
+            return;
+        }
+        ArrayList<String> names = new ArrayList<>();
+        for (int a = 0; a < hidden.size(); a++) {
+            TLRPC.Chat chat = getMessagesController().getChat(-hidden.get(a));
+            names.add(chat != null && !TextUtils.isEmpty(chat.title) ? chat.title : ("#" + hidden.get(a)));
+        }
+        new AlertDialog.Builder(getParentActivity())
+                .setTitle(LocaleController.getString(R.string.DrGramExploreHiddenChip))
+                .setItems(names.toArray(new String[0]), (dialog, which) -> {
+                    if (which >= 0 && which < hidden.size()) {
+                        exploreController.setHidden(hidden.get(which), false);
+                        rebuildChips();
+                        exploreController.refreshIfNeeded(true);
+                    }
+                })
+                .setNeutralButton(LocaleController.getString(R.string.DrGramExploreUnhideAll), (dialog, which) -> {
+                    ArrayList<Long> all = exploreController.getHiddenList();
+                    for (int a = 0; a < all.size(); a++) {
+                        exploreController.setHidden(all.get(a), false);
+                    }
+                    rebuildChips();
+                    exploreController.refreshIfNeeded(true);
+                })
+                .setNegativeButton(LocaleController.getString(R.string.Cancel), null)
+                .show();
+    }
+
+    private void drgramShowChannelOptions(DrGramExploreController.ChannelInfo info) {
+        if (getParentActivity() == null || info == null || info.chat == null) {
+            return;
+        }
+        String[] items = {
+                LocaleController.getString(R.string.DrGramExploreDeleteChannel),
+                LocaleController.getString(R.string.DrGramExploreHideChannel)
+        };
+        new AlertDialog.Builder(getParentActivity())
+                .setTitle(info.chat.title)
+                .setItems(items, (dialog, which) -> {
+                    if (which == 0) {
+                        drgramConfirmDeleteChannel(info);
+                    } else if (which == 1) {
+                        drgramHideChannel(info);
+                    }
+                })
+                .setNegativeButton(LocaleController.getString(R.string.Cancel), null)
+                .show();
+    }
+
+    private void drgramConfirmDeleteChannel(DrGramExploreController.ChannelInfo info) {
+        if (getParentActivity() == null) {
+            return;
+        }
+        new AlertDialog.Builder(getParentActivity())
+                .setTitle(LocaleController.getString(R.string.DrGramExploreDeleteChannel))
+                .setMessage(LocaleController.formatString("DrGramExploreDeleteChannelDesc", R.string.DrGramExploreDeleteChannelDesc, info.chat.title))
+                .setPositiveButton(LocaleController.getString(R.string.Delete), (dialog, which) -> drgramDeleteChannel(info))
+                .setNegativeButton(LocaleController.getString(R.string.Cancel), null)
+                .show();
+    }
+
+    private void drgramDeleteChannel(DrGramExploreController.ChannelInfo info) {
+        if (info == null || info.chat == null) {
+            return;
+        }
+        try {
+            TLRPC.Chat chat = getMessagesController().getChat(info.chat.id);
+            if (chat == null) {
+                chat = info.chat;
+            }
+            TLObject request;
+            if (chat.creator) {
+                TLRPC.TL_channels_deleteChannel delete = new TLRPC.TL_channels_deleteChannel();
+                delete.channel = getMessagesController().getInputChannel(chat);
+                request = delete;
+            } else {
+                TLRPC.TL_channels_leaveChannel leave = new TLRPC.TL_channels_leaveChannel();
+                leave.channel = getMessagesController().getInputChannel(chat);
+                request = leave;
+            }
+            final long dialogId = info.dialogId;
+            getConnectionsManager().sendRequest(request, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
+                try {
+                    if (response instanceof TLRPC.Updates) {
+                        getMessagesController().processUpdates((TLRPC.Updates) response, false);
+                    }
+                    getMessagesController().deleteDialog(dialogId, 0, false);
+                    if (getParentActivity() != null) {
+                        Toast.makeText(getParentActivity(), LocaleController.getString(R.string.DrGramExploreLeftDone), Toast.LENGTH_SHORT).show();
+                    }
+                    selectedChannelId = 0;
+                    rebuildChips();
+                    exploreController.refresh();
+                } catch (Throwable t) {
+                    FileLog.e(t);
+                }
+            }), ConnectionsManager.RequestFlagInvokeAfter);
+        } catch (Throwable t) {
+            FileLog.e(t);
+        }
+    }
+
+    private void drgramHideChannel(DrGramExploreController.ChannelInfo info) {
+        if (info == null) {
+            return;
+        }
+        exploreController.setHidden(info.dialogId, true);
+        if (selectedChannelId == info.dialogId) {
+            selectedChannelId = 0;
+        }
+        rebuildChips();
+        updateUIState();
+        if (getParentActivity() != null) {
+            Toast.makeText(getParentActivity(), LocaleController.getString(R.string.DrGramExploreHideDone), Toast.LENGTH_SHORT).show();
+        }
+    }
     //endregion
 
     //region NotificationCenter

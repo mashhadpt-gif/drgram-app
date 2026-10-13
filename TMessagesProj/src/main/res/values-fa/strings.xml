@@ -590,6 +590,23 @@
     <string name="DrGramCCFallbackText">مرکز کنترل به خطای غیرمنتظره‌ای خورد. دوباره تلاش کنید — اگر تکرار شد، همین پیام را برای تیم لوکس‌گرام بفرستید.</string>
     <string name="DrGramSendCrash">ارسال آخرین کرش به پشتیبانی</string>
     <string name="DrGramNoCrash">کرشی ثبت نشده است</string>
+    <!--DrGram Fix 30: explore search + channel options + control center lite-->
+    <string name="DrGramExploreSearchHint">جستجوی #هشتگ یا @آیدی کانال…</string>
+    <string name="DrGramExploreResultsFor">نتایج برای</string>
+    <string name="DrGramExploreClearResults">پاک کردن نتایج</string>
+    <string name="DrGramExploreSearchEmpty">برای این جستجو چیزی پیدا نشد</string>
+    <string name="DrGramExploreSearchUserOnly">در اکسپلور فقط کانال و گروه قابل بازکردن است</string>
+    <string name="DrGramExploreSearchNoPeer">کانال یا گروهی با این آیدی پیدا نشد</string>
+    <string name="DrGramExploreDeleteChannel">حذف کانال</string>
+    <string name="DrGramExploreDeleteChannelDesc">«%1$s» ترک شود و از حساب شما حذف شود؟</string>
+    <string name="DrGramExploreHideChannel">مخفی کردن از لیست اکسپلور</string>
+    <string name="DrGramExploreHiddenChip">مخفی‌شده‌ها</string>
+    <string name="DrGramExploreUnhideAll">نمایش همه دوباره</string>
+    <string name="DrGramExploreLeftDone">کانال حذف شد</string>
+    <string name="DrGramExploreHideDone">از لیست اکسپلور مخفی شد</string>
+    <string name="DrGramCCLiteTitle">حالت امن — مرکز کنترل سبک</string>
+    <string name="DrGramCCLiteText">مرکز کنترل کامل چند دقیقه پیش به خطا خورده، به همین دلیل نسخه سبک باز شد. اگر تکرار شد، لطفاً لاگ آخرین کرش را برای ما بفرستید.</string>
+    <string name="DrGramCCOpenFull">باز کردن مرکز کنترل کامل</string>
     <string name="DrGramAddSpecialContact">افزودن به مخاطب خاص</string>
     <string name="DrGramSpecialContactDone">«%1$s» مخاطب خاص شما شد</string>
     <string name="DrGramShareUsername">به اشتراک گذاری نام کاربر</string>

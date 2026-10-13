@@ -11569,6 +11569,23 @@
     <!-- DrGram Fix 29: crash diagnostics + special options -->
     <string name="DrGramSendCrash">Send last crash to support</string>
     <string name="DrGramNoCrash">No crash recorded yet</string>
+    <!--DrGram Fix 30: explore search + channel options + control center lite-->
+    <string name="DrGramExploreSearchHint">Search #hashtag or @channel id…</string>
+    <string name="DrGramExploreResultsFor">Results for</string>
+    <string name="DrGramExploreClearResults">Clear results</string>
+    <string name="DrGramExploreSearchEmpty">Nothing found for this search</string>
+    <string name="DrGramExploreSearchUserOnly">Only channels and groups can be opened in Explore</string>
+    <string name="DrGramExploreSearchNoPeer">No channel or group with this id</string>
+    <string name="DrGramExploreDeleteChannel">Delete channel</string>
+    <string name="DrGramExploreDeleteChannelDesc">Leave “%1$s” and remove it from your account?</string>
+    <string name="DrGramExploreHideChannel">Hide from Explore list</string>
+    <string name="DrGramExploreHiddenChip">Hidden</string>
+    <string name="DrGramExploreUnhideAll">Show all again</string>
+    <string name="DrGramExploreLeftDone">Channel removed</string>
+    <string name="DrGramExploreHideDone">Hidden from the Explore list</string>
+    <string name="DrGramCCLiteTitle">Safe mode — light control center</string>
+    <string name="DrGramCCLiteText">The full control center hit an error a few minutes ago, so the light version opened. If it repeats, please send us the last crash log.</string>
+    <string name="DrGramCCOpenFull">Open full control center</string>
     <string name="DrGramAddSpecialContact">Set as special contact</string>
     <string name="DrGramSpecialContactDone">%1$s became your special contact</string>
     <string name="DrGramShareUsername">Share username</string>
