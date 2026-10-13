@@ -404,7 +404,7 @@ public class DrGramStyleGalleryActivity extends BaseFragment {
         valueView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
         valueView.setTypeface(AndroidUtilities.bold());
         valueView.setTextColor(accent);
-        valueView.setText(format.apply(currentValue));
+        valueView.setText(format.format(currentValue));
         titleRow.addView(valueView, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         card.addView(titleRow);
@@ -413,7 +413,7 @@ public class DrGramStyleGalleryActivity extends BaseFragment {
         slider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
-                valueView.setText(format.apply(min + progress));
+                valueView.setText(format.format(min + progress));
             }
 
             @Override
@@ -425,7 +425,7 @@ public class DrGramStyleGalleryActivity extends BaseFragment {
                 int value = min + seekBar.getProgress();
                 if (value != committed[0]) {
                     committed[0] = value;
-                    onCommit.accept(value);
+                    onCommit.commit(value);
                 }
             }
         });
