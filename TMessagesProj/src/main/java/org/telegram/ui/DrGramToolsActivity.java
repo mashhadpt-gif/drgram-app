@@ -59,6 +59,8 @@ public class DrGramToolsActivity extends BaseFragment {
     private Switch quickSwitch;
     private Switch storyGradientSwitch;
     private Switch drawSendSwitch;
+    // DrGram Fix 34: the open glass group — every section's rows live in ONE translucent panel
+    private LinearLayout glassCard;
 
     @Override
     public View createView(Context context) {
@@ -87,11 +89,12 @@ public class DrGramToolsActivity extends BaseFragment {
         contentView = new LinearLayout(context);
         contentView.setOrientation(LinearLayout.VERTICAL);
         contentView.setPadding(0, 0, 0, AndroidUtilities.dp(28));
+        // DrGram Fix 34: calmer onyx canvas — the gold glow lives in the accents, not the floor
         contentView.setBackground(new android.graphics.drawable.GradientDrawable(
                 android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
                 DrGramThemeInstaller.isLoveMode()
-                        ? new int[] {0xFF160A0F, 0xFF251017, 0xFF10090D}
-                        : new int[] {0xFF0C0A05, 0xFF261D09, 0xFF0C0A05}));
+                        ? new int[] {0xFF0E070B, 0xFF1C0D13, 0xFF0E070B}
+                        : new int[] {0xFF0B0A07, 0xFF191409, 0xFF0B0A07}));
 
         android.widget.ScrollView scroller = new android.widget.ScrollView(context);
         scroller.setFillViewport(true);
@@ -102,8 +105,7 @@ public class DrGramToolsActivity extends BaseFragment {
         fragmentView = scroller;
 
         try {
-            addSignatureHero(context, LocaleController.getString(R.string.DrGramToolsHero));
-            contentView.addView(DrGramLuxDecor.ornamentDivider(context, DrGramThemeInstaller.isLoveMode())); // DrGram Fix 24
+            addSignatureHero(context, LocaleController.getString(R.string.DrGramToolsHero)); // DrGram Fix 34: glass hero, no ornament clutter
         } catch (Throwable t) {
             // DrGram Fix 14 (hardening): decoration must never crash the page.
             FileLog.e(t);
@@ -122,6 +124,7 @@ public class DrGramToolsActivity extends BaseFragment {
         buildTagsSection(context);
         buildClogSection(context);
 
+        closeGlassCard(); // DrGram Fix 34: the last section's panel closes before the brand footer
         try {
             contentView.addView(DrGramLuxDecor.signatureFooter(context, DrGramThemeInstaller.isLoveMode())); // DrGram Fix 24
         } catch (Throwable t) {
@@ -143,13 +146,13 @@ public class DrGramToolsActivity extends BaseFragment {
     private void buildSettingsCenterSection(Context context) {
         addHeader(context, LocaleController.getString(R.string.DrGramSettingsCenter),
                 LocaleController.getString(R.string.DrGramSettingsCenterHint));
-        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSettingsCenterOpen), v ->
+        addSectionRow(makeActionRow(context, LocaleController.getString(R.string.DrGramSettingsCenterOpen), v ->
                 drgramOpenSettingsCenter())); // DrGram Fix 24: guarded, never crash the tools page
         // DrGram Fix 29: one tap -> the exact crash log, shareable to support
-        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSendCrash), v ->
+        addSectionRow(makeActionRow(context, LocaleController.getString(R.string.DrGramSendCrash), v ->
                 drgramShareLastCrash()));
         // DrGram Fix 32: style gallery — brand palettes + curated collection
-        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramStyleGallery), v ->
+        addSectionRow(makeActionRow(context, LocaleController.getString(R.string.DrGramStyleGallery), v ->
                 presentFragment(new DrGramStyleGalleryActivity())));
     }
 
@@ -236,14 +239,14 @@ public class DrGramToolsActivity extends BaseFragment {
     private void buildRadarSection(Context context) {
         addHeader(context, LocaleController.getString(R.string.DrGramRadarSectionTitle),
                 LocaleController.getString(R.string.DrGramRadarSectionHint));
-        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramRadarOpen), v ->
+        addSectionRow(makeActionRow(context, LocaleController.getString(R.string.DrGramRadarOpen), v ->
                 presentFragment(new DrGramRadarActivity())));
     }
 
     private void buildVipSection(Context context) {
         addHeader(context, LocaleController.getString(R.string.DrGramVipSectionTitle),
                 LocaleController.getString(R.string.DrGramVipSectionHint));
-        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramVipOpen), v ->
+        addSectionRow(makeActionRow(context, LocaleController.getString(R.string.DrGramVipOpen), v ->
                 presentFragment(new DrGramVipActivity())));
     }
 
@@ -254,7 +257,7 @@ public class DrGramToolsActivity extends BaseFragment {
     private void buildButlerSection(Context context) {
         addHeader(context, LocaleController.getString(R.string.DrGramButlerSectionTitle),
                 LocaleController.getString(R.string.DrGramButlerSectionHint));
-        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramButlerOpen), v ->
+        addSectionRow(makeActionRow(context, LocaleController.getString(R.string.DrGramButlerOpen), v ->
                 presentFragment(new DrGramStorageActivity())));
     }
 
@@ -274,10 +277,10 @@ public class DrGramToolsActivity extends BaseFragment {
             DrGramSecretary.getInstance(currentAccount).setEnabled(newState);
             secretarySwitch.setChecked(newState, false);
         });
-        contentView.addView(row);
+        addSectionRow(row);
 
-        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSecretaryText), v -> showSecretaryTextDialog()));
-        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSecretaryGroups), v -> {
+        addSectionRow(makeActionRow(context, LocaleController.getString(R.string.DrGramSecretaryText), v -> showSecretaryTextDialog()));
+        addSectionRow(makeActionRow(context, LocaleController.getString(R.string.DrGramSecretaryGroups), v -> {
             DrGramSecretary secretary = DrGramSecretary.getInstance(currentAccount);
             secretary.setIncludeGroups(!secretary.isIncludeGroups());
             refreshDynamicRows();
@@ -326,14 +329,15 @@ public class DrGramToolsActivity extends BaseFragment {
         addHeader(context, LocaleController.getString(R.string.DrGramVaultSection),
                 LocaleController.getString(R.string.DrGramVaultHint));
 
-        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramVaultSetCode), v -> showVaultCodeDialog()));
-        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramVaultOpen), v ->
+        addSectionRow(makeActionRow(context, LocaleController.getString(R.string.DrGramVaultSetCode), v -> showVaultCodeDialog()));
+        addSectionRow(makeActionRow(context, LocaleController.getString(R.string.DrGramVaultOpen), v ->
                 presentFragment(new DrGramVaultActivity())));
         vaultCountText = new TextView(context);
         vaultCountText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
-        vaultCountText.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));
+        vaultCountText.setTypeface(AndroidUtilities.bold());
+        vaultCountText.setTextColor(drgramLoveMode() ? 0xFFF5A9B8 : 0xFFF4D27A); // DrGram Fix 34: accent stat
         LinearLayout row = makeRow(context, LocaleController.getString(R.string.DrGramVaultCount), vaultCountText);
-        contentView.addView(row);
+        addSectionRow(row);
     }
 
     private void showVaultCodeDialog() {
@@ -386,13 +390,14 @@ public class DrGramToolsActivity extends BaseFragment {
             DrGramOnlineGuard.setEnabled(currentAccount, newState);
             guardSwitch.setChecked(newState, false);
         });
-        contentView.addView(row);
+        addSectionRow(row);
 
-        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramGuardAdd), v -> openContactPicker()));
+        addSectionRow(makeActionRow(context, LocaleController.getString(R.string.DrGramGuardAdd), v -> openContactPicker()));
 
         guardListContainer = new LinearLayout(context);
         guardListContainer.setOrientation(LinearLayout.VERTICAL);
-        contentView.addView(guardListContainer);
+        applyListDividers(guardListContainer); // DrGram Fix 34
+        addSectionRow(guardListContainer);
     }
 
     private void openContactPicker() {
@@ -427,10 +432,10 @@ public class DrGramToolsActivity extends BaseFragment {
             String name = user != null ? UserObject.getUserName(user) :
                     LocaleController.getString(R.string.DrGramGuardUnknownUser);
             TextView cell = new TextView(context);
-            cell.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
-            cell.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
-            cell.setPadding(AndroidUtilities.dp(21), AndroidUtilities.dp(11), AndroidUtilities.dp(21), AndroidUtilities.dp(11));
-            cell.setText(name);
+            cell.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
+            cell.setTextColor(0xFFF1EADA); // DrGram Fix 34: ivory inside the glass panel
+            cell.setPadding(AndroidUtilities.dp(17), AndroidUtilities.dp(12), AndroidUtilities.dp(17), AndroidUtilities.dp(12));
+            cell.setText("◇  " + name);
             cell.setOnClickListener(v -> {
                 DrGramOnlineGuard.unwatch(currentAccount, userId);
                 rebuildGuardList(context);
@@ -447,13 +452,14 @@ public class DrGramToolsActivity extends BaseFragment {
         addHeader(context, LocaleController.getString(R.string.DrGramFavSection),
                 LocaleController.getString(R.string.DrGramFavHint));
 
-        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramFavOpen), v ->
+        addSectionRow(makeActionRow(context, LocaleController.getString(R.string.DrGramFavOpen), v ->
                 presentFragment(new DrGramFavoritesActivity())));
         favCountText = new TextView(context);
         favCountText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
-        favCountText.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteGrayText));
+        favCountText.setTypeface(AndroidUtilities.bold());
+        favCountText.setTextColor(drgramLoveMode() ? 0xFFF5A9B8 : 0xFFF4D27A); // DrGram Fix 34: accent stat
         LinearLayout row = makeRow(context, LocaleController.getString(R.string.DrGramFavCount), favCountText);
-        contentView.addView(row);
+        addSectionRow(row);
     }
 
     //endregion
@@ -472,7 +478,7 @@ public class DrGramToolsActivity extends BaseFragment {
             DrGramChatTools.getInstance(currentAccount).setCollapseEnabled(newState);
             collapseSwitch.setChecked(newState, false);
         });
-        contentView.addView(collapseRow);
+        addSectionRow(collapseRow);
 
         quickSwitch = new Switch(context);
         quickSwitch.setChecked(DrGramChatTools.getInstance(currentAccount).isQuickChatsEnabled(), false);
@@ -482,7 +488,7 @@ public class DrGramToolsActivity extends BaseFragment {
             DrGramChatTools.getInstance(currentAccount).setQuickChatsEnabled(newState);
             quickSwitch.setChecked(newState, false);
         });
-        contentView.addView(quickRow);
+        addSectionRow(quickRow);
     }
 
     //endregion
@@ -492,7 +498,7 @@ public class DrGramToolsActivity extends BaseFragment {
     private void buildIdFinderSection(Context context) {
         addHeader(context, LocaleController.getString(R.string.DrGramIdSection),
                 LocaleController.getString(R.string.DrGramIdHint));
-        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramIdAction), v -> showIdFinderDialog()));
+        addSectionRow(makeActionRow(context, LocaleController.getString(R.string.DrGramIdAction), v -> showIdFinderDialog()));
     }
 
     private void showIdFinderDialog() {
@@ -671,7 +677,7 @@ public class DrGramToolsActivity extends BaseFragment {
         addHeader(context, LocaleController.getString(R.string.DrGramMediaSection),
                 LocaleController.getString(R.string.DrGramMediaHint));
 
-        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramVoiceEffect), v -> showVoiceFxDialog(), "media_voice_fx"));
+        addSectionRow(makeActionRow(context, LocaleController.getString(R.string.DrGramVoiceEffect), v -> showVoiceFxDialog(), "media_voice_fx"));
 
         storyGradientSwitch = new Switch(context);
         storyGradientSwitch.setChecked(DrGramMedia.isStoryGradientEnabled(), false);
@@ -681,7 +687,7 @@ public class DrGramToolsActivity extends BaseFragment {
             DrGramMedia.setStoryGradientEnabled(newState);
             storyGradientSwitch.setChecked(newState, false);
         });
-        contentView.addView(storyRow);
+        addSectionRow(storyRow);
 
         drawSendSwitch = new Switch(context);
         drawSendSwitch.setChecked(DrGramMedia.isDrawSendEnabled(), false);
@@ -691,10 +697,10 @@ public class DrGramToolsActivity extends BaseFragment {
             DrGramMedia.setDrawSendEnabled(newState);
             drawSendSwitch.setChecked(newState, false);
         });
-        contentView.addView(drawRow);
+        addSectionRow(drawRow);
 
-        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramDownloadsEntry), v -> openDownloads()));
-        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramLinkExtractorTitle), v ->
+        addSectionRow(makeActionRow(context, LocaleController.getString(R.string.DrGramDownloadsEntry), v -> openDownloads()));
+        addSectionRow(makeActionRow(context, LocaleController.getString(R.string.DrGramLinkExtractorTitle), v ->
                 presentFragment(new DrGramLinkExtractorActivity())));
     }
 
@@ -744,7 +750,7 @@ public class DrGramToolsActivity extends BaseFragment {
     private void buildTagsSection(Context context) {
         addHeader(context, LocaleController.getString(R.string.DrGramTagsSection),
                 LocaleController.getString(R.string.DrGramTagsHint));
-        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramTagsOpen), v ->
+        addSectionRow(makeActionRow(context, LocaleController.getString(R.string.DrGramTagsOpen), v ->
                 presentFragment(new DrGramHashtagsActivity())));
     }
 
@@ -755,7 +761,7 @@ public class DrGramToolsActivity extends BaseFragment {
     private void buildClogSection(Context context) {
         addHeader(context, LocaleController.getString(R.string.DrGramClogSection),
                 LocaleController.getString(R.string.DrGramClogHint));
-        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramClogOpen), v ->
+        addSectionRow(makeActionRow(context, LocaleController.getString(R.string.DrGramClogOpen), v ->
                 presentFragment(new DrGramContactLogActivity())));
     }
 
@@ -766,49 +772,44 @@ public class DrGramToolsActivity extends BaseFragment {
      * DrGram Signature hero: a deliberate luxury/romance brand moment, not a generic settings header.
      */
     private void addSignatureHero(Context context, String subtitle) {
-        boolean love = DrGramThemeInstaller.isLoveMode();
+        boolean love = drgramLoveMode();
         int accent = DrGramThemeInstaller.accentColor();
         LinearLayout hero = new LinearLayout(context);
         hero.setOrientation(LinearLayout.VERTICAL);
         hero.setGravity(Gravity.CENTER);
-        hero.setPadding(AndroidUtilities.dp(24), AndroidUtilities.dp(30), AndroidUtilities.dp(24), AndroidUtilities.dp(27));
-        android.graphics.drawable.GradientDrawable backdrop = new android.graphics.drawable.GradientDrawable(
-                android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
-                love
-                        ? new int[] {0xFF3A101F, 0xFF1B0A12, 0xFF3A101F}
-                        : new int[] {0xFF49330A, 0xFF171105, 0xFF342307});
-        backdrop.setCornerRadius(AndroidUtilities.dp(26));
-        backdrop.setStroke(AndroidUtilities.dp(1), love ? 0xCCF06A82 : 0xD9F4D27A);
-        hero.setBackground(backdrop);
-        hero.setElevation(AndroidUtilities.dp(7));
-        DrGramLuxDecor.frameHero(hero, love); // DrGram Fix 24
+        hero.setTag("drgram_hero");
+        hero.setPadding(AndroidUtilities.dp(24), AndroidUtilities.dp(26), AndroidUtilities.dp(24), AndroidUtilities.dp(24));
+        // DrGram Fix 34: glassmorphism — translucent panel + hairline stroke, flat and calm.
+        // The old heavy gold-gradient block + double frame is gone: luxury now reads as light.
+        hero.setBackground(glassPanel(24, 0x16FFFFFF, love ? 0x4DF06A82 : 0x4DF4D27A));
         LinearLayout.LayoutParams hp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        hp.setMargins(AndroidUtilities.dp(16), AndroidUtilities.dp(18), AndroidUtilities.dp(16), AndroidUtilities.dp(8));
+        hp.setMargins(AndroidUtilities.dp(14), AndroidUtilities.dp(18), AndroidUtilities.dp(14), AndroidUtilities.dp(4));
         contentView.addView(hero, hp);
 
         TextView emblem = new TextView(context);
         emblem.setText(love ? "♡  ✦  ♡" : "✦  ◈  ✦");
         emblem.setTextColor(love ? 0xFFFFA4B5 : 0xFFFFE6A0);
-        emblem.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 25);
+        emblem.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 16);
         emblem.setGravity(Gravity.CENTER);
+        emblem.setLetterSpacing(0.14f);
         hero.addView(emblem, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
         TextView brand = new TextView(context);
         brand.setText(love ? "LOVE  MODE" : "GOLD  LUXE");
         brand.setTextColor(love ? 0xFFFFDCE3 : 0xFFFFE8AE);
-        brand.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 25);
+        brand.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 21);
         brand.setTypeface(AndroidUtilities.bold());
         brand.setGravity(Gravity.CENTER);
-        brand.setLetterSpacing(0.10f);
+        brand.setLetterSpacing(0.14f);
         LinearLayout.LayoutParams bp = LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT);
-        bp.topMargin = AndroidUtilities.dp(7);
+        bp.topMargin = AndroidUtilities.dp(8);
         hero.addView(brand, bp);
 
         TextView tagline = new TextView(context);
         tagline.setText(subtitle);
-        tagline.setTextColor(love ? 0xFFE8B8C3 : 0xFFE4D2A5);
-        tagline.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+        tagline.setTextColor(love ? 0xA6E8B8C3 : 0xA6E4D2A5);
+        tagline.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
         tagline.setGravity(Gravity.CENTER);
         tagline.setLineSpacing(AndroidUtilities.dp(3), 1f);
         LinearLayout.LayoutParams tp = LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT);
@@ -818,101 +819,108 @@ public class DrGramToolsActivity extends BaseFragment {
         TextView state = new TextView(context);
         state.setText(love ? "♥  ROMANTIC • DEEP • ELEGANT" : "✧  CHAMPAGNE • ONYX • TIMELESS");
         state.setTextColor(accent);
-        state.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 10);
+        state.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 9);
         state.setGravity(Gravity.CENTER);
         state.setTypeface(AndroidUtilities.bold());
-        state.setLetterSpacing(0.06f);
+        state.setLetterSpacing(0.10f);
+        // DrGram Fix 34: stroke-only capsule — no tinted fill, just a thin jewel line
         android.graphics.drawable.GradientDrawable capsule = new android.graphics.drawable.GradientDrawable();
-        capsule.setColor(love ? 0x443D0E1A : 0x443D2D0A);
+        capsule.setColor(0x0AFFFFFF);
         capsule.setCornerRadius(AndroidUtilities.dp(30));
-        capsule.setStroke(AndroidUtilities.dp(1), love ? 0x99F06A82 : 0x99F4D27A);
+        capsule.setStroke(AndroidUtilities.dp(1), love ? 0x66F06A82 : 0x66F4D27A);
         state.setBackground(capsule);
-        state.setPadding(AndroidUtilities.dp(14), AndroidUtilities.dp(8), AndroidUtilities.dp(14), AndroidUtilities.dp(8));
+        state.setPadding(AndroidUtilities.dp(14), AndroidUtilities.dp(7), AndroidUtilities.dp(14), AndroidUtilities.dp(7));
         LinearLayout.LayoutParams sp = LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT);
-        sp.topMargin = AndroidUtilities.dp(16);
+        sp.topMargin = AndroidUtilities.dp(14);
         hero.addView(state, sp);
     }
 
     //region shared row builders
 
     private void addHeader(Context context, String title, String hint) {
-        // DrGram Fix 8: luxury section header — gold diamond + bold gold title
+        // DrGram Fix 34: measured typographic rhythm — clear space, small accent label,
+        // muted hint, then the whole section sits in ONE translucent glass panel.
+        // Section boundaries are unmistakable: 24dp above the title, 10dp below the panel.
+        closeGlassCard();
+
         TextView header = new TextView(context);
-        header.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
+        header.setTag("drgram_section_title");
+        header.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
         header.setTypeface(AndroidUtilities.bold());
+        header.setLetterSpacing(0.04f);
         header.setTextColor(DrGramThemeInstaller.accentColor());
-        header.setText("❖  " + title); // DrGram Fix 24: tintable luxury glyph (emoji broke the palette)
-        header.setPadding(AndroidUtilities.dp(21), AndroidUtilities.dp(22), AndroidUtilities.dp(21), AndroidUtilities.dp(2));
+        header.setText("❖  " + title);
+        header.setPadding(AndroidUtilities.dp(21), AndroidUtilities.dp(24), AndroidUtilities.dp(21), AndroidUtilities.dp(3));
         contentView.addView(header);
 
         TextView hintView = new TextView(context);
-        hintView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
-        hintView.setTextColor(DrGramThemeInstaller.isLoveMode() ? 0xFFD8A8B4 : 0xFFC9B98F); // DrGram Fix 24
-        hintView.setPadding(AndroidUtilities.dp(21), 0, AndroidUtilities.dp(21), AndroidUtilities.dp(8));
+        hintView.setTag("drgram_section_hint");
+        hintView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11.5f);
+        hintView.setTextColor(drgramLoveMode() ? 0x8FD8A8B4 : 0x8FC7BA93);
+        hintView.setLineSpacing(AndroidUtilities.dp(2), 1f);
+        hintView.setPadding(AndroidUtilities.dp(21), 0, AndroidUtilities.dp(21), AndroidUtilities.dp(12));
         hintView.setText(hint);
         contentView.addView(hintView);
+
+        glassCard = new LinearLayout(context);
+        glassCard.setOrientation(LinearLayout.VERTICAL);
+        glassCard.setTag("drgram_glass_card");
+        glassCard.setBackground(glassPanel(20, 0x12FFFFFF, drgramLoveMode() ? 0x30F06A82 : 0x2EF4D27A));
+        applyListDividers(glassCard);
+        LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        cardParams.setMargins(AndroidUtilities.dp(14), 0, AndroidUtilities.dp(14), AndroidUtilities.dp(10));
+        contentView.addView(glassCard, cardParams);
     }
 
     private void refreshBrandSurfaces() {
         if (contentView == null) {
             return;
         }
-        boolean loveMode = DrGramThemeInstaller.isLoveMode();
+        boolean loveMode = drgramLoveMode();
         contentView.setBackground(new android.graphics.drawable.GradientDrawable(
                 android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
                 loveMode
-                        ? new int[] {0xFF160A0F, 0xFF251017, 0xFF10090D}
-                        : new int[] {0xFF0C0A05, 0xFF261D09, 0xFF0C0A05}));
+                        ? new int[] {0xFF0E070B, 0xFF1C0D13, 0xFF0E070B}
+                        : new int[] {0xFF0B0A07, 0xFF191409, 0xFF0B0A07}));
         refreshBrandRows(contentView, loveMode);
     }
 
     private void refreshBrandRows(ViewGroup group, boolean loveMode) {
+        // DrGram Fix 34: only tagged glass surfaces get retinted — rows stay flat
+        // and quiet, so a mode switch never resurrects the old bordered cards.
         int accent = DrGramThemeInstaller.accentColor();
         for (int index = 0; index < group.getChildCount(); index++) {
             View child = group.getChildAt(index);
-            if (child instanceof TextView && ((TextView) child).getText().toString().startsWith("❖")) {
+            Object tag = child.getTag();
+            if ("drgram_section_title".equals(tag)) {
                 ((TextView) child).setTextColor(accent);
+            } else if ("drgram_section_hint".equals(tag)) {
+                ((TextView) child).setTextColor(loveMode ? 0x8FD8A8B4 : 0x8FC7BA93);
+            } else if ("drgram_glass_card".equals(tag)) {
+                child.setBackground(glassPanel(20, 0x12FFFFFF, loveMode ? 0x30F06A82 : 0x2EF4D27A));
+            } else if ("drgram_hero".equals(tag)) {
+                child.setBackground(glassPanel(24, 0x16FFFFFF, loveMode ? 0x4DF06A82 : 0x4DF4D27A));
             }
-            if (!(child instanceof ViewGroup)) {
-                continue;
+            if (child instanceof ViewGroup) {
+                refreshBrandRows((ViewGroup) child, loveMode);
             }
-            ViewGroup row = (ViewGroup) child;
-            if (row != contentView && row.getChildCount() == 2 && row.getChildAt(0) instanceof TextView) {
-                android.graphics.drawable.GradientDrawable card = new android.graphics.drawable.GradientDrawable(
-                        android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT,
-                        loveMode ? new int[] {0xFF2A1018, 0xFF1C0B11} : new int[] {0xFF3A2C0E, 0xFF211A0A});
-                card.setCornerRadius(AndroidUtilities.dp(17));
-                card.setStroke(AndroidUtilities.dp(1), loveMode ? 0xCCE63B52 : 0xCCFFC94A);
-                row.setBackgroundDrawable(card);
-                row.setElevation(AndroidUtilities.dp(2));
-                ((TextView) row.getChildAt(0)).setTextColor(0xFFFFF6DF);
-            }
-            refreshBrandRows(row, loveMode);
         }
     }
 
     private LinearLayout makeRow(Context context, String title, View valueView) {
-        // DrGram Fix 8: luxury card row — rounded dark card, RTL-safe start alignment
+        // DrGram Fix 34: flat glass row — no per-row borders. The whole section
+        // shares one translucent panel with hairline separators (grouped-list feel).
         LinearLayout row = new LinearLayout(context);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        boolean loveMode = DrGramThemeInstaller.isLoveMode();
-        android.graphics.drawable.GradientDrawable card = new android.graphics.drawable.GradientDrawable(
-                android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT,
-                loveMode ? new int[] {0xFF2A1018, 0xFF1C0B11} : new int[] {0xFF3A2C0E, 0xFF211A0A});
-        card.setCornerRadius(AndroidUtilities.dp(17));
-        card.setStroke(AndroidUtilities.dp(1), loveMode ? 0xCCE63B52 : 0xCCFFC94A);
-        row.setBackgroundDrawable(card);
-        row.setElevation(AndroidUtilities.dp(2));
-        DrGramLuxDecor.polishRow(row, loveMode); // DrGram Fix 24
-        row.setPadding(AndroidUtilities.dp(17), AndroidUtilities.dp(14), AndroidUtilities.dp(17), AndroidUtilities.dp(14));
-        LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        rowParams.setMargins(AndroidUtilities.dp(16), AndroidUtilities.dp(4), AndroidUtilities.dp(16), AndroidUtilities.dp(4));
-        row.setLayoutParams(rowParams);
+        row.setBackgroundDrawable(glassRipple());
+        row.setPadding(AndroidUtilities.dp(17), AndroidUtilities.dp(13), AndroidUtilities.dp(17), AndroidUtilities.dp(13));
+        row.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
         TextView titleView = new TextView(context);
-        titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
-        titleView.setTextColor(0xFFFFF6DF);
+        titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14.5f);
+        titleView.setTextColor(0xFFF1EADA);
         titleView.setText(title);
         titleView.setGravity(Gravity.START);
         row.addView(titleView, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1f));
@@ -936,6 +944,58 @@ public class DrGramToolsActivity extends BaseFragment {
         }
         return row;
     }
+
+    //region DrGram Fix 34: glass design system — soft panels, hairline strokes, clear rhythm
+
+    /** Translucent glass panel: flat, quiet, closed by a hairline accent stroke. */
+    private android.graphics.drawable.GradientDrawable glassPanel(float radiusDp, int fill, int stroke) {
+        android.graphics.drawable.GradientDrawable panel = new android.graphics.drawable.GradientDrawable();
+        panel.setCornerRadius(AndroidUtilities.dp(radiusDp));
+        panel.setColor(fill);
+        panel.setStroke(AndroidUtilities.dp(1), stroke);
+        return panel;
+    }
+
+    /** Quiet touch feedback — a soft rounded bloom, no gold glare. */
+    private android.graphics.drawable.Drawable glassRipple() {
+        try {
+            android.graphics.drawable.GradientDrawable mask = new android.graphics.drawable.GradientDrawable();
+            mask.setCornerRadius(AndroidUtilities.dp(12));
+            mask.setColor(0xFFFFFFFF);
+            return new android.graphics.drawable.RippleDrawable(
+                    android.content.res.ColorStateList.valueOf(0x24FFFFFF), null, mask);
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    /** Hairline row separators, inset to match the row padding. */
+    private void applyListDividers(LinearLayout list) {
+        list.setShowDividers(LinearLayout.SHOW_DIVIDER_MIDDLE);
+        list.setDividerDrawable(new android.graphics.drawable.InsetDrawable(
+                new android.graphics.drawable.ColorDrawable(0x12FFFFFF),
+                AndroidUtilities.dp(16), 0, AndroidUtilities.dp(16), 0));
+    }
+
+    /** Rows live inside the current section's glass group — never loose on the page. */
+    private void addSectionRow(View row) {
+        if (glassCard != null) {
+            glassCard.addView(row);
+        } else {
+            contentView.addView(row);
+        }
+    }
+
+    /** Ends the open glass group (the next header or the footer starts fresh). */
+    private void closeGlassCard() {
+        glassCard = null;
+    }
+
+    private boolean drgramLoveMode() {
+        return DrGramThemeInstaller.isLoveMode();
+    }
+
+    //endregion
 
     private void refreshDynamicRows() {
         if (secretarySwitch != null) {
