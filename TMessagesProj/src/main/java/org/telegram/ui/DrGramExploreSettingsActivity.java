@@ -214,7 +214,7 @@ public class DrGramExploreSettingsActivity extends BaseFragment {
         title.setText(chat != null && !TextUtils.isEmpty(chat.title) ? chat.title : ("#" + dialogId));
         textCol.addView(title);
 
-        LinearLayout titleParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        LinearLayout.LayoutParams titleParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
         titleParams.setMargins(AndroidUtilities.dp(12), 0, AndroidUtilities.dp(8), 0);
         row.addView(textCol, titleParams);
 
