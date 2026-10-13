@@ -1250,6 +1250,8 @@ public class ChatActivity extends BaseFragment implements
     public final static int OPTION_DRGRAM_FAVORITE = 117;
     public final static int OPTION_DRGRAM_DETAILS = 118;
     public final static int OPTION_DRGRAM_EXPAND = 119;
+    public final static int OPTION_DRGRAM_ADV_FWD = 120; // DrGram Fix 33: advanced forward from the message menu
+    public final static int OPTION_DRGRAM_AI = 121; // DrGram Fix 33: AI tools from the message menu
 
     private final static int[] allowedNotificationsDuringChatListAnimations = new int[]{
             NotificationCenter.messagesRead,
@@ -3770,7 +3772,10 @@ public class ChatActivity extends BaseFragment implements
                     }
                     createDeleteMessagesAlert(null, null);
                 } else if (id == forward) {
-                    openForward(true);
+                    // DrGram Fix 33: the forward arrow now opens the 3-way forward menu
+                    // (plain forward / forward with quote / advanced forward)
+                    View drgramFwdAnchor = actionBar.createActionMode().getItem(forward);
+                    drgramShowForwardMenu(drgramFwdAnchor, true);
                 } else if (id == drgramAdvForward) { // DrGram Fix 27
                     if (getMessagesController().isFrozen()) {
                         AccountFrozenAlert.show(currentAccount);
@@ -8163,7 +8168,8 @@ public class ChatActivity extends BaseFragment implements
         }
 
         actionsButtonsLayout = new ChatActivityActionsButtonsLayout(context, resourceProvider, blurredBackgroundColorProvider, glassBackgroundDrawableFactory);
-        actionsButtonsLayout.setForwardButtonOnClickListener(v -> openForward(false));
+        // DrGram Fix 33: the bottom forward arrow opens the same 3-way forward menu
+        actionsButtonsLayout.setForwardButtonOnClickListener(v -> drgramShowForwardMenu(actionsButtonsLayout != null ? actionsButtonsLayout.getForwardButton() : null, false));
         actionsButtonsLayout.setReplyButtonOnClickListener(v -> {
             MessageObject messageObject = null;
             for (int a = 1; a >= 0; a--) {
@@ -12406,6 +12412,12 @@ public class ChatActivity extends BaseFragment implements
 
     // DrGram Fix 27: Advanced Forward straight from the selection toolbar (star icon)
     private void drgramForwardSelectionAdvanced() {
+        ArrayList<MessageObject> drgramFwd = drgramCollectSelectedMessages();
+        drgramPresentAdvancedForward(drgramFwd);
+    }
+
+    // DrGram Fix 33: shared collector for the selection-mode forward flows
+    private ArrayList<MessageObject> drgramCollectSelectedMessages() {
         ArrayList<MessageObject> drgramFwd = new ArrayList<>();
         for (int a = 1; a >= 0; a--) {
             ArrayList<Integer> drgramIds = new ArrayList<>();
@@ -12420,7 +12432,48 @@ public class ChatActivity extends BaseFragment implements
                 }
             }
         }
-        drgramPresentAdvancedForward(drgramFwd);
+        return drgramFwd;
+    }
+
+    // DrGram Fix 33: "forward with quote" — opens the advanced editor in quote mode,
+    // which sends the message from the user's own name with a quote header of the source.
+    private void drgramForwardSelectionQuoted() {
+        ArrayList<MessageObject> drgramFwd = drgramCollectSelectedMessages();
+        if (drgramFwd.isEmpty()) {
+            return;
+        }
+        presentFragment(new DrGramForwardEditor(drgramFwd, true));
+        clearSelectionMode();
+    }
+
+    /**
+     * DrGram Fix 33: the 3-way forward menu the user asked for. Tapping the forward
+     * arrow (selection toolbar or the bottom bar) now offers:
+     *   1. فوروارد — the plain Telegram-native forward picker
+     *   2. هدایت با نقل قول — forward with quote (own name + source quote header)
+     *   3. هدایت پیشرفته — the full Advanced Forward editor
+     */
+    private void drgramShowForwardMenu(View anchor, boolean fromActionBar) {
+        if (getParentActivity() == null || anchor == null) {
+            // graceful fallback: behave like the old plain forward
+            openForward(fromActionBar);
+            return;
+        }
+        if (getMessagesController().isFrozen()) {
+            AccountFrozenAlert.show(currentAccount);
+            return;
+        }
+        try {
+            ItemOptions.makeOptions(ChatActivity.this, anchor)
+                    .add(R.drawable.msg_forward, LocaleController.getString(R.string.Forward), () -> openForward(fromActionBar))
+                    .add(R.drawable.menu_reply, LocaleController.getString(R.string.DrGramFwdWithQuote), this::drgramForwardSelectionQuoted)
+                    .add(R.drawable.drgram_ic_forward_star, LocaleController.getString(R.string.DrGramAdvFwdTitle), this::drgramForwardSelectionAdvanced)
+                    .setDrawScrim(false)
+                    .show();
+        } catch (Throwable t) {
+            FileLog.e(t);
+            openForward(fromActionBar);
+        }
     }
 
     public void showBottomOverlayProgress(boolean show, boolean animated) {
@@ -33721,6 +33774,22 @@ public class ChatActivity extends BaseFragment implements
                 break;
             }
             case OPTION_FORWARD: {
+                // DrGram Fix 33: the plain Forward row is the Telegram-native forward again
+                // (with the "Forwarded from" header). The Advanced editor lives on its own row.
+                if (getMessagesController().isFrozen()) {
+                    AccountFrozenAlert.show(currentAccount);
+                    selectedObject = null;
+                    selectedObjectToEditCaption = null;
+                    selectedObjectGroup = null;
+                    return;
+                }
+                forwardingMessage = selectedObject;
+                forwardingMessageGroup = selectedObjectGroup;
+                openForward(false);
+                break;
+            }
+            case OPTION_DRGRAM_ADV_FWD: {
+                // DrGram Fix 33: the Advanced Forward editor straight from the message menu
                 if (getMessagesController().isFrozen()) {
                     AccountFrozenAlert.show(currentAccount);
                     selectedObject = null;
@@ -33735,6 +33804,15 @@ public class ChatActivity extends BaseFragment implements
                     drgramFwd.add(selectedObject);
                 }
                 drgramPresentAdvancedForward(drgramFwd);
+                break;
+            }
+            case OPTION_DRGRAM_AI: {
+                // DrGram Fix 33: jump into the AI tools with this message's text ready to paste
+                try {
+                    presentFragment(new DrGramAIActivity());
+                } catch (Throwable t) {
+                    FileLog.e(t);
+                }
                 break;
             }
             case OPTION_COPY: {
@@ -46524,6 +46602,19 @@ public class ChatActivity extends BaseFragment implements
                     items.add(LocaleController.getString(R.string.Forward));
                     options.add(OPTION_FORWARD);
                     icons.add(R.drawable.msg_forward);
+                    // DrGram Fix 33: the message menu offers Advanced Forward as its own row
+                    // (the plain Forward row stays the Telegram-native forward)
+                    items.add(LocaleController.getString(R.string.DrGramAdvFwdTitle));
+                    options.add(OPTION_DRGRAM_ADV_FWD);
+                    icons.add(R.drawable.drgram_ic_forward_star);
+                }
+                // DrGram Fix 33: AI tools row for any message that carries readable text
+                if (selectedObject != null && selectedObject.contentType == 0 && !selectedObject.isSponsored()
+                    && !TextUtils.isEmpty(selectedObject.getMessageTextToTranslate(selectedObjectGroup, null))
+                    && !selectedObject.isAnimatedEmoji() && !selectedObject.isDice()) {
+                    items.add(LocaleController.getString(R.string.DrGramAiToolsTitle));
+                    options.add(OPTION_DRGRAM_AI);
+                    icons.add(R.drawable.input_ai);
                 }
                 if (selectedObject != null && selectedObject.getId() > 0 && selectedObject.contentType == 0 && !selectedObject.isSponsored()) {
                     items.add(LocaleController.getString(org.telegram.messenger.DrGramFavorites.getInstance(currentAccount).isFavorite(getDialogId(), selectedObject.getId()) ? R.string.DrGramFavRemove : R.string.DrGramFavAdd));

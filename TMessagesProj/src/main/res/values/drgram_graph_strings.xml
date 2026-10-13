@@ -58,4 +58,18 @@
     <string name="DrGramFakeNotificationChannel">DrGram local previews</string>
     <string name="DrGramToolsHero">Your gilded command deck — every DrGram power in one place.</string>
     <string name="DrGramSettingsHero">The royal control center of your DrGram world.</string>
+
+    <string name="DrGramFwdWithQuote">Forward with quote</string>
+    <string name="DrGramAdvFwdQuoteHint">The message is sent from your name, opening with a quote header from its source.</string>
+    <string name="DrGramAdvFwdQuoteHeader">Quote from %s:</string>
+    <string name="DrGramGalleryPersonalize">Personalize</string>
+    <string name="DrGramGalleryPersonalizeHint">Font size, message bubbles, the app icon and display effects — everything you used to love, back in one gallery.</string>
+    <string name="DrGramGalleryFontSize">Font size</string>
+    <string name="DrGramGalleryFontSizeHint">Applied instantly to chats. Reset to default by returning here.</string>
+    <string name="DrGramGalleryFontSizeReset">Reset to default (16)</string>
+    <string name="DrGramGalleryBubbleRadius">Message bubble roundness</string>
+    <string name="DrGramGalleryBubbleRadiusHint">From classic square bubbles (0) to fully rounded (18).</string>
+    <string name="DrGramGalleryAppIconHint">The launcher refreshes the icon within a few seconds.</string>
+    <string name="DrGramGalleryDisplay">Display effects</string>
+    <string name="DrGramGalleryDisplayHint">Fine-tune how LuxGram feels day to day.</string>
 </resources>

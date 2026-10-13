@@ -16,6 +16,7 @@
  */
 package org.telegram.ui;
 
+import android.app.Activity;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
@@ -25,7 +26,9 @@ import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -35,17 +38,22 @@ import org.telegram.messenger.DrGramThemeInstaller;
 import org.telegram.messenger.DrGramThemeTuner;
 import org.telegram.messenger.FileLog;
 import org.telegram.messenger.LocaleController;
+import org.telegram.messenger.MessagesController;
 import org.telegram.messenger.R;
+import org.telegram.messenger.SharedConfig;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.DrGramLuxDecor;
 import org.telegram.ui.Components.LayoutHelper;
+import org.telegram.ui.Components.Switch;
+import org.telegram.ui.LauncherIconController;
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class DrGramStyleGalleryActivity extends BaseFragment {
@@ -110,6 +118,7 @@ public class DrGramStyleGalleryActivity extends BaseFragment {
         buildBrandSection(context);
         buildCuratedSection(context);
         buildBackToBrandRow(context);
+        buildPersonalizeSection(context);
 
         return fragmentView;
     }
@@ -230,6 +239,375 @@ public class DrGramStyleGalleryActivity extends BaseFragment {
             }
         });
         contentView.addView(row);
+    }
+
+    //endregion
+
+    //region Fix 33 personalization — the features the user asked back into the gallery
+
+    // DrGram Fix 33: tiny local callbacks — java.util.function.* needs API 24 and the
+    // app's minSdk is 21 (the Fix 24 crash lesson), so plain interfaces it is.
+    private interface SliderFormatter {
+        String format(int value);
+    }
+
+    private interface SliderCommitter {
+        void commit(int value);
+    }
+
+    private interface ToggleApplier {
+        boolean apply();
+    }
+
+    private final List<FrameLayout> iconFrames = new ArrayList<>();
+
+    /**
+     * DrGram Fix 33: the personalization section — font size, Vazir font, message
+     * bubble roundness, the app icon picker and the display effect toggles. All of
+     * these were scattered or missing before; the user asked for them back, all in
+     * one gallery.
+     */
+    private void buildPersonalizeSection(Context context) {
+        addHeader(context, LocaleController.getString(R.string.DrGramGalleryPersonalize),
+                LocaleController.getString(R.string.DrGramGalleryPersonalizeHint));
+
+        // --- font size (سایز فونت) ---
+        contentView.addView(makeSliderCard(context,
+                LocaleController.getString(R.string.DrGramGalleryFontSize), 0xFFF0BE3F,
+                SharedConfig.fontSize, 12, 30,
+                value -> value + " pt",
+                value -> {
+                    try {
+                        SharedConfig.fontSize = value;
+                        SharedConfig.fontSizeIsDefault = false;
+                        android.content.SharedPreferences preferences = ApplicationLoader.applicationContext
+                                .getSharedPreferences("mainconfig", Activity.MODE_PRIVATE);
+                        if (preferences != null) {
+                            preferences.edit().putInt("fons_size", value).commit();
+                        }
+                        Theme.createCommonMessageResources();
+                        rebuildEverything();
+                    } catch (Throwable t) {
+                        FileLog.e(t);
+                    }
+                }));
+        addCardHint(context, LocaleController.getString(R.string.DrGramGalleryFontSizeHint));
+
+        // --- Vazir font ---
+        contentView.addView(makeToggleCard(context,
+                LocaleController.getString(R.string.DrGramVazirFont),
+                LocaleController.getString(R.string.DrGramVazirFontInfo),
+                SharedConfig.drgramVazirFont,
+                () -> {
+                    SharedConfig.toggleDrgramVazirFont();
+                    return SharedConfig.drgramVazirFont;
+                }));
+
+        // --- message bubble roundness (حباب پیام) ---
+        contentView.addView(makeSliderCard(context,
+                LocaleController.getString(R.string.DrGramGalleryBubbleRadius), 0xFFF0BE3F,
+                SharedConfig.bubbleRadius, 0, 18,
+                value -> value + " dp",
+                value -> {
+                    try {
+                        SharedConfig.bubbleRadius = value;
+                        MessagesController.getGlobalMainSettings()
+                                .edit().putInt("bubbleRadius", value).commit();
+                        rebuildEverything();
+                    } catch (Throwable t) {
+                        FileLog.e(t);
+                    }
+                }));
+        addCardHint(context, LocaleController.getString(R.string.DrGramGalleryBubbleRadiusHint));
+
+        // --- app icon picker (انتخاب آیکن برنامه) ---
+        addHeader(context, LocaleController.getString(R.string.AppIcon),
+                LocaleController.getString(R.string.DrGramGalleryAppIconHint));
+        contentView.addView(makeIconGrid(context));
+
+        // --- display effect toggles ---
+        addHeader(context, LocaleController.getString(R.string.DrGramGalleryDisplay),
+                LocaleController.getString(R.string.DrGramGalleryDisplayHint));
+        contentView.addView(makeToggleCard(context,
+                LocaleController.getString(R.string.DrGramSetGoldChats), null,
+                SharedConfig.drgramGoldChat,
+                () -> {
+                    SharedConfig.toggleDrgramGoldChat();
+                    return SharedConfig.drgramGoldChat;
+                }));
+        contentView.addView(makeToggleCard(context,
+                LocaleController.getString(R.string.DrGramSetGlass), null,
+                SharedConfig.drgramGlassUI,
+                () -> {
+                    SharedConfig.toggleDrgramGlassUI();
+                    return SharedConfig.drgramGlassUI;
+                }));
+        contentView.addView(makeToggleCard(context,
+                LocaleController.getString(R.string.DrGramSetSparks), null,
+                SharedConfig.drgramSendSparks,
+                () -> {
+                    SharedConfig.toggleDrgramSendSparks();
+                    return SharedConfig.drgramSendSparks;
+                }));
+        contentView.addView(makeToggleCard(context,
+                LocaleController.getString(R.string.DrGramSetRain), null,
+                SharedConfig.drgramReactionRain,
+                () -> {
+                    SharedConfig.toggleDrgramReactionRain();
+                    return SharedConfig.drgramReactionRain;
+                }));
+        contentView.addView(makeToggleCard(context,
+                LocaleController.getString(R.string.DrGramSetMembersBar), null,
+                SharedConfig.drgramMembersBar,
+                () -> {
+                    SharedConfig.toggleDrgramMembersBar();
+                    return SharedConfig.drgramMembersBar;
+                }));
+        contentView.addView(makeToggleCard(context,
+                LocaleController.getString(R.string.DrGramSetJalaliDates), null,
+                SharedConfig.drgramJalaliDates,
+                () -> {
+                    SharedConfig.toggleDrgramJalaliDates();
+                    return SharedConfig.drgramJalaliDates;
+                }));
+    }
+
+    /**
+     * A gold card with a title, a live value label and a Lux-styled SeekBar.
+     * The slider reports continuous changes (label + preview) and commits
+     * through onCommit when the user releases the thumb.
+     */
+    private LinearLayout makeSliderCard(Context context, String title, int accent,
+                                        int currentValue, int min, int max,
+                                        SliderFormatter format,
+                                        SliderCommitter onCommit) {
+        final int[] committed = {currentValue};
+        LinearLayout card = new LinearLayout(context);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setBackgroundDrawable(goldCard(context));
+        LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        cardParams.setMargins(AndroidUtilities.dp(16), AndroidUtilities.dp(4), AndroidUtilities.dp(16), AndroidUtilities.dp(4));
+        card.setPadding(AndroidUtilities.dp(17), AndroidUtilities.dp(13), AndroidUtilities.dp(17), AndroidUtilities.dp(13));
+        card.setLayoutParams(cardParams);
+
+        LinearLayout titleRow = new LinearLayout(context);
+        titleRow.setOrientation(LinearLayout.HORIZONTAL);
+        titleRow.setGravity(Gravity.CENTER_VERTICAL);
+        TextView titleView = new TextView(context);
+        titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
+        titleView.setTypeface(AndroidUtilities.bold());
+        titleView.setTextColor(0xFFFFF6DF);
+        titleView.setText(title);
+        titleRow.addView(titleView, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        TextView valueView = new TextView(context);
+        valueView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+        valueView.setTypeface(AndroidUtilities.bold());
+        valueView.setTextColor(accent);
+        valueView.setText(format.apply(currentValue));
+        titleRow.addView(valueView, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        card.addView(titleRow);
+
+        SeekBar slider = makeLuxSlider(context, currentValue - min, max - min, accent);
+        slider.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                valueView.setText(format.apply(min + progress));
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+                int value = min + seekBar.getProgress();
+                if (value != committed[0]) {
+                    committed[0] = value;
+                    onCommit.accept(value);
+                }
+            }
+        });
+        card.addView(slider);
+        return card;
+    }
+
+    private SeekBar makeLuxSlider(Context context, int value, int max, int accent) {
+        SeekBar slider = new SeekBar(context);
+        slider.setMax(Math.max(1, max));
+        slider.setProgress(Math.max(0, Math.min(max, value)));
+        slider.setSplitTrack(false);
+        GradientDrawable track = new GradientDrawable();
+        track.setCornerRadius(AndroidUtilities.dp(3));
+        track.setColor(0x2EFFFFFF);
+        android.graphics.drawable.ClipDrawable progress = new android.graphics.drawable.ClipDrawable(
+                track, Gravity.START, android.graphics.drawable.ClipDrawable.HORIZONTAL);
+        GradientDrawable thumb = new GradientDrawable();
+        thumb.setShape(GradientDrawable.OVAL);
+        thumb.setColor(accent);
+        thumb.setStroke(AndroidUtilities.dp(2), 0x73FFFFFF);
+        thumb.setSize(AndroidUtilities.dp(22), AndroidUtilities.dp(22));
+        slider.setProgressDrawable(progress);
+        slider.setThumb(thumb);
+        slider.setThumbOffset(AndroidUtilities.dp(3));
+        slider.setPadding(AndroidUtilities.dp(14), AndroidUtilities.dp(6), AndroidUtilities.dp(14), AndroidUtilities.dp(6));
+        slider.setBackground(null);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        params.topMargin = AndroidUtilities.dp(4);
+        slider.setLayoutParams(params);
+        return slider;
+    }
+
+    /**
+     * A gold card with a title, optional subtitle and a Lux Switch.
+     * The row (and the switch) toggle the backing setting through the provider.
+     */
+    private LinearLayout makeToggleCard(Context context, String title, String subtitle,
+                                        boolean checked, ToggleApplier onToggle) {
+        LinearLayout card = new LinearLayout(context);
+        card.setOrientation(LinearLayout.HORIZONTAL);
+        card.setGravity(Gravity.CENTER_VERTICAL);
+        card.setBackgroundDrawable(goldCard(context));
+        LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        cardParams.setMargins(AndroidUtilities.dp(16), AndroidUtilities.dp(4), AndroidUtilities.dp(16), AndroidUtilities.dp(4));
+        card.setPadding(AndroidUtilities.dp(17), AndroidUtilities.dp(13), AndroidUtilities.dp(13), AndroidUtilities.dp(13));
+        card.setLayoutParams(cardParams);
+        card.setClickable(true);
+        card.setFocusable(true);
+
+        LinearLayout textCol = new LinearLayout(context);
+        textCol.setOrientation(LinearLayout.VERTICAL);
+        TextView titleView = new TextView(context);
+        titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
+        titleView.setTypeface(AndroidUtilities.bold());
+        titleView.setTextColor(0xFFFFF6DF);
+        titleView.setText(title);
+        textCol.addView(titleView);
+        if (subtitle != null) {
+            TextView subView = new TextView(context);
+            subView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11);
+            subView.setTextColor(0x80E4D2A5);
+            subView.setText(subtitle);
+            subView.setPadding(0, AndroidUtilities.dp(2), 0, 0);
+            textCol.addView(subView);
+        }
+        card.addView(textCol, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+        Switch sw = new Switch(context);
+        sw.setChecked(checked, false);
+        card.addView(sw, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        card.setOnClickListener(v -> {
+            try {
+                boolean newState = onToggle.apply();
+                sw.setChecked(newState, true);
+                // every display effect changes what the app draws — rebuild surfaces
+                rebuildEverything();
+            } catch (Throwable t) {
+                FileLog.e(t);
+            }
+        });
+        return card;
+    }
+
+    /**
+     * DrGram Fix 33: 3x3 launcher icon grid. Tapping an icon applies it through
+     * LauncherIconController (the launcher refreshes within seconds) and the gold
+     * ring follows the active icon instantly.
+     */
+    private LinearLayout makeIconGrid(Context context) {
+        iconFrames.clear();
+        LauncherIconController.LauncherIcon[] icons = LauncherIconController.LauncherIcon.values();
+        LinearLayout grid = new LinearLayout(context);
+        grid.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams gridParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        gridParams.setMargins(AndroidUtilities.dp(12), AndroidUtilities.dp(2), AndroidUtilities.dp(12), AndroidUtilities.dp(4));
+        grid.setLayoutParams(gridParams);
+
+        int perRow = 3;
+        for (int row = 0; row * perRow < icons.length; row++) {
+            LinearLayout rowLayout = new LinearLayout(context);
+            rowLayout.setOrientation(LinearLayout.HORIZONTAL);
+            for (int col = 0; col < perRow; col++) {
+                int index = row * perRow + col;
+                LinearLayout cell = new LinearLayout(context);
+                cell.setOrientation(LinearLayout.VERTICAL);
+                cell.setGravity(Gravity.CENTER);
+                cell.setPadding(AndroidUtilities.dp(6), AndroidUtilities.dp(8), AndroidUtilities.dp(6), AndroidUtilities.dp(8));
+                if (index < icons.length) {
+                    LauncherIconController.LauncherIcon icon = icons[index];
+                    FrameLayout frame = new FrameLayout(context);
+                    frame.setPadding(AndroidUtilities.dp(5), AndroidUtilities.dp(5), AndroidUtilities.dp(5), AndroidUtilities.dp(5));
+                    ImageView iconView = new ImageView(context);
+                    iconView.setImageResource(icon.background);
+                    iconView.setLayoutParams(new FrameLayout.LayoutParams(
+                            AndroidUtilities.dp(52), AndroidUtilities.dp(52)));
+                    frame.addView(iconView);
+                    cell.addView(frame, new LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+                    TextView label = new TextView(context);
+                    label.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 10);
+                    label.setTextColor(0x99E4D2A5);
+                    label.setGravity(Gravity.CENTER);
+                    try {
+                        label.setText(LocaleController.getString(icon.title));
+                    } catch (Throwable ignore) {
+                        label.setText(icon.key);
+                    }
+                    label.setPadding(0, AndroidUtilities.dp(5), 0, 0);
+                    cell.addView(label, new LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+                    cell.setOnClickListener(v -> {
+                        try {
+                            if (!LauncherIconController.isEnabled(icon)) {
+                                LauncherIconController.setIcon(icon);
+                                if (getParentActivity() != null) {
+                                    Toast.makeText(getParentActivity(),
+                                            LocaleController.formatString(R.string.AppIconChangedTo,
+                                                    LocaleController.getString(icon.title)),
+                                            Toast.LENGTH_SHORT).show();
+                                }
+                            }
+                            refreshIconRings(icons);
+                        } catch (Throwable t) {
+                            FileLog.e(t);
+                        }
+                    });
+                    iconFrames.add(frame);
+                }
+                rowLayout.addView(cell, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+            }
+            grid.addView(rowLayout, new LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        }
+        refreshIconRings(icons);
+        return grid;
+    }
+
+    private void refreshIconRings(LauncherIconController.LauncherIcon[] icons) {
+        for (int i = 0; i < iconFrames.size() && i < icons.length; i++) {
+            boolean active = LauncherIconController.isEnabled(icons[i]);
+            GradientDrawable bg = new GradientDrawable();
+            bg.setCornerRadius(AndroidUtilities.dp(16));
+            bg.setColor(active ? 0x2EFFF6DF : 0x14FFFFFF);
+            bg.setStroke(AndroidUtilities.dp(active ? 2 : 1), active ? 0xFFFFC94A : 0x33FFFFFF);
+            iconFrames.get(i).setBackgroundDrawable(bg);
+        }
+    }
+
+    private void addCardHint(Context context, String text) {
+        TextView hint = new TextView(context);
+        hint.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11);
+        hint.setTextColor(0x80E4D2A5);
+        hint.setText(text);
+        hint.setPadding(AndroidUtilities.dp(24), AndroidUtilities.dp(2), AndroidUtilities.dp(24), AndroidUtilities.dp(4));
+        contentView.addView(hint);
     }
 
     //endregion

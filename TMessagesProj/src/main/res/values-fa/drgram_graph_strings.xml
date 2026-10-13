@@ -58,4 +58,18 @@
     <string name="DrGramFakeNotificationChannel">پیش‌نمایش‌های محلی LuxGram</string>
     <string name="DrGramToolsHero">پنل فرمان زرین‌پوش تو — همه‌ی قدرت‌های لوکس گرام، یک‌جا</string>
     <string name="DrGramSettingsHero">مرکز فرمانروایی لوکس گرام — لوکس، رمانتیک، ماندگار</string>
+
+    <string name="DrGramFwdWithQuote">هدایت با نقل قول</string>
+    <string name="DrGramAdvFwdQuoteHint">پیام از طرف خودتان فرستاده می‌شود و با سرصفحه نقل‌قول از منبع آغاز می‌گردد.</string>
+    <string name="DrGramAdvFwdQuoteHeader">نقل‌قول از %s:</string>
+    <string name="DrGramGalleryPersonalize">شخصی‌سازی</string>
+    <string name="DrGramGalleryPersonalizeHint">سایز فونت، حباب پیام، آیکن برنامه و جلوه‌های نمایش — همه‌ی چیزهایی که دوست داشتی، دوباره در یک گالری.</string>
+    <string name="DrGramGalleryFontSize">سایز فونت</string>
+    <string name="DrGramGalleryFontSizeHint">بلافاصله روی گفتگوها اعمال می‌شود؛ برای بازگشت به حالت پیش‌فرض دوباره این‌جا را ببین.</string>
+    <string name="DrGramGalleryFontSizeReset">بازنشانی به پیش‌فرض (۱۶)</string>
+    <string name="DrGramGalleryBubbleRadius">گردی حباب پیام</string>
+    <string name="DrGramGalleryBubbleRadiusHint">از حباب‌های کلاسیک مربعی (۰) تا کاملاً گرد (۱۸).</string>
+    <string name="DrGramGalleryAppIconHint">لانچر چند لحظه بعد آیکن جدید را نشان می‌دهد.</string>
+    <string name="DrGramGalleryDisplay">جلوه‌های نمایش</string>
+    <string name="DrGramGalleryDisplayHint">حس و حال روزانه‌ی لوکس گرام را خودت تنظیم کن.</string>
 </resources>

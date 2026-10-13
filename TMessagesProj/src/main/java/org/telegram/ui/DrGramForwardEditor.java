@@ -2,6 +2,8 @@
  * DrGram Advanced Forward — forward with full editing power:
  * edit the text/caption, strip links, strip hashtags, strip @IDs, replace words,
  * rename files, and send as your own clean message or classic forward.
+ * DrGram Fix 33: quote mode — opens pre-filled with a "Quote from <source>:" header
+ * and always sends from the user's own name (no Forwarded label).
  */
 package org.telegram.ui;
 
@@ -23,6 +25,8 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 
 import org.telegram.messenger.AndroidUtilities;
+import org.telegram.messenger.ContactsController;
+import org.telegram.messenger.FileLog;
 import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.MessageObject;
 import org.telegram.messenger.MessagesStorage;
@@ -65,8 +69,19 @@ public class DrGramForwardEditor extends BaseFragment implements DialogsActivity
     private TextView noTextHint;
     private TextView statusLine;
     private CheckBox fromMyNameCheck;
+    private final boolean quoteMode; // DrGram Fix 33
 
     public DrGramForwardEditor(ArrayList<MessageObject> objects) {
+        this(objects, false);
+    }
+
+    /**
+     * DrGram Fix 33: quoted = true opens the editor as "forward with quote":
+     * the text starts with a quote header from the source and the batch is
+     * always sent from the user's own name (the Forwarded label is dropped).
+     */
+    public DrGramForwardEditor(ArrayList<MessageObject> objects, boolean quoted) {
+        quoteMode = quoted;
         messages = objects == null ? new ArrayList<>() : objects;
         for (int i = 0; i < messages.size(); i++) {
             MessageObject m = messages.get(i);
@@ -134,6 +149,16 @@ public class DrGramForwardEditor extends BaseFragment implements DialogsActivity
         hint.setPadding(AndroidUtilities.dp(4), 0, AndroidUtilities.dp(4), AndroidUtilities.dp(10));
         content.addView(hint);
 
+        if (quoteMode) { // DrGram Fix 33: explain the quote mode
+            TextView quoteHint = new TextView(context);
+            quoteHint.setText(LocaleController.getString(R.string.DrGramAdvFwdQuoteHint));
+            quoteHint.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+            quoteHint.setTextColor(GOLD);
+            quoteHint.setTypeface(AndroidUtilities.bold());
+            quoteHint.setPadding(AndroidUtilities.dp(4), 0, AndroidUtilities.dp(4), AndroidUtilities.dp(10));
+            content.addView(quoteHint);
+        }
+
         textSection = new LinearLayout(context);
         textSection.setOrientation(LinearLayout.VERTICAL);
         content.addView(textSection);
@@ -158,7 +183,14 @@ public class DrGramForwardEditor extends BaseFragment implements DialogsActivity
             textSection.addView(textHeader);
 
             textInput = new EditText(context);
-            textInput.setText(messages.get(primaryIndex).messageOwner.message);
+            String initial = messages.get(primaryIndex).messageOwner.message;
+            if (quoteMode) { // DrGram Fix 33: pre-fill the editable text with the quote header
+                String source = sourceTitle();
+                String header = LocaleController.formatString(R.string.DrGramAdvFwdQuoteHeader,
+                        TextUtils.isEmpty(source) ? "…" : source);
+                initial = header + "\n" + initial;
+            }
+            textInput.setText(initial);
             textInput.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
             textInput.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
             textInput.setHintTextColor(getThemedColor(Theme.key_windowBackgroundWhiteHintText));
@@ -266,7 +298,12 @@ public class DrGramForwardEditor extends BaseFragment implements DialogsActivity
         toggleText.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14);
         toggleText.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
         toggleRow.addView(toggleText, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1f));
-        toggleRow.setOnClickListener(v -> fromMyNameCheck.toggle());
+        if (quoteMode) { // DrGram Fix 33: quote mode always sends from the user's own name
+            fromMyNameCheck.setEnabled(false);
+            toggleRow.setAlpha(0.55f);
+        } else {
+            toggleRow.setOnClickListener(v -> fromMyNameCheck.toggle());
+        }
 
         TextView pickBtn = new TextView(context);
         pickBtn.setText(LocaleController.getString(R.string.DrGramAdvFwdPick));
@@ -304,6 +341,46 @@ public class DrGramForwardEditor extends BaseFragment implements DialogsActivity
         fragment.finishFragment();
         finishFragment();
         return true;
+    }
+
+    /**
+     * DrGram Fix 33: resolves a friendly source name (channel/group/user title)
+     * for the quote header, scanning the batch until something matches.
+     */
+    private String sourceTitle() {
+        try {
+            for (int i = 0; i < messages.size(); i++) {
+                MessageObject mo = messages.get(i);
+                if (mo == null) {
+                    continue;
+                }
+                long chatId = mo.getChatId();
+                if (chatId != 0) {
+                    TLRPC.Chat chat = getMessagesController().getChat(chatId);
+                    if (chat != null && !TextUtils.isEmpty(chat.title)) {
+                        return chat.title;
+                    }
+                }
+                long fromId = mo.getSenderId();
+                if (fromId < 0) {
+                    TLRPC.Chat chat = getMessagesController().getChat(-fromId);
+                    if (chat != null && !TextUtils.isEmpty(chat.title)) {
+                        return chat.title;
+                    }
+                } else if (fromId > 0) {
+                    TLRPC.User user = getMessagesController().getUser(fromId);
+                    if (user != null) {
+                        String name = ContactsController.formatName(user.first_name, user.last_name);
+                        if (!TextUtils.isEmpty(name)) {
+                            return name;
+                        }
+                    }
+                }
+            }
+        } catch (Throwable t) {
+            FileLog.e(t);
+        }
+        return "";
     }
 
     private ArrayList<MessageObject> buildSendList() {

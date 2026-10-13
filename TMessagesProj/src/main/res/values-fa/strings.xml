@@ -548,7 +548,7 @@
     <string name="DrGramSetMembersBar">نوار اعضای گروه</string>
     <string name="DrGramSetJalaliDates">تاریخ خورشیدی</string>
 
-    <string name="DrGramAdvFwdTitle">فوروارد پیشرفته</string>
+    <string name="DrGramAdvFwdTitle">هدایت پیشرفته</string>
     <string name="DrGramAdvFwdHint">متن را ویرایش کنید، لینک‌ها و هشتگ‌ها را حذف کنید، کلمه‌ها را جایگزین کنید و نام فایل‌ها را عوض کنید — بعد یک پیام تمیز بفرستید.</string>
     <string name="DrGramAdvFwdCount">%d پیام انتخاب شده</string>
     <string name="DrGramAdvFwdTextEdit">متن پیام / کپشن</string>
