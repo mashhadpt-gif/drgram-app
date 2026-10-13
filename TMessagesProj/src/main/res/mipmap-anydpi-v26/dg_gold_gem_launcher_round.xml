@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
-    <background android:drawable="@drawable/dg_icon_bg_gold" />
-    <foreground android:drawable="@drawable/dg_gold_gem_fg" />
+    <background android:drawable="@mipmap/dg_art_gold_gem" />
+    <foreground android:drawable="@drawable/dg_transparent_fg" />
 </adaptive-icon>

@@ -472,30 +472,274 @@ public class DrGramSettingsActivity extends BaseFragment {
 
     //region 1b. Luxury theme (Fix 8)
 
-    private LinearLayout themePillGold;
-    private LinearLayout themePillRed;
+    private LinearLayout themeCardGold;
+    private LinearLayout themeCardRed;
+    private android.widget.SeekBar goldSlider;
+    private android.widget.SeekBar redSlider;
+    private android.widget.TextView goldSliderValue;
+    private android.widget.TextView redSliderValue;
+    private android.view.View goldSwatch;
+    private android.view.View redSwatch;
+    private boolean goldSliderDragging;
+    private boolean redSliderDragging;
 
+    /**
+     * DrGram Fix 32: the custom-mode section was two tiny pills the user could
+     * barely find (and even asked "where is it?!"). Rebuilt as two large cards
+     * with descriptions plus a tuning panel: the amount of gold and the amount
+     * of red of the two branded palettes are now adjustable with sliders.
+     * Default is the light-gold look.
+     */
     private void buildThemeSection(Context context) {
         addHeader(context, LocaleController.getString(R.string.DrGramSetTheme),
                 LocaleController.getString(R.string.DrGramSetThemeHint));
 
-        LinearLayout pillsRow = new LinearLayout(context);
-        pillsRow.setOrientation(LinearLayout.HORIZONTAL);
-        pillsRow.setGravity(Gravity.CENTER);
+        LinearLayout cardsRow = new LinearLayout(context);
+        cardsRow.setOrientation(LinearLayout.HORIZONTAL);
         LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        rowParams.setMargins(AndroidUtilities.dp(16), AndroidUtilities.dp(4), AndroidUtilities.dp(16), AndroidUtilities.dp(6));
-        contentView.addView(pillsRow, rowParams);
+        rowParams.setMargins(AndroidUtilities.dp(14), AndroidUtilities.dp(4), AndroidUtilities.dp(14), AndroidUtilities.dp(6));
+        contentView.addView(cardsRow, rowParams);
 
-        themePillGold = makeThemePill(context, LocaleController.getString(R.string.DrGramSetThemeGold), 0xFFF5B90D, false);
-        themePillRed = makeThemePill(context, LocaleController.getString(R.string.DrGramSetThemeRed), 0xFFE63B52, true);
-        LinearLayout.LayoutParams pillParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
-        pillParams.setMargins(AndroidUtilities.dp(4), 0, AndroidUtilities.dp(4), 0);
-        pillsRow.addView(themePillGold, pillParams);
-        pillsRow.addView(themePillRed, pillParams);
+        themeCardGold = makeThemeCard(context, LocaleController.getString(R.string.DrGramSetThemeGold),
+                LocaleController.getString(R.string.DrGramSetThemeGoldDesc), 0xFFF5B90D, false);
+        themeCardRed = makeThemeCard(context, LocaleController.getString(R.string.DrGramSetThemeRed),
+                LocaleController.getString(R.string.DrGramSetThemeRedDesc), 0xFFE63B52, true);
+        LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f);
+        cardParams.setMargins(AndroidUtilities.dp(2), 0, AndroidUtilities.dp(2), 0);
+        cardsRow.addView(themeCardGold, cardParams);
+        cardsRow.addView(themeCardRed, cardParams);
 
-        themePillGold.setOnClickListener(v -> applyBrandMode(false));
-        themePillRed.setOnClickListener(v -> applyBrandMode(true));
+        themeCardGold.setOnClickListener(v -> applyBrandMode(false));
+        themeCardRed.setOnClickListener(v -> applyBrandMode(true));
+
+        buildTuningPanel(context);
+
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramGalleryOpen), v -> {
+            try {
+                presentFragment(new DrGramStyleGalleryActivity());
+            } catch (Throwable t) {
+                FileLog.e(t);
+            }
+        }));
         refreshThemePills();
+    }
+
+    private LinearLayout makeThemeCard(Context context, String title, String subtitle, int accent, boolean red) {
+        LinearLayout card = new LinearLayout(context);
+        card.setOrientation(LinearLayout.VERTICAL);
+        card.setGravity(Gravity.START);
+        card.setClickable(true);
+        card.setFocusable(true);
+        card.setPadding(AndroidUtilities.dp(15), AndroidUtilities.dp(13), AndroidUtilities.dp(13), AndroidUtilities.dp(13));
+
+        android.view.View dot = new android.view.View(context);
+        android.graphics.drawable.GradientDrawable dotBg = new android.graphics.drawable.GradientDrawable();
+        dotBg.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+        dotBg.setColor(accent);
+        dot.setBackgroundDrawable(dotBg);
+        card.addView(dot, LayoutHelper.createLinear(16, 16, 0, 0, 0, 0));
+
+        android.widget.TextView titleView = new android.widget.TextView(context);
+        titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
+        titleView.setTypeface(AndroidUtilities.bold());
+        titleView.setTextColor(accent);
+        titleView.setText(title);
+        titleView.setPadding(0, AndroidUtilities.dp(9), 0, 0);
+        card.addView(titleView);
+
+        android.widget.TextView subView = new android.widget.TextView(context);
+        subView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
+        subView.setTextColor(0x99E4D2A5);
+        subView.setText(subtitle);
+        subView.setPadding(0, AndroidUtilities.dp(2), 0, 0);
+        card.addView(subView);
+        return card;
+    }
+
+    private void buildTuningPanel(Context context) {
+        boolean love = DrGramThemeInstaller.isLoveMode();
+        LinearLayout panel = new LinearLayout(context);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        android.graphics.drawable.GradientDrawable panelBg = new android.graphics.drawable.GradientDrawable(
+                android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT,
+                love ? new int[] {0xFF2A1018, 0xFF1C0B11} : new int[] {0xFF3A2C0E, 0xFF211A0A});
+        panelBg.setCornerRadius(AndroidUtilities.dp(17));
+        panelBg.setStroke(AndroidUtilities.dp(1), love ? 0x66E63B52 : 0x66FFC94A);
+        panel.setBackgroundDrawable(panelBg);
+        LinearLayout.LayoutParams panelParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        panelParams.setMargins(AndroidUtilities.dp(16), AndroidUtilities.dp(4), AndroidUtilities.dp(16), AndroidUtilities.dp(6));
+        panel.setPadding(AndroidUtilities.dp(17), AndroidUtilities.dp(13), AndroidUtilities.dp(17), AndroidUtilities.dp(15));
+        contentView.addView(panel, panelParams);
+
+        // --- goldness slider (Gold Mode) ---
+        panel.addView(makeSliderLabel(context, LocaleController.getString(R.string.DrGramThemeGoldness), 0xFFE9C55F));
+        goldSwatch = new android.view.View(context);
+        panel.addView(makeSwatchRow(context, goldSwatch, 0xFFE9C55F));
+        goldSlider = makeSlider(context, DrGramThemeInstaller.getGoldness(), 0xFFF0BE3F);
+        panel.addView(goldSlider);
+        goldSliderValue = makeSliderValue(context);
+        panel.addView(goldSliderValue);
+        goldSlider.setOnSeekBarChangeListener(new android.widget.SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(android.widget.SeekBar seekBar, int progress, boolean fromUser) {
+                if (goldSliderValue != null) {
+                    goldSliderValue.setText(progress + "%");
+                }
+                if (goldSwatch != null) {
+                    goldSwatch.setBackgroundDrawable(swatchDrawable(
+                            org.telegram.messenger.DrGramThemeTuner.previewAccent(false, progress)));
+                }
+            }
+
+            @Override
+            public void onStartTrackingTouch(android.widget.SeekBar seekBar) {
+                goldSliderDragging = true;
+            }
+
+            @Override
+            public void onStopTrackingTouch(android.widget.SeekBar seekBar) {
+                goldSliderDragging = false;
+                applyIntensity(false, seekBar.getProgress());
+            }
+        });
+
+        // --- redness slider (LOVE Mode) ---
+        panel.addView(makeSliderLabel(context, LocaleController.getString(R.string.DrGramThemeRedness), 0xFFF0778C));
+        redSwatch = new android.view.View(context);
+        panel.addView(makeSwatchRow(context, redSwatch, 0xFFF0778C));
+        redSlider = makeSlider(context, DrGramThemeInstaller.getRedness(), 0xFFE63B52);
+        panel.addView(redSlider);
+        redSliderValue = makeSliderValue(context);
+        panel.addView(redSliderValue);
+        redSlider.setOnSeekBarChangeListener(new android.widget.SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(android.widget.SeekBar seekBar, int progress, boolean fromUser) {
+                if (redSliderValue != null) {
+                    redSliderValue.setText(progress + "%");
+                }
+                if (redSwatch != null) {
+                    redSwatch.setBackgroundDrawable(swatchDrawable(
+                            org.telegram.messenger.DrGramThemeTuner.previewAccent(true, progress)));
+                }
+            }
+
+            @Override
+            public void onStartTrackingTouch(android.widget.SeekBar seekBar) {
+                redSliderDragging = true;
+            }
+
+            @Override
+            public void onStopTrackingTouch(android.widget.SeekBar seekBar) {
+                redSliderDragging = false;
+                applyIntensity(true, seekBar.getProgress());
+            }
+        });
+
+        android.widget.TextView hint = new android.widget.TextView(context);
+        hint.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11);
+        hint.setTextColor(0x80E4D2A5);
+        hint.setText(LocaleController.getString(R.string.DrGramThemeIntensityHint));
+        hint.setPadding(0, AndroidUtilities.dp(6), 0, 0);
+        panel.addView(hint);
+    }
+
+    private android.widget.TextView makeSliderLabel(Context context, String text, int color) {
+        android.widget.TextView label = new android.widget.TextView(context);
+        label.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+        label.setTypeface(AndroidUtilities.bold());
+        label.setTextColor(color);
+        label.setText(text);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        params.topMargin = AndroidUtilities.dp(4);
+        label.setLayoutParams(params);
+        return label;
+    }
+
+    private LinearLayout makeSwatchRow(Context context, android.view.View swatch, int fallbackColor) {
+        LinearLayout row = new LinearLayout(context);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setGravity(Gravity.CENTER_VERTICAL);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        params.topMargin = AndroidUtilities.dp(7);
+        row.setLayoutParams(params);
+        swatch.setBackgroundDrawable(swatchDrawable(fallbackColor));
+        row.addView(swatch, LayoutHelper.createLinear(26, 26, 0, 0, 0, 0));
+        android.widget.TextView caption = new android.widget.TextView(context);
+        caption.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11);
+        caption.setTextColor(0x80E4D2A5);
+        caption.setText(DrGramThemeInstaller.isLoveMode() ? "E63B52" : "F5B90D");
+        caption.setPadding(AndroidUtilities.dp(9), 0, 0, 0);
+        row.addView(caption, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        return row;
+    }
+
+    private android.graphics.drawable.GradientDrawable swatchDrawable(int color) {
+        android.graphics.drawable.GradientDrawable swatch = new android.graphics.drawable.GradientDrawable();
+        swatch.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+        swatch.setColor(color);
+        swatch.setStroke(AndroidUtilities.dp(2), 0x66FFFFFF);
+        return swatch;
+    }
+
+    private android.widget.SeekBar makeSlider(Context context, int value, int accent) {
+        android.widget.SeekBar slider = new android.widget.SeekBar(context);
+        slider.setMax(100);
+        slider.setProgress(value);
+        slider.setSplitTrack(false);
+        android.graphics.drawable.GradientDrawable track = new android.graphics.drawable.GradientDrawable();
+        track.setCornerRadius(AndroidUtilities.dp(3));
+        track.setColor(0x2EFFFFFF);
+        android.graphics.drawable.ClipDrawable progress = new android.graphics.drawable.ClipDrawable(
+                track, android.view.Gravity.START, android.graphics.drawable.ClipDrawable.HORIZONTAL);
+        android.graphics.drawable.GradientDrawable thumb = new android.graphics.drawable.GradientDrawable();
+        thumb.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+        thumb.setColor(accent);
+        thumb.setStroke(AndroidUtilities.dp(2), 0x73FFFFFF);
+        thumb.setSize(AndroidUtilities.dp(22), AndroidUtilities.dp(22));
+        slider.setProgressDrawable(progress);
+        slider.setThumb(thumb);
+        slider.setThumbOffset(AndroidUtilities.dp(3));
+        slider.setPadding(AndroidUtilities.dp(14), AndroidUtilities.dp(6), AndroidUtilities.dp(14), AndroidUtilities.dp(6));
+        slider.setBackground(null);
+        LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        params.topMargin = AndroidUtilities.dp(2);
+        slider.setLayoutParams(params);
+        return slider;
+    }
+
+    private android.widget.TextView makeSliderValue(Context context) {
+        android.widget.TextView value = new android.widget.TextView(context);
+        value.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11);
+        value.setTextColor(0x99E4D2A5);
+        value.setGravity(Gravity.END);
+        value.setPadding(0, 0, AndroidUtilities.dp(2), AndroidUtilities.dp(4));
+        return value;
+    }
+
+    private void applyIntensity(boolean red, int value) {
+        boolean applied = DrGramThemeInstaller.setIntensity(red, value);
+        if (applied) {
+            refreshBrandSurfaces();
+            refreshThemePills();
+            if (parentLayout != null) {
+                AndroidUtilities.runOnUIThread(() -> {
+                    try {
+                        parentLayout.rebuildAllFragmentViews(true, true);
+                    } catch (Throwable t) {
+                        FileLog.e(t);
+                    }
+                });
+            }
+        } else if (getParentActivity() != null) {
+            android.widget.Toast.makeText(getParentActivity(),
+                    LocaleController.getString(R.string.DrGramSetThemeApplyFailed),
+                    android.widget.Toast.LENGTH_LONG).show();
+        }
     }
 
     private void chooseBrandMode() {
@@ -563,30 +807,45 @@ public class DrGramSettingsActivity extends BaseFragment {
     }
 
     private void refreshThemePills() {
-        if (themePillGold == null || themePillRed == null) {
+        if (themeCardGold == null || themeCardRed == null) {
             return;
         }
-        int cardColor = getThemedColor(Theme.key_dialogBackground);
         boolean loveMode = DrGramThemeInstaller.isLoveMode();
-        android.graphics.drawable.GradientDrawable goldBg = new android.graphics.drawable.GradientDrawable();
-        goldBg.setCornerRadius(AndroidUtilities.dp(18));
-        goldBg.setColor(loveMode ? cardColor : 0xFF33270D);
+        android.graphics.drawable.GradientDrawable goldBg = new android.graphics.drawable.GradientDrawable(
+                android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT,
+                loveMode ? new int[] {0xFF231A0A, 0xFF1C1408} : new int[] {0xFF4A3810, 0xFF2B2009});
+        goldBg.setCornerRadius(AndroidUtilities.dp(17));
         goldBg.setStroke(AndroidUtilities.dp(loveMode ? 1 : 2), 0xFFFFC94A);
-        themePillGold.setBackgroundDrawable(goldBg);
-        themePillGold.setPadding(AndroidUtilities.dp(14), AndroidUtilities.dp(12), AndroidUtilities.dp(14), AndroidUtilities.dp(12));
-        android.graphics.drawable.GradientDrawable redBg = new android.graphics.drawable.GradientDrawable();
-        redBg.setCornerRadius(AndroidUtilities.dp(18));
-        redBg.setColor(loveMode ? 0xFF2B1017 : cardColor);
+        themeCardGold.setBackgroundDrawable(goldBg);
+        android.graphics.drawable.GradientDrawable redBg = new android.graphics.drawable.GradientDrawable(
+                android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT,
+                loveMode ? new int[] {0xFF3B1420, 0xFF250D15} : new int[] {0xFF221018, 0xFF190B10});
+        redBg.setCornerRadius(AndroidUtilities.dp(17));
         redBg.setStroke(AndroidUtilities.dp(loveMode ? 2 : 1), 0xFFE63B52);
-        themePillRed.setBackgroundDrawable(redBg);
-        themePillRed.setPadding(AndroidUtilities.dp(14), AndroidUtilities.dp(12), AndroidUtilities.dp(14), AndroidUtilities.dp(12));
-        // Both are selectable; the thicker stroke marks the currently active mode.
-        android.widget.TextView goldLabel = (android.widget.TextView) themePillGold.getChildAt(1);
-        android.widget.TextView redLabel = (android.widget.TextView) themePillRed.getChildAt(1);
-        goldLabel.setTextColor(0xFFFFC94A);
-        redLabel.setTextColor(0xFFE63B52);
-        themePillGold.setClickable(true);
-        themePillRed.setClickable(true);
+        themeCardRed.setBackgroundDrawable(redBg);
+        // The thicker stroke marks the currently active mode.
+        themeCardGold.setClickable(true);
+        themeCardRed.setClickable(true);
+        if (goldSlider != null) {
+            goldSlider.setProgress(DrGramThemeInstaller.getGoldness());
+        }
+        if (redSlider != null) {
+            redSlider.setProgress(DrGramThemeInstaller.getRedness());
+        }
+        if (goldSliderValue != null) {
+            goldSliderValue.setText(DrGramThemeInstaller.getGoldness() + "%");
+        }
+        if (redSliderValue != null) {
+            redSliderValue.setText(DrGramThemeInstaller.getRedness() + "%");
+        }
+        if (goldSwatch != null) {
+            goldSwatch.setBackgroundDrawable(swatchDrawable(
+                    org.telegram.messenger.DrGramThemeTuner.previewAccent(false, DrGramThemeInstaller.getGoldness())));
+        }
+        if (redSwatch != null) {
+            redSwatch.setBackgroundDrawable(swatchDrawable(
+                    org.telegram.messenger.DrGramThemeTuner.previewAccent(true, DrGramThemeInstaller.getRedness())));
+        }
     }
 
     //endregion
@@ -755,35 +1014,55 @@ public class DrGramSettingsActivity extends BaseFragment {
             return;
         }
         Context context = getParentActivity();
+        // DrGram Fix 32: the old dialog used a near-invisible 10%-white field
+        // background, zero spacing between the two fields and no inner padding —
+        // the user could not tell where the fields were. Redesigned: solid
+        // dark-gold fields with a bright stroke, real inner padding and a 12dp
+        // gap, wrapped in a scroll view so the keyboard never hides the text.
+        boolean love = DrGramThemeInstaller.isLoveMode();
         LinearLayout box = new LinearLayout(context);
         box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(AndroidUtilities.dp(22), AndroidUtilities.dp(10), AndroidUtilities.dp(22), AndroidUtilities.dp(4));
+        android.graphics.drawable.GradientDrawable replyFieldBg = new android.graphics.drawable.GradientDrawable();
+        replyFieldBg.setCornerRadius(AndroidUtilities.dp(14));
+        replyFieldBg.setColor(love ? 0xFF2B121A : 0xFF2B2210);
+        replyFieldBg.setStroke(AndroidUtilities.dp(1), love ? 0x8CF06A82 : 0x8CF4D27A);
         EditText titleField = new EditText(context);
         titleField.setHint(LocaleController.getString(R.string.DrGramSetRepliesName));
         titleField.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
+        titleField.setSingleLine(true);
         titleField.setText(presetTitle);
         // DrGram Fix 14: guaranteed readable text on the dark luxury dialogs —
         // bare EditTexts resolved a dark framework color on the dark background.
-        titleField.setTextColor(0xFFF7F0DF);
-        titleField.setHintTextColor(0x99B9AD95);
-        android.graphics.drawable.GradientDrawable replyFieldBg = new android.graphics.drawable.GradientDrawable();
-        replyFieldBg.setCornerRadius(AndroidUtilities.dp(12));
-        replyFieldBg.setColor(0x1AFFFFFF);
-        replyFieldBg.setStroke(AndroidUtilities.dp(1), 0x59F4D27A);
+        titleField.setTextColor(0xFFFFF6DF);
+        titleField.setHintTextColor(0xCCB9AD95);
         titleField.setBackground(replyFieldBg);
+        titleField.setPadding(AndroidUtilities.dp(15), AndroidUtilities.dp(13), AndroidUtilities.dp(15), AndroidUtilities.dp(13));
         EditText textField = new EditText(context);
         textField.setHint(LocaleController.getString(R.string.DrGramSetRepliesText));
         textField.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_MULTI_LINE | InputType.TYPE_TEXT_FLAG_CAP_SENTENCES);
-        textField.setMinLines(2);
+        textField.setMinLines(3);
+        textField.setGravity(android.view.Gravity.TOP | android.view.Gravity.START);
         textField.setText(presetText);
-        textField.setTextColor(0xFFF7F0DF);
-        textField.setHintTextColor(0x99B9AD95);
+        textField.setTextColor(0xFFFFF6DF);
+        textField.setHintTextColor(0xCCB9AD95);
         textField.setBackground(replyFieldBg);
-        box.addView(titleField);
-        box.addView(textField);
+        textField.setPadding(AndroidUtilities.dp(15), AndroidUtilities.dp(13), AndroidUtilities.dp(15), AndroidUtilities.dp(13));
+        box.addView(titleField, new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        LinearLayout.LayoutParams textParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        textParams.topMargin = AndroidUtilities.dp(12);
+        box.addView(textField, textParams);
+        android.widget.ScrollView replyScroller = new android.widget.ScrollView(context);
+        replyScroller.setVerticalScrollBarEnabled(false);
+        replyScroller.setHorizontalScrollBarEnabled(false);
+        replyScroller.addView(box, new android.widget.FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
         AlertDialog.Builder builder = new AlertDialog.Builder(context)
                 .setTitle(id == 0 ? LocaleController.getString(R.string.DrGramSetRepliesAdd) : LocaleController.getString(R.string.DrGramSetRepliesEdit))
-                .setView(box)
+                .setView(replyScroller)
                 .setPositiveButton(LocaleController.getString(R.string.Save), (dialog, which) -> {
                     String title = titleField.getText().toString().trim();
                     String text = textField.getText().toString().trim();

@@ -11608,5 +11608,26 @@
     <string name="DrGramShareUsername">Share username</string>
     <string name="DrGramCopyMentionId">Copy mention ID</string>
     <string name="DrGramIdCopied">ID copied</string>
+    <!-- DrGram Fix 32: style gallery + tunable brand colors -->
+    <string name="DrGramThemeGoldness">Gold intensity</string>
+    <string name="DrGramThemeRedness">Red intensity</string>
+    <string name="DrGramThemeIntensityHint">Drag to taste, release to apply. Light gold is the default.</string>
+    <string name="DrGramSetThemeGoldDesc">Black &amp; gold luxury</string>
+    <string name="DrGramSetThemeRedDesc">Black &amp; red romance</string>
+    <string name="DrGramGalleryOpen">Open the style gallery</string>
+    <string name="DrGramGalleryBrand">LuxGram signature themes</string>
+    <string name="DrGramGalleryBrandHint">Two handcrafted LuxGram palettes with tunable intensity, plus an elegant curated collection below.</string>
+    <string name="DrGramGalleryCurated">Curated collection</string>
+    <string name="DrGramGalleryCuratedHint">Elegant themes gathered from the Telegram community.</string>
+    <string name="DrGramGalleryApplied">Theme applied</string>
+    <string name="DrGramGalleryActive">Active</string>
+    <string name="DrGramGalleryApplyFailed">Could not apply this theme</string>
+    <string name="DrGramGalleryBackToBrand">Back to LuxGram themes</string>
+    <string name="DrGramGalleryBackHint">Leave the curated theme and return to the LuxGram signature look</string>
+    <string name="DrGramThemeNameAmoled">AMOLED Night</string>
+    <string name="DrGramThemeNameIndigo">Indigo</string>
+    <string name="DrGramThemeNameSoftDark">Soft Dark</string>
+    <string name="DrGramThemeNameSkyBlue">Sky Blue</string>
+    <string name="DrGramThemeNameDracula">Dracula</string>
 </resources>
 

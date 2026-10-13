@@ -629,5 +629,25 @@
     <string name="DrGramShareUsername">به اشتراک گذاری نام کاربر</string>
     <string name="DrGramCopyMentionId">کپی شناسه ذکر نام</string>
     <string name="DrGramIdCopied">شناسه کپی شد</string>
+    <string name="DrGramThemeGoldness">میزان طلایی بودن</string>
+    <string name="DrGramThemeRedness">میزان قرمزی</string>
+    <string name="DrGramThemeIntensityHint">با کشیدن به سلیقه خود تنظیم کنید و با رها کردن اعمال شود. پیش‌فرض، طلایی روشن است.</string>
+    <string name="DrGramSetThemeGoldDesc">لوکسِ سیاه و طلایی</string>
+    <string name="DrGramSetThemeRedDesc">رمانتیکِ سیاه و قرمز</string>
+    <string name="DrGramGalleryOpen">باز کردن گالری ظاهر</string>
+    <string name="DrGramGalleryBrand">تم‌های امضای لوکس‌گرام</string>
+    <string name="DrGramGalleryBrandHint">دو پالت دست‌ساز لوکس‌گرام با شدت رنگ قابل تنظیم، به‌همراه مجموعه ویژه شیک در ادامه.</string>
+    <string name="DrGramGalleryCurated">پوسته‌های ویژه</string>
+    <string name="DrGramGalleryCuratedHint">پوسته‌های شیک گردآوری‌شده از جامعه تلگرام.</string>
+    <string name="DrGramGalleryApplied">پوسته اعمال شد</string>
+    <string name="DrGramGalleryActive">فعال</string>
+    <string name="DrGramGalleryApplyFailed">اعمال این پوسته ممکن نشد</string>
+    <string name="DrGramGalleryBackToBrand">بازگشت به تم‌های لوکس‌گرام</string>
+    <string name="DrGramGalleryBackHint">کنار گذاشتن پوسته انتخابی و بازگشت به نمای اصلی لوکس‌گرام</string>
+    <string name="DrGramThemeNameAmoled">شب خالص</string>
+    <string name="DrGramThemeNameIndigo">نیلی</string>
+    <string name="DrGramThemeNameSoftDark">تاریک لطیف</string>
+    <string name="DrGramThemeNameSkyBlue">آبی آسمانی</string>
+    <string name="DrGramThemeNameDracula">دراکولا</string>
 </resources>
 

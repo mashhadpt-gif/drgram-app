@@ -148,9 +148,9 @@ public class DrGramToolsActivity extends BaseFragment {
         // DrGram Fix 29: one tap -> the exact crash log, shareable to support
         contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramSendCrash), v ->
                 drgramShareLastCrash()));
-        // DrGram Fix 20: style gallery — the built-in theme presets
+        // DrGram Fix 32: style gallery — brand palettes + curated collection
         contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramStyleGallery), v ->
-                presentFragment(new ThemeActivity(ThemeActivity.THEME_TYPE_BASIC))));
+                presentFragment(new DrGramStyleGalleryActivity())));
     }
 
     //endregion

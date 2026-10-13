@@ -52,7 +52,7 @@ public class DrGramThemeInstaller {
      * holding an older installed copy silently get a fresh install from the new
      * asset on the next app start, so palette upgrades reach every user.
      */
-    public static final int THEME_ASSET_VERSION = 3;
+    public static final int THEME_ASSET_VERSION = 4;
 
     private static volatile boolean tried = false;
 
@@ -74,6 +74,20 @@ public class DrGramThemeInstaller {
         try {
             ensureThemeAsset(false);
             ensureThemeAsset(true);
+            if (isFreeThemeMode()) {
+                // Fix 32: the user picked one of the curated gallery themes —
+                // respect that choice. Only heal when the picked theme file is
+                // gone or corrupt (then fall back to the brand palette).
+                Theme.ThemeInfo active = Theme.getActiveTheme();
+                File installed = active != null && active.pathToFile != null
+                        ? new File(active.pathToFile) : null;
+                boolean healthy = installed != null && installed.exists() && installed.length() > 1024;
+                if (!healthy) {
+                    clearFreeThemeMode();
+                    setLoveMode(isLoveMode());
+                }
+                return;
+            }
             // Keep the currently selected DrGram brand mode. Do not bind theme
             // switching to Android's uiMode and never fall back to Telegram stock.
             setLoveMode(isLoveMode());
@@ -170,6 +184,9 @@ public class DrGramThemeInstaller {
             if (!copyAsset(ctx, asset, tmp)) {
                 return false;
             }
+            // Fix 32: tune the accent family (gold / red) by the user's intensity
+            // slider before the file becomes the installed theme.
+            DrGramThemeTuner.tune(tmp, red, red ? getRedness() : getGoldness());
             Theme.ThemeInfo applied = Theme.applyThemeFile(tmp, name, (TLRPC.TL_theme) null, false);
             try {
                 tmp.delete();
@@ -231,6 +248,149 @@ public class DrGramThemeInstaller {
     public static int accentColor() {
         return isLoveMode() ? 0xFFE63B52 : 0xFFFFC94A;
     }
+
+    //region Fix 32: intensity + curated (free) themes + day/night resolution
+
+    private static final String PREF_GOLDNESS = "drgram_goldness";
+    private static final String PREF_REDNESS = "drgram_redness";
+    private static final String PREF_FREE_THEME = "drgram_theme_free";
+
+    /** 0..100, 50 = the shipped light-gold default. */
+    public static int getGoldness() {
+        return clampIntensity(MessagesController.getGlobalMainSettings().getInt(PREF_GOLDNESS, 50));
+    }
+
+    /** 0..100, 50 = the shipped romance-red default. */
+    public static int getRedness() {
+        return clampIntensity(MessagesController.getGlobalMainSettings().getInt(PREF_REDNESS, 50));
+    }
+
+    private static int clampIntensity(int v) {
+        return v < 0 ? 0 : (v > 100 ? 100 : v);
+    }
+
+    /**
+     * Applies a new intensity for one of the branded palettes and re-applies it
+     * immediately (the asset is re-tuned and reinstalled, version guard bypassed).
+     */
+    public static boolean setIntensity(boolean red, int value) {
+        try {
+            int v = clampIntensity(value);
+            SharedPreferences globalPrefs = MessagesController.getGlobalMainSettings();
+            globalPrefs.edit()
+                    .putInt(red ? PREF_REDNESS : PREF_GOLDNESS, v)
+                    .putInt(red ? "drgram_theme_asset_version_red" : "drgram_theme_asset_version_gold", 0)
+                    .apply();
+            if (!ensureThemeAsset(red)) {
+                return false;
+            }
+            // Re-apply the CURRENT brand mode (never switch modes implicitly —
+            // tuning the red slider while in Gold Mode must not activate LOVE).
+            return setLoveMode(isLoveMode());
+        } catch (Throwable t) {
+            FileLog.e(t);
+            return false;
+        }
+    }
+
+    /** Display name of the curated (non-brand) theme the user applied, or null. */
+    public static String freeThemeName() {
+        try {
+            return MessagesController.getGlobalMainSettings().getString(PREF_FREE_THEME, null);
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    public static boolean isFreeThemeMode() {
+        return freeThemeName() != null;
+    }
+
+    public static void clearFreeThemeMode() {
+        try {
+            MessagesController.getGlobalMainSettings().edit().remove(PREF_FREE_THEME).apply();
+        } catch (Throwable t) {
+            FileLog.e(t);
+        }
+    }
+
+    /**
+     * Installs + applies one of the bundled curated themes (style gallery).
+     * Marks the app as being in "free theme" mode so the brand self-healing
+     * does not fight the user's pick.
+     */
+    public static boolean applyCuratedTheme(String assetName, String displayName) {
+        try {
+            Context ctx = ApplicationLoader.applicationContext;
+            if (ctx == null) {
+                return false;
+            }
+            File tmp = new File(ApplicationLoader.getFilesDirFixed(), displayName + ".install.tmp");
+            if (!copyAsset(ctx, assetName, tmp)) {
+                return false;
+            }
+            Theme.ThemeInfo info = Theme.applyThemeFile(tmp, displayName, (TLRPC.TL_theme) null, false);
+            try {
+                tmp.delete();
+            } catch (Throwable ignore) {
+            }
+            if (info == null) {
+                return false;
+            }
+            String key = info.getKey();
+            SharedPreferences settings = MessagesController.getGlobalMainSettings();
+            settings.edit()
+                    .putString(PREF_FREE_THEME, displayName)
+                    .putString("theme", key)
+                    .putString("nighttheme", key)
+                    .putInt("selectedAutoNightType", Theme.AUTO_NIGHT_TYPE_NONE)
+                    .apply();
+            Theme.selectedAutoNightType = Theme.AUTO_NIGHT_TYPE_NONE;
+            Theme.cancelAutoNightThemeCallbacks();
+            Theme.setCurrentNightTheme(info);
+            return true;
+        } catch (Throwable t) {
+            FileLog.e(t);
+            return false;
+        }
+    }
+
+    /**
+     * Fix 32: the day/night switch (drawer moon, ThemeActivity sun, system
+     * dark-mode events) resolved to Telegram's stock asset themes ("Gold",
+     * "Red", "Day"...), which showed the unbranded look until the next app
+     * start re-asserted the branded file theme. This resolves every such event
+     * back to the active LuxGram palette — unless the user deliberately picked
+     * a curated theme (free mode) or the requested theme is already one of ours.
+     */
+    public static Theme.ThemeInfo resolveDayNightTheme(Theme.ThemeInfo requested) {
+        try {
+            if (requested != null) {
+                String key = requested.getKey();
+                if (GOLD_KEY.equals(key) || RED_KEY.equals(key)) {
+                    return requested;
+                }
+            }
+            if (isFreeThemeMode() && requested != null) {
+                return requested;
+            }
+            boolean red = isLoveMode();
+            if (!ensureThemeAsset(red)) {
+                return requested;
+            }
+            Theme.ThemeInfo brand = Theme.getTheme(red ? RED_KEY : GOLD_KEY);
+            if (brand == null) {
+                return requested;
+            }
+            pinBrandedTheme(brand);
+            return brand;
+        } catch (Throwable t) {
+            FileLog.e(t);
+            return requested;
+        }
+    }
+
+    //endregion
 
     private static boolean copyAsset(Context ctx, String asset, File out) {
         InputStream in = null;
