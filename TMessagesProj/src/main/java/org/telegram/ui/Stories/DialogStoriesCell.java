@@ -335,7 +335,17 @@ public class DialogStoriesCell extends FrameLayout implements NotificationCenter
         telegramLogoView = new ImageView(context);
         telegramLogoView.setContentDescription(getString(R.string.AppName));
         telegramLogoView.setScaleType(ImageView.ScaleType.CENTER_INSIDE);
-        telegramLogoView.setImageResource(R.drawable.telegram_logo_2);
+        // DrGram Fix 31: the upstream "Telegram" wordmark image is replaced with a
+        // locale-aware LuxGram wordmark rendered at runtime. Glyphs are drawn white
+        // so the existing MULTIPLY color filter keeps tinting them for both themes.
+        // Scrolling still collapses the header exactly as before — the brand just
+        // never says "Telegram" anymore.
+        android.graphics.Bitmap drgramWordmark = drgramWordmarkBitmap(LocaleController.getString(R.string.AppName));
+        if (drgramWordmark != null) {
+            telegramLogoView.setImageDrawable(new android.graphics.drawable.BitmapDrawable(getResources(), drgramWordmark));
+        } else {
+            telegramLogoView.setImageResource(R.drawable.telegram_logo_2);
+        }
         telegramLogoView.setColorFilter(getTextLogoColor(), PorterDuff.Mode.MULTIPLY);
         telegramLogoView.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_YES);
         telegramLogoView.setFocusableInTouchMode(true);
@@ -1142,6 +1152,34 @@ public class DialogStoriesCell extends FrameLayout implements NotificationCenter
 
     public float getCollapsedProgress() {
         return collapsedProgress;
+    }
+
+    /**
+     * DrGram Fix 31: renders the LuxGram wordmark ("LuxGram" / "لوکس گرام" — the
+     * localized AppName) into a bitmap for the chat-list header. White glyphs on a
+     * transparent background, sized for the 90x22dp logo slot.
+     */
+    private static android.graphics.Bitmap drgramWordmarkBitmap(String text) {
+        try {
+            if (text == null || text.length() == 0) {
+                return null;
+            }
+            android.text.TextPaint paint = new android.text.TextPaint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+            paint.setTypeface(AndroidUtilities.bold());
+            paint.setTextSize(AndroidUtilities.dp(21));
+            paint.setColor(0xFFFFFFFF);
+            android.graphics.Paint.FontMetricsInt fm = paint.getFontMetricsInt();
+            int width = (int) Math.ceil(paint.measureText(text)) + 2;
+            int height = fm.descent - fm.ascent;
+            android.graphics.Bitmap bitmap = android.graphics.Bitmap.createBitmap(
+                    Math.max(width, 1), Math.max(height, 1), android.graphics.Bitmap.Config.ARGB_8888);
+            android.graphics.Canvas canvas = new android.graphics.Canvas(bitmap);
+            canvas.drawText(text, 1, -fm.ascent, paint);
+            return bitmap;
+        } catch (Throwable t) {
+            FileLog.e(t);
+            return null;
+        }
     }
 
     public void scrollToFirstCell() {

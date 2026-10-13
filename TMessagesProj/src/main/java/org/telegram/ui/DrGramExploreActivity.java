@@ -70,6 +70,8 @@ public class DrGramExploreActivity extends BaseFragment implements NotificationC
     private HorizontalScrollView chipsScroll;
     private TextView emptyTextView;
     private EditText searchField; // DrGram Fix 30
+    private LinearLayout filterPills;   // DrGram Fix 31
+    private int lastGlobalChipCount = -1; // DrGram Fix 31
 
     private long selectedChannelId; // 0 = all channels
     private ArrayList<MessageObject> currentMedia = new ArrayList<>();
@@ -116,7 +118,12 @@ public class DrGramExploreActivity extends BaseFragment implements NotificationC
             }
         });
 
-        columnsCount = Math.max(3, Math.min(5, (int) (AndroidUtilities.displaySize.x / AndroidUtilities.dp(118))));
+        int prefColumns = exploreController.getGridColumns(); // DrGram Fix 31: settings-aware grid
+        if (prefColumns >= 3 && prefColumns <= 5) {
+            columnsCount = prefColumns;
+        } else {
+            columnsCount = Math.max(3, Math.min(5, (int) (AndroidUtilities.displaySize.x / AndroidUtilities.dp(118))));
+        }
 
         FrameLayout rootLayout = new FrameLayout(context);
         rootLayout.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
@@ -137,6 +144,9 @@ public class DrGramExploreActivity extends BaseFragment implements NotificationC
 
         // DrGram Fix 30: Instagram-style search bar — hashtags and @channel/group ids
         rootLayout.addView(createSearchRow(context));
+
+        // DrGram Fix 31: media filter pills (All / Videos / Photos) + settings gear
+        rootLayout.addView(createFilterRow(context));
 
         // ---- media grid ----
         listView = new RecyclerListView(context);
@@ -187,7 +197,7 @@ public class DrGramExploreActivity extends BaseFragment implements NotificationC
         adapter = new ExploreAdapter(context);
         listView.setAdapter(adapter);
         FrameLayout.LayoutParams listParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT);
-        listParams.topMargin = AndroidUtilities.dp(88 + 48); // chips + search bar (DrGram Fix 30)
+        listParams.topMargin = AndroidUtilities.dp(88 + 48 + 42); // chips + search bar + filter row (Fix 30/31)
         rootLayout.addView(listView, listParams);
         // first open: if the already-loaded page fills (or under-fills) the
         // viewport, start pulling the next pages without waiting for a scroll
@@ -200,7 +210,7 @@ public class DrGramExploreActivity extends BaseFragment implements NotificationC
         emptyTextView.setGravity(Gravity.CENTER);
         emptyTextView.setPadding(AndroidUtilities.dp(40), 0, AndroidUtilities.dp(40), 0);
         emptyTextView.setVisibility(View.GONE);
-        rootLayout.addView(emptyTextView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER, 0, 44, 0, 0));
+        rootLayout.addView(emptyTextView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER, 0, 96, 0, 0));
 
         updateUIState();
         return fragmentView;
@@ -265,8 +275,9 @@ public class DrGramExploreActivity extends BaseFragment implements NotificationC
         if (empty) {
             emptyTextView.setVisibility(View.VISIBLE);
             if (exploreController.isSearchMode()) {
-                // DrGram Fix 30: dedicated search states
-                emptyTextView.setText(LocaleController.getString(exploreController.isSearchLoading()
+                // DrGram Fix 30/31: dedicated search states (global peers load async)
+                boolean stillLoading = exploreController.isSearchLoading() || exploreController.isGlobalPeersLoading();
+                emptyTextView.setText(LocaleController.getString(stillLoading
                         ? R.string.ExploreLoading : R.string.DrGramExploreSearchEmpty));
             } else if (exploreController.isLoading()) {
                 emptyTextView.setText(LocaleController.getString(R.string.ExploreLoading));
@@ -292,7 +303,16 @@ public class DrGramExploreActivity extends BaseFragment implements NotificationC
         if (exploreController.isSearchMode()) {
             chipsContainer.addView(makeClearResultsChip(context));
             chipsContainer.addView(makeQueryChip(context, exploreController.getSearchQuery()));
+            // DrGram Fix 31: global public channels/groups found for a plain text query
+            ArrayList<TLRPC.Chat> globalPeers = exploreController.getGlobalPeers();
+            if (!globalPeers.isEmpty()) {
+                chipsContainer.addView(makeGlobalLabelChip(context));
+                for (int a = 0; a < globalPeers.size(); a++) {
+                    chipsContainer.addView(makeGlobalPeerChip(context, globalPeers.get(a)));
+                }
+            }
             chipsContainer.requestLayout();
+            lastGlobalChipCount = globalPeers.size();
             return;
         }
 
@@ -320,6 +340,7 @@ public class DrGramExploreActivity extends BaseFragment implements NotificationC
             chipsContainer.addView(makeHiddenChip(context)); // DrGram Fix 30: hidden channels manager
         }
         chipsContainer.requestLayout();
+        lastGlobalChipCount = 0;
     }
 
     private LinearLayout makeAllChip(Context context) {
@@ -558,6 +579,10 @@ public class DrGramExploreActivity extends BaseFragment implements NotificationC
         }
         selectedChannelId = 0;
         exploreController.searchHashtag(query);
+        // DrGram Fix 31: a plain text/sentence/id now searches ALL of Telegram —
+        // public channels and groups are fetched via contacts.search and shown
+        // as avatar chips above the caption/photo results. No # or t.me needed.
+        exploreController.searchGlobalPeers(query);
         rebuildChips();
         updateUIState();
     }
@@ -622,6 +647,160 @@ public class DrGramExploreActivity extends BaseFragment implements NotificationC
         rebuildChips();
         updateUIState();
     }
+
+    //region DrGram Fix 31: media filter row + settings gear
+
+    private View createFilterRow(Context context) {
+        FrameLayout row = new FrameLayout(context);
+        row.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
+
+        filterPills = new LinearLayout(context);
+        filterPills.setOrientation(LinearLayout.HORIZONTAL);
+        filterPills.setGravity(Gravity.CENTER_VERTICAL);
+        filterPills.setPadding(AndroidUtilities.dp(8), AndroidUtilities.dp(4), AndroidUtilities.dp(8), AndroidUtilities.dp(6));
+        fillFilterPills(context);
+        row.addView(filterPills, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.START | Gravity.CENTER_VERTICAL));
+
+        // Explore settings gear — restores hidden channels, media filter, seen posts
+        ImageView gear = new ImageView(context);
+        gear.setImageResource(R.drawable.msg_settings);
+        gear.setColorFilter(GOLD);
+        GradientDrawable gearBg = new GradientDrawable();
+        gearBg.setShape(GradientDrawable.OVAL);
+        gearBg.setColor(0x22F5B90D);
+        gear.setBackgroundDrawable(gearBg);
+        int pad = AndroidUtilities.dp(7);
+        gear.setPadding(pad, pad, pad, pad);
+        gear.setOnClickListener(v -> {
+            try {
+                presentFragment(new DrGramExploreSettingsActivity());
+            } catch (Throwable t) {
+                FileLog.e(t);
+            }
+        });
+        FrameLayout.LayoutParams gearParams = new FrameLayout.LayoutParams(AndroidUtilities.dp(34), AndroidUtilities.dp(34), Gravity.END | Gravity.CENTER_VERTICAL);
+        gearParams.rightMargin = AndroidUtilities.dp(10);
+        row.addView(gear, gearParams);
+
+        FrameLayout.LayoutParams rowParams = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, AndroidUtilities.dp(42), Gravity.TOP);
+        rowParams.topMargin = AndroidUtilities.dp(136);
+        row.setLayoutParams(rowParams);
+        return row;
+    }
+
+    private void fillFilterPills(Context context) {
+        filterPills.removeAllViews();
+        filterPills.addView(makeFilterPill(context, LocaleController.getString(R.string.ExploreFilterAll), DrGramExploreController.FILTER_ALL));
+        filterPills.addView(makeFilterPill(context, LocaleController.getString(R.string.DrGramExploreFilterVideos), DrGramExploreController.FILTER_VIDEOS));
+        filterPills.addView(makeFilterPill(context, LocaleController.getString(R.string.DrGramExploreFilterPhotos), DrGramExploreController.FILTER_PHOTOS));
+    }
+
+    private TextView makeFilterPill(Context context, String title, int filter) {
+        TextView pill = new TextView(context);
+        pill.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+        pill.setSingleLine(true);
+        pill.setTypeface(AndroidUtilities.bold());
+        int padH = AndroidUtilities.dp(14);
+        int padV = AndroidUtilities.dp(6);
+        pill.setPadding(padH, padV, padH, padV);
+        boolean active = exploreController.getMediaFilter() == filter;
+        pill.setText(title);
+        pill.setTextColor(active ? 0xFF141005 : GOLD);
+        GradientDrawable bg = new GradientDrawable();
+        bg.setCornerRadius(AndroidUtilities.dp(20));
+        bg.setColor(active ? GOLD : 0x00000000);
+        bg.setStroke(AndroidUtilities.dp(1), active ? GOLD : 0x33F5B90D);
+        pill.setBackgroundDrawable(bg);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.rightMargin = AndroidUtilities.dp(8);
+        pill.setLayoutParams(lp);
+        pill.setOnClickListener(v -> {
+            if (exploreController.getMediaFilter() != filter) {
+                exploreController.setMediaFilter(filter);
+                if (getContext() != null) {
+                    fillFilterPills(getContext());
+                }
+                updateUIState();
+            }
+        });
+        return pill;
+    }
+    //endregion
+
+    //region DrGram Fix 31: global peer chips
+
+    private LinearLayout makeGlobalLabelChip(Context context) {
+        LinearLayout cell = new LinearLayout(context);
+        cell.setOrientation(LinearLayout.VERTICAL);
+        cell.setGravity(Gravity.CENTER_HORIZONTAL);
+        cell.setPadding(AndroidUtilities.dp(7), AndroidUtilities.dp(6), AndroidUtilities.dp(7), AndroidUtilities.dp(4));
+
+        FrameLayout avatarHolder = new FrameLayout(context);
+        GradientDrawable circle = new GradientDrawable();
+        circle.setShape(GradientDrawable.OVAL);
+        circle.setColor(0x22F5B90D);
+        circle.setStroke(AndroidUtilities.dp(2), GOLD);
+        avatarHolder.setBackgroundDrawable(circle);
+
+        ImageView globe = new ImageView(context);
+        globe.setImageResource(R.drawable.outline_search_1_24);
+        globe.setColorFilter(GOLD);
+        avatarHolder.addView(globe, LayoutHelper.createFrame(24, 24, Gravity.CENTER));
+
+        TextView label = new TextView(context);
+        label.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11);
+        label.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
+        label.setPadding(0, AndroidUtilities.dp(4), 0, 0);
+        label.setText(LocaleController.getString(R.string.DrGramExploreGlobalResults));
+
+        cell.addView(avatarHolder, LayoutHelper.createLinear(56, 56));
+        cell.addView(label, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL));
+        return cell;
+    }
+
+    private LinearLayout makeGlobalPeerChip(Context context, TLRPC.Chat chat) {
+        LinearLayout cell = new LinearLayout(context);
+        cell.setOrientation(LinearLayout.VERTICAL);
+        cell.setGravity(Gravity.CENTER_HORIZONTAL);
+        cell.setPadding(AndroidUtilities.dp(7), AndroidUtilities.dp(6), AndroidUtilities.dp(7), AndroidUtilities.dp(4));
+        cell.setOnClickListener(v -> {
+            try {
+                Bundle args = new Bundle();
+                args.putLong("chat_id", chat.id);
+                presentFragment(new ChatActivity(args));
+            } catch (Throwable t) {
+                FileLog.e(t);
+            }
+        });
+
+        FrameLayout avatarHolder = new FrameLayout(context);
+        GradientDrawable ring = new GradientDrawable();
+        ring.setShape(GradientDrawable.OVAL);
+        ring.setStroke(AndroidUtilities.dp(2), GOLD);
+        avatarHolder.setBackgroundDrawable(ring);
+        avatarHolder.setPadding(AndroidUtilities.dp(4), AndroidUtilities.dp(4), AndroidUtilities.dp(4), AndroidUtilities.dp(4));
+
+        BackupImageView imageView = new BackupImageView(context);
+        imageView.setRoundRadius(AndroidUtilities.dp(24));
+        AvatarDrawable avatarDrawable = new AvatarDrawable(chat);
+        imageView.setForUserOrChat(chat, avatarDrawable);
+        avatarHolder.addView(imageView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT));
+
+        TextView name = new TextView(context);
+        name.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11);
+        name.setTextColor(getThemedColor(Theme.key_windowBackgroundWhiteBlackText));
+        name.setMaxLines(1);
+        name.setSingleLine(true);
+        name.setEllipsize(TextUtils.TruncateAt.END);
+        name.setMaxWidth(AndroidUtilities.dp(62));
+        name.setPadding(0, AndroidUtilities.dp(4), 0, 0);
+        name.setText(chat.title);
+
+        cell.addView(avatarHolder, LayoutHelper.createLinear(56, 56));
+        cell.addView(name, LayoutHelper.createLinear(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.CENTER_HORIZONTAL));
+        return cell;
+    }
+    //endregion
 
     private LinearLayout makeClearResultsChip(Context context) {
         LinearLayout cell = new LinearLayout(context);
@@ -858,6 +1037,13 @@ public class DrGramExploreActivity extends BaseFragment implements NotificationC
             // keep the chain alive: after each loaded page, if the user is still
             // near the bottom, immediately pull the next page (Instagram-style)
             postCheckLoadMore();
+            // DrGram Fix 31: global peer chips arrive asynchronously — refresh the
+            // chip row only when their count actually changed (cheap guard, avoids
+            // rebuilding the row on every feed page)
+            int globalCount = exploreController.getGlobalPeers().size();
+            if (globalCount != lastGlobalChipCount) {
+                rebuildChips();
+            }
         } else if (id == NotificationCenter.dialogsNeedReload) {
             rebuildChips();
             exploreController.refreshIfNeeded(false);

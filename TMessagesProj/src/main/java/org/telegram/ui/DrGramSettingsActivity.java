@@ -177,6 +177,10 @@ public class DrGramSettingsActivity extends BaseFragment {
                         : new int[] {0xFF0C0A05, 0xFF261D09, 0xFF0C0A05}));
         android.widget.ScrollView scroller = new android.widget.ScrollView(context);
         scroller.setFillViewport(true);
+        // DrGram Fix 31: never let the framework draw scrollbars on our custom
+        // screens — the lite view must be as crash-proof as the full hub.
+        scroller.setVerticalScrollBarEnabled(false);
+        scroller.setHorizontalScrollBarEnabled(false);
         scroller.addView(content, new android.widget.FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
@@ -285,11 +289,19 @@ public class DrGramSettingsActivity extends BaseFragment {
                 DrGramThemeInstaller.isLoveMode()
                         ? new int[] {0xFF160A0F, 0xFF251017, 0xFF10090D}
                         : new int[] {0xFF0C0A05, 0xFF261D09, 0xFF0C0A05}));
-        contentView.setScrollbarFadingEnabled(false);
+        // DrGram Fix 31 (REAL crash fix, confirmed by user's logcat):
+        // setScrollbarFadingEnabled(false) on Android 14 calls initScrollCache()
+        // which creates a ScrollabilityCache with state=ON but a NULL
+        // ScrollBarDrawable. The very first frame then dies inside
+        // View.onDrawScrollBars at cache.scrollBar.mutate() — an NPE during
+        // drawing, which is why no error dialog ever appeared and why the
+        // createView guards of Fix 27/30 could never catch it. The flag was
+        // pointless on a LinearLayout anyway, so it is simply removed.
         android.widget.ScrollView scroller = new android.widget.ScrollView(context);
         scroller.setFillViewport(true);
         scroller.setClipToPadding(false);
-        scroller.setVerticalScrollBarEnabled(true);
+        scroller.setVerticalScrollBarEnabled(false);
+        scroller.setHorizontalScrollBarEnabled(false);
         scroller.addView(contentView, new android.widget.FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         fragmentView = scroller;

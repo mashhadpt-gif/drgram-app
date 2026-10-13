@@ -591,7 +591,7 @@
     <string name="DrGramSendCrash">ارسال آخرین کرش به پشتیبانی</string>
     <string name="DrGramNoCrash">کرشی ثبت نشده است</string>
     <!--DrGram Fix 30: explore search + channel options + control center lite-->
-    <string name="DrGramExploreSearchHint">جستجوی #هشتگ یا @آیدی کانال…</string>
+    <string name="DrGramExploreSearchHint">جستجو در کل تلگرام — متن، جمله یا آیدی…</string>
     <string name="DrGramExploreResultsFor">نتایج برای</string>
     <string name="DrGramExploreClearResults">پاک کردن نتایج</string>
     <string name="DrGramExploreSearchEmpty">برای این جستجو چیزی پیدا نشد</string>
@@ -604,6 +604,23 @@
     <string name="DrGramExploreUnhideAll">نمایش همه دوباره</string>
     <string name="DrGramExploreLeftDone">کانال حذف شد</string>
     <string name="DrGramExploreHideDone">از لیست اکسپلور مخفی شد</string>
+    <string name="DrGramExploreFilterVideos">ویدیوها</string>
+    <string name="DrGramExploreFilterPhotos">تصاویر</string>
+    <string name="DrGramExploreSettings">تنظیمات اکسپلور</string>
+    <string name="DrGramExploreSetSub">اکسپلور خود را شخصی‌سازی کنید</string>
+    <string name="DrGramExploreSetHidden">کانال‌های مخفی‌شده</string>
+    <string name="DrGramExploreSetHiddenEmpty">کانال مخفی‌شده‌ای ندارید</string>
+    <string name="DrGramExploreRestore">بازگردانی</string>
+    <string name="DrGramExploreSetFilter">فیلتر رسانه</string>
+    <string name="DrGramExploreSetFeed">فید</string>
+    <string name="DrGramExploreHideSeen">پست‌های دیده‌شده نشان داده نشوند</string>
+    <string name="DrGramExploreHideSeenDesc">پست‌هایی که باز می‌کنید دوباره در فید نمی‌آیند</string>
+    <string name="DrGramExploreClearSeen">پاک کردن تاریخچه دیده‌شده‌ها</string>
+    <string name="DrGramExploreClearSeenDone">تاریخچه دیده‌شده‌ها پاک شد</string>
+    <string name="DrGramExploreSetColumns">تعداد ستون‌ها</string>
+    <string name="DrGramExploreColumnsAuto">خودکار</string>
+    <string name="DrGramExploreColumnsHint">دفعه بعد که اکسپلور را باز کنید اعمال می‌شود</string>
+    <string name="DrGramExploreGlobalResults">نتایج سراسری</string>
     <string name="DrGramCCLiteTitle">حالت امن — مرکز کنترل سبک</string>
     <string name="DrGramCCLiteText">مرکز کنترل کامل چند دقیقه پیش به خطا خورده، به همین دلیل نسخه سبک باز شد. اگر تکرار شد، لطفاً لاگ آخرین کرش را برای ما بفرستید.</string>
     <string name="DrGramCCOpenFull">باز کردن مرکز کنترل کامل</string>

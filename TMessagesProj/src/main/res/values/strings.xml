@@ -11570,7 +11570,7 @@
     <string name="DrGramSendCrash">Send last crash to support</string>
     <string name="DrGramNoCrash">No crash recorded yet</string>
     <!--DrGram Fix 30: explore search + channel options + control center lite-->
-    <string name="DrGramExploreSearchHint">Search #hashtag or @channel id…</string>
+    <string name="DrGramExploreSearchHint">Search all of Telegram — text, sentence or id…</string>
     <string name="DrGramExploreResultsFor">Results for</string>
     <string name="DrGramExploreClearResults">Clear results</string>
     <string name="DrGramExploreSearchEmpty">Nothing found for this search</string>
@@ -11586,6 +11586,23 @@
     <string name="DrGramCCLiteTitle">Safe mode — light control center</string>
     <string name="DrGramCCLiteText">The full control center hit an error a few minutes ago, so the light version opened. If it repeats, please send us the last crash log.</string>
     <string name="DrGramCCOpenFull">Open full control center</string>
+    <string name="DrGramExploreFilterVideos">Videos</string>
+    <string name="DrGramExploreFilterPhotos">Photos</string>
+    <string name="DrGramExploreSettings">Explore settings</string>
+    <string name="DrGramExploreSetSub">Personalize your Explore feed</string>
+    <string name="DrGramExploreSetHidden">Hidden channels</string>
+    <string name="DrGramExploreSetHiddenEmpty">No hidden channels</string>
+    <string name="DrGramExploreRestore">Restore</string>
+    <string name="DrGramExploreSetFilter">Media filter</string>
+    <string name="DrGramExploreSetFeed">Feed</string>
+    <string name="DrGramExploreHideSeen">Hide seen posts</string>
+    <string name="DrGramExploreHideSeenDesc">Posts you open never return to the feed</string>
+    <string name="DrGramExploreClearSeen">Clear seen history</string>
+    <string name="DrGramExploreClearSeenDone">Seen history cleared</string>
+    <string name="DrGramExploreSetColumns">Grid columns</string>
+    <string name="DrGramExploreColumnsAuto">Auto</string>
+    <string name="DrGramExploreColumnsHint">Applied the next time you open Explore</string>
+    <string name="DrGramExploreGlobalResults">Global results</string>
     <string name="DrGramAddSpecialContact">Set as special contact</string>
     <string name="DrGramSpecialContactDone">%1$s became your special contact</string>
     <string name="DrGramShareUsername">Share username</string>

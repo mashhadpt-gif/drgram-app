@@ -86,6 +86,15 @@ public class DrGramExploreController extends BaseController {
     private boolean searchLoading;
     private String searchQuery;
 
+    // DrGram Fix 31: global public chats/groups (contacts.search) for plain text
+    private final ArrayList<TLRPC.Chat> globalPeers = new ArrayList<>();
+    private boolean globalPeersLoading;
+
+    // DrGram Fix 31: media filter modes (persisted per account)
+    public static final int FILTER_ALL = 0;
+    public static final int FILTER_VIDEOS = 1;
+    public static final int FILTER_PHOTOS = 2;
+
     public static class ChannelInfo {
         public long dialogId;
         public TLRPC.Chat chat;
@@ -128,15 +137,38 @@ public class DrGramExploreController extends BaseController {
         // always return a copy so the UI / PhotoViewer never hold a reference
         // to the live list that refresh() clears and loadMore() appends to
         ArrayList<MessageObject> result = new ArrayList<>();
+        int filter = getMediaFilter(); // DrGram Fix 31: all / videos / photos
         if (searchMode) {
-            result.addAll(searchMedia);
+            for (int a = 0; a < searchMedia.size(); a++) {
+                MessageObject messageObject = searchMedia.get(a);
+                if (messageObject == null) {
+                    continue;
+                }
+                if (filter == FILTER_VIDEOS && !messageObject.isVideo()) {
+                    continue;
+                }
+                if (filter == FILTER_PHOTOS && !messageObject.isPhoto()) {
+                    continue;
+                }
+                result.add(messageObject);
+            }
             return result;
         }
         for (int a = 0; a < exploreMedia.size(); a++) {
             MessageObject messageObject = exploreMedia.get(a);
             if (dialogId == 0 || (messageObject != null && messageObject.getDialogId() == dialogId)) {
-                // DrGram Fix 30: posts opened by the user never come back
-                if (messageObject != null && DrGramExploreSeen.isSeen(currentAccount, messageObject.getDialogId(), messageObject.getId())) {
+                if (messageObject == null) {
+                    continue;
+                }
+                // DrGram Fix 31: media-type filter (all / videos / photos)
+                if (filter == FILTER_VIDEOS && !messageObject.isVideo()) {
+                    continue;
+                }
+                if (filter == FILTER_PHOTOS && !messageObject.isPhoto()) {
+                    continue;
+                }
+                // DrGram Fix 30: posts opened by the user never come back (toggleable since Fix 31)
+                if (isHideSeen() && DrGramExploreSeen.isSeen(currentAccount, messageObject.getDialogId(), messageObject.getId())) {
                     continue;
                 }
                 result.add(messageObject);
@@ -353,8 +385,8 @@ public class DrGramExploreController extends BaseController {
             if (isChannelHidden(dialogId)) {
                 continue; // DrGram Fix 30: hidden channels never feed the grid
             }
-            if (DrGramExploreSeen.isSeen(currentAccount, dialogId, message.id)) {
-                continue; // DrGram Fix 30: seen posts never come back
+            if (isHideSeen() && DrGramExploreSeen.isSeen(currentAccount, dialogId, message.id)) {
+                continue; // DrGram Fix 30: seen posts never come back (toggleable since Fix 31)
             }
             String key = dialogId + "_" + message.id;
             if (mediaKeys.containsKey(key)) {
@@ -485,12 +517,59 @@ public class DrGramExploreController extends BaseController {
         return searchLoading;
     }
 
+    public ArrayList<TLRPC.Chat> getGlobalPeers() {
+        return globalPeers;
+    }
+
+    public boolean isGlobalPeersLoading() {
+        return globalPeersLoading;
+    }
+
+    /** DrGram Fix 31: global search over ALL of Telegram (contacts.search) —
+     * finds public channels and groups by any plain text: a name, a sentence
+     * or an @id, no hashtag or t.me link required. Official MTProto only. */
+    public void searchGlobalPeers(String query) {
+        globalPeers.clear();
+        globalPeersLoading = true;
+        notifyExploreUpdated();
+        TLRPC.TL_contacts_search request = new TLRPC.TL_contacts_search();
+        request.q = query;
+        request.limit = 30;
+        getConnectionsManager().sendRequest(request, (response, error) -> AndroidUtilities.runOnUIThread(() -> {
+            globalPeersLoading = false;
+            if (!searchMode) {
+                return;
+            }
+            if (response instanceof TLRPC.TL_contacts_found) {
+                TLRPC.TL_contacts_found found = (TLRPC.TL_contacts_found) response;
+                getMessagesController().putUsers(found.users, false);
+                getMessagesController().putChats(found.chats, false);
+                for (int a = 0; a < found.results.size() && globalPeers.size() < 20; a++) {
+                    TLRPC.Peer peer = found.results.get(a);
+                    if (peer == null || peer.chat_id == 0) {
+                        continue;
+                    }
+                    TLRPC.Chat chat = getMessagesController().getChat(peer.chat_id);
+                    if (chat == null || chat instanceof TLRPC.TL_channelForbidden || chat.deactivated) {
+                        continue;
+                    }
+                    if (!globalPeers.contains(chat)) {
+                        globalPeers.add(chat);
+                    }
+                }
+            }
+            notifyExploreUpdated();
+        }), ConnectionsManager.RequestFlagFailOnServerErrors);
+    }
+
     private void clearSearchState() {
         searchMode = false;
         searchQuery = null;
         searchLoading = false;
         searchMedia.clear();
         searchKeys.clear();
+        globalPeers.clear();        // DrGram Fix 31
+        globalPeersLoading = false; // DrGram Fix 31
     }
 
     public void clearSearch() {
@@ -568,7 +647,7 @@ public class DrGramExploreController extends BaseController {
                         continue;
                     }
                     long dialogId = -message.peer_id.channel_id;
-                    if (isChannelHidden(dialogId) || DrGramExploreSeen.isSeen(currentAccount, dialogId, message.id)) {
+                    if (isChannelHidden(dialogId) || (isHideSeen() && DrGramExploreSeen.isSeen(currentAccount, dialogId, message.id))) {
                         continue;
                     }
                     String key = dialogId + "_" + message.id;
@@ -586,6 +665,65 @@ public class DrGramExploreController extends BaseController {
             }
             notifyExploreUpdated();
         }), ConnectionsManager.RequestFlagFailOnServerErrors);
+    }
+    //endregion
+
+    //region Explore settings (DrGram Fix 31)
+
+    public int getMediaFilter() {
+        try {
+            return explorePrefs().getInt("mediaFilter", FILTER_ALL);
+        } catch (Throwable t) {
+            return FILTER_ALL;
+        }
+    }
+
+    public void setMediaFilter(int filter) {
+        try {
+            explorePrefs().edit().putInt("mediaFilter", filter).commit();
+        } catch (Throwable t) {
+            FileLog.e(t);
+        }
+        notifyExploreUpdated();
+    }
+
+    public boolean isHideSeen() {
+        try {
+            return explorePrefs().getBoolean("hideSeen", true);
+        } catch (Throwable t) {
+            return true;
+        }
+    }
+
+    public void setHideSeen(boolean value) {
+        try {
+            explorePrefs().edit().putBoolean("hideSeen", value).commit();
+        } catch (Throwable t) {
+            FileLog.e(t);
+        }
+        notifyExploreUpdated();
+    }
+
+    public void clearSeenHistory() {
+        DrGramExploreSeen.clear(currentAccount);
+        notifyExploreUpdated();
+    }
+
+    /** 0 = auto, otherwise a fixed column count (3..5). */
+    public int getGridColumns() {
+        try {
+            return explorePrefs().getInt("gridColumns", 0);
+        } catch (Throwable t) {
+            return 0;
+        }
+    }
+
+    public void setGridColumns(int columns) {
+        try {
+            explorePrefs().edit().putInt("gridColumns", columns).commit();
+        } catch (Throwable t) {
+            FileLog.e(t);
+        }
     }
     //endregion
 
