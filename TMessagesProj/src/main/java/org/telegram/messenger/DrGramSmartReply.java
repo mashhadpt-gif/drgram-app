@@ -462,10 +462,18 @@ public class DrGramSmartReply {
 
         switch (groupId) {
             case "link":
+                if (!admin) {
+                    notice(dialogId, "🚫 " + LocaleController.getString(R.string.DrGramSmartNeedAdmin));
+                    return true;
+                }
                 execExportLink(chatId, chat);
                 return true;
             case "pin":
             case "del":
+                if (!admin) {
+                    notice(dialogId, "🚫 " + LocaleController.getString(R.string.DrGramSmartNeedAdmin));
+                    return true;
+                }
                 if (reply == null) {
                     notice(dialogId, "↩️ " + LocaleController.getString(R.string.DrGramSmartNeedReply));
                     return true;
@@ -477,6 +485,10 @@ public class DrGramSmartReply {
                 }
                 return true;
             case "delall":
+                if (!admin) {
+                    notice(dialogId, "🚫 " + LocaleController.getString(R.string.DrGramSmartNeedAdmin));
+                    return true;
+                }
                 if (reply == null) {
                     notice(dialogId, "↩️ " + LocaleController.getString(R.string.DrGramSmartNeedReply));
                     return true;
