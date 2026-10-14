@@ -24,7 +24,6 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.Locale;
-import java.util.Map;
 
 public class DrGramAntiDelete {
 
@@ -35,12 +34,21 @@ public class DrGramAntiDelete {
 
     private final int currentAccount;
     private final SharedPreferences preferences;
-    private final LinkedHashMap<String, String[]> cache = new LinkedHashMap<String, String[]>() {
-        @Override
-        protected boolean removeEldest(Map.Entry<String, String[]> eldest) {
-            return size() > CACHE_LIMIT;
+    private final LinkedHashMap<String, String[]> cache = new LinkedHashMap<>();
+
+    /** LRU insert with a hard cap — manual eviction, no supertype overrides. */
+    private void cachePut(String key, String[] value) {
+        cache.remove(key);
+        cache.put(key, value);
+        while (cache.size() > CACHE_LIMIT) {
+            Iterator<String> it = cache.keySet().iterator();
+            if (!it.hasNext()) {
+                break;
+            }
+            it.next();
+            it.remove();
         }
-    };
+    }
     private boolean cacheLoaded;
     private boolean bagLoaded;
     private ArrayList<String[]> bag; // {dialogId, senderName, time, text, mediaFlag}
@@ -134,7 +142,7 @@ public class DrGramAntiDelete {
                     text = text.substring(0, 1200);
                 }
                 String sender = describeSender(messageObject.getSenderId());
-                cache.put(dialogId + ":" + messageObject.getId(),
+                cachePut(dialogId + ":" + messageObject.getId(),
                         new String[]{String.valueOf(dialogId), String.valueOf(messageObject.getId()),
                                 sender, text.length() == 0 ? "" : text, media ? "1" : "0"});
                 dirty = true;
@@ -279,7 +287,7 @@ public class DrGramAntiDelete {
                 if (k.length() == 0) {
                     continue;
                 }
-                cache.put(k, new String[]{obj.optString("d"), obj.optString("m"),
+                cachePut(k, new String[]{obj.optString("d"), obj.optString("m"),
                         obj.optString("s"), obj.optString("x"), obj.optString("f", "0")});
             }
         } catch (Throwable ignore) {

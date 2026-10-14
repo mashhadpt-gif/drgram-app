@@ -33,6 +33,7 @@ import android.widget.Toast;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
+import org.telegram.messenger.DrGramThemeInstaller;
 import org.telegram.messenger.FileLoader;
 import org.telegram.messenger.FileLog;
 import org.telegram.messenger.LocaleController;
@@ -40,6 +41,7 @@ import org.telegram.messenger.R;
 import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.UserObject;
 import org.telegram.tgnet.TLRPC;
+import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.Components.AvatarDrawable;
 import org.telegram.ui.Components.DrGramGlassKit;
@@ -176,7 +178,7 @@ public class DrGramProfileCardActivity extends BaseFragment {
     }
 
     private void drawCard(Canvas canvas, TLRPC.User me) {
-        int love = DrGramThemeInstaller.isLoveMode() ? 1 : 0;
+        boolean love = DrGramThemeInstaller.isLoveMode();
         int frame = love ? 0xFFF06A82 : 0xFFF4D27A;
         int softText = love ? 0xFFE8B8C3 : 0xFFE4D2A5;
 
