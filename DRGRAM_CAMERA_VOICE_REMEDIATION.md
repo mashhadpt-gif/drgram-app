@@ -9,14 +9,23 @@ Branch: `fix/drgram-beauty-voice-blur-2026`
 - The voice processor operates on 16-bit PCM buffers and changes pitch through a delay-line shifter. That technique can introduce phase/metallic artifacts and is not equivalent to pitch + formant-preserving voice conversion. Calls and voice messages use different session lifecycles and must be tested independently.
 - DrGram preferences backup converted every value to a string, then restored everything with `putString`. This breaks typed SharedPreferences and can cause ClassCastException in features expecting booleans, numbers or sets.
 - Telegram's built-in blur for media spoilers is a separate feature from blurred chat screens. Chat-screen blur needs diagnosis at the theme/window/background layer; globally disabling Telegram's spoiler blur would be the wrong fix.
-- Smart Reply sends user-provided text to the configured AI endpoint only after a consent dialog, over HTTPS, and disallows non-HTTPS endpoints. This is a good baseline, but policy compliance depends on explicit informed consent, minimizing data sent, clear third-party disclosure, user control, and not using Telegram data to train models.
+- The reviewed `DrGramSmartReply` module is a local, rule-based command responder (not an AI endpoint client): private-chat auto-replies and group commands are opt-in and disabled by default. Keep those controls explicit, restrict group administration commands to authorized admins, and avoid presenting this module as AI Smart Reply. If a separate AI-backed feature sends Telegram content to a provider, audit its consent and data minimization separately.
 
 ## Changes in this branch
 
 - Preserve primitive types and string sets in DrGram backup files, while retaining restore compatibility with legacy string-only backups.
 - Reject backup preference namespaces outside the `drgram_*` prefix so a crafted backup cannot overwrite Telegram's own preference files.
-- Validate voice mode/echo values and clear stale recording/call DSP state when settings change.
-- Run the release build workflow for this remediation branch.
+- Validate voice mode/echo values both when they are saved and when they are read from persisted preferences; clear stale recording/call DSP state when settings change.
+- Increase contrast for settings row titles.
+- Change live camera face weighting to return zero when face detection fails. This prevents the GPU skin-smoothing pass from treating the whole frame as a face and softening backgrounds, hair and clothes.
+- Change still-photo beautification to leave the bitmap untouched when both face detectors fail, instead of globally smoothing skin-coloured regions.
+- Make the master beauty toggle disable nose/teeth retouching as well as skin smoothing.
+- Use restrained defaults for new installs (skin smoothing 0.38, nose shaping off, teeth whitening 0.18); existing saved user preferences are preserved.
+- Remove an unconditional `|| true` from the attachment-sheet blur fallback so its existing setting and Lite Mode conditions can take effect.
+
+## Build status
+
+GitHub Actions is currently failing before any job steps start: the job has no assigned runner and reports an empty step list. This does not identify a source compilation error. The latest changed source has therefore **not** been confirmed by a successful build yet.
 
 ## Required next implementation stages
 
