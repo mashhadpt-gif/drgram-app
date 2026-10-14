@@ -3099,7 +3099,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                             CameraController.getInstance().cancelOnInitRunnable(onFinishInitCameraRunnable);
                             delegate.needStartRecordVideo(2, true, 0, 0, voiceOnce ? 0x7FFFFFFF : 0, effectId, 0);
                             sendButton.setEffect(effectId = 0);
-                        } else if (recordingAudioVideo && sendVoiceEnabled && org.telegram.messenger.DrGramSendGuard.voiceConfirm()) {
+                        } else if (recordingAudioVideo && sendVoiceEnabled && org.telegram.messenger.DrGramSendGuard.voiceConfirmEnabled()) {
                             // DrGram Fix 39: the finger drifted left a bit but a real take
                             // is in progress — never drop it silently on release. Pause it
                             // into the preview panel; the user decides there.
@@ -3163,7 +3163,7 @@ public class ChatActivityEnterView extends FrameLayout implements
                                     AlertsCreator.createScheduleDatePickerDialog(parentActivity, parentFragment.getDialogId(), (notify, scheduleDate, scheduleRepeatPeriod) -> MediaController.getInstance().stopRecording(1, notify, scheduleDate, false, 0), () -> MediaController.getInstance().stopRecording(0, false, 0, false, 0), resourcesProvider);
                                 }
                                 delegate.needStartRecordAudio(0);
-                                if (org.telegram.messenger.DrGramSendGuard.voiceConfirm() && !isInScheduleMode()) {
+                                if (org.telegram.messenger.DrGramSendGuard.voiceConfirmEnabled() && !isInScheduleMode()) {
                                     // DrGram Fix 39: releasing the mic no longer sends blindly —
                                     // the take is paused into the native preview panel (play
                                     // button included). The user listens, then taps send to
