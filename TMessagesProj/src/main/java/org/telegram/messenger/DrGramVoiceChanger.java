@@ -98,7 +98,13 @@ public class DrGramVoiceChanger {
     }
 
     public static void setMode(int mode) {
+        if (mode < MODE_OFF || mode > MODE_F2M) {
+            mode = MODE_OFF;
+        }
         prefs().edit().putInt("voice_send_mode", mode).apply();
+        // A mode change must not leave stale DSP state attached to an old recording.
+        endSession();
+        endCallSession();
     }
 
     public static boolean isEchoEnabled() {
@@ -119,8 +125,14 @@ public class DrGramVoiceChanger {
     }
 
     public static void setEchoStyle(int style) {
+        if (style < ECHO_OFF || style > ECHO_STAGE) {
+            style = ECHO_OFF;
+        }
         try {
             prefs().edit().putInt("voice_send_echo_style", style).apply();
+            // Force the next recording/call to create a fresh delay line.
+            endSession();
+            endCallSession();
         } catch (Throwable t) {
             FileLog.e(t);
         }
