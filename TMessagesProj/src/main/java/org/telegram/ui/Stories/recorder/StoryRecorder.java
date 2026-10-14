@@ -3843,6 +3843,10 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
      * so the preview updates while the sliders move and is recorded with the
      * camera frame pipeline (rather than being a color-only post-filter).
      */
+    private interface BeautyValueListener {
+        void onValue(float value);
+    }
+
     private void showBeautyControls(Context context) {
         LinearLayout panel = new LinearLayout(context);
         panel.setOrientation(LinearLayout.VERTICAL);
@@ -3917,7 +3921,7 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
     }
 
     private android.widget.SeekBar addBeautySlider(Context context, LinearLayout panel, String label, float value,
-                                 java.util.function.Consumer<Float> onValueChanged) {
+                                 BeautyValueListener onValueChanged) {
         TextView title = new TextView(context);
         title.setText(label);
         title.setTextSize(14);
@@ -3936,7 +3940,7 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
             @Override
             public void onProgressChanged(android.widget.SeekBar seekBar, int progress, boolean fromUser) {
                 if (fromUser) {
-                    onValueChanged.accept(progress / 100f);
+                    onValueChanged.onValue(progress / 100f);
                 }
             }
             @Override public void onStartTrackingTouch(android.widget.SeekBar seekBar) {}
