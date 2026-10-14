@@ -34,6 +34,7 @@ import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.Components.DrGramGlassKit;
 import org.telegram.ui.Components.AvatarDrawable;
 import org.telegram.ui.Components.BackupImageView;
 import org.telegram.ui.Components.LayoutHelper;
@@ -66,7 +67,7 @@ public class DrGramFavoritesActivity extends BaseFragment {
         });
 
         FrameLayout rootLayout = new FrameLayout(context);
-        rootLayout.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
+        rootLayout.setBackground(DrGramGlassKit.pageGradient()); // DrGram Fix 36: glass canvas
         fragmentView = rootLayout;
 
         emptyTextView = new TextView(context);

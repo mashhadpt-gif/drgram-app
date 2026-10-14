@@ -48,6 +48,7 @@ import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.Components.DrGramGlassKit;
 import org.telegram.ui.Cells.DrGramExploreMediaCell;
 import org.telegram.ui.Components.AvatarDrawable;
 import org.telegram.ui.Components.BackupImageView;
@@ -126,7 +127,7 @@ public class DrGramExploreActivity extends BaseFragment implements NotificationC
         }
 
         FrameLayout rootLayout = new FrameLayout(context);
-        rootLayout.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
+        rootLayout.setBackground(DrGramGlassKit.pageGradient()); // DrGram Fix 36: glass canvas
         fragmentView = rootLayout;
 
         // ---- channel filter chips ----

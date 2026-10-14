@@ -52,7 +52,7 @@ public class DrGramThemeInstaller {
      * holding an older installed copy silently get a fresh install from the new
      * asset on the next app start, so palette upgrades reach every user.
      */
-    public static final int THEME_ASSET_VERSION = 4;
+    public static final int THEME_ASSET_VERSION = 5;
 
     private static volatile boolean tried = false;
 

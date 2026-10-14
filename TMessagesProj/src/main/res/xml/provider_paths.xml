@@ -10,4 +10,6 @@
     <!-- Only app-owned internal directories; paths stay relative to the files root. -->
     <files-path name="logs" path="logs/" />
     <files-path name="files_cache" path="cache/" />
+    <!-- DrGram Fix 36: encrypted backups and luxury profile cards -->
+    <external-files-path name="luxgram_export" path="." />
 </paths>

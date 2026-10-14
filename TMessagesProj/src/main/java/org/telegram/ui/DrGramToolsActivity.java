@@ -113,6 +113,9 @@ public class DrGramToolsActivity extends BaseFragment {
         buildSettingsCenterSection(context);
         buildSecretarySection(context);
         buildSmartReplySection(context); // DrGram Fix 35
+        buildAntiDeleteSection(context); // DrGram Fix 36
+        buildBackupSection(context); // DrGram Fix 36
+        buildCardSection(context); // DrGram Fix 36
         buildVaultSection(context);
         buildGuardSection(context);
         buildRadarSection(context);
@@ -331,6 +334,31 @@ public class DrGramToolsActivity extends BaseFragment {
                 LocaleController.getString(R.string.DrGramSmartSectionHint));
         addSectionRow(makeActionRow(context, LocaleController.getString(R.string.DrGramSmartReplyOpen), v ->
                 presentFragment(new DrGramSmartReplyActivity())));
+    }
+
+    //endregion
+
+    //region Fix 36: anti-delete + encrypted backup + profile card
+
+    private void buildAntiDeleteSection(Context context) {
+        addHeader(context, LocaleController.getString(R.string.DrGramAntiDeleteSectionTitle),
+                LocaleController.getString(R.string.DrGramAntiDeleteSectionHint));
+        addSectionRow(makeActionRow(context, LocaleController.getString(R.string.DrGramAntiDeleteOpen), v ->
+                presentFragment(new DrGramAntiDeleteActivity())));
+    }
+
+    private void buildBackupSection(Context context) {
+        addHeader(context, LocaleController.getString(R.string.DrGramBackupSectionTitle),
+                LocaleController.getString(R.string.DrGramBackupSectionHint));
+        addSectionRow(makeActionRow(context, LocaleController.getString(R.string.DrGramBackupOpen), v ->
+                presentFragment(new DrGramBackupActivity())));
+    }
+
+    private void buildCardSection(Context context) {
+        addHeader(context, LocaleController.getString(R.string.DrGramCardSectionTitle),
+                LocaleController.getString(R.string.DrGramCardSectionHint));
+        addSectionRow(makeActionRow(context, LocaleController.getString(R.string.DrGramCardOpen), v ->
+                presentFragment(new DrGramProfileCardActivity())));
     }
 
     //endregion

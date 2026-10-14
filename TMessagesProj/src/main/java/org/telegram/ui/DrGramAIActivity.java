@@ -33,6 +33,7 @@ import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.Components.DrGramGlassKit;
 import org.telegram.ui.Components.LayoutHelper;
 
 import java.io.ByteArrayOutputStream;
@@ -73,7 +74,7 @@ public class DrGramAIActivity extends BaseFragment {
         LinearLayout content = new LinearLayout(context);
         content.setOrientation(LinearLayout.VERTICAL);
         content.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(12), AndroidUtilities.dp(16), AndroidUtilities.dp(28));
-        content.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
+        content.setBackground(DrGramGlassKit.pageGradient()); // DrGram Fix 36: glass canvas
 
         TextView intro = new TextView(context);
         intro.setText(LocaleController.getString(R.string.DrGramAiToolsHint));

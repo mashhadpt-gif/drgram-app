@@ -41,6 +41,7 @@ import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.AvatarDrawable;
 import org.telegram.ui.Components.BackupImageView;
+import org.telegram.ui.Components.DrGramGlassKit;
 import org.telegram.ui.Components.DrGramLuxDecor;
 import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.Switch;
@@ -72,11 +73,7 @@ public class DrGramExploreSettingsActivity extends BaseFragment {
         contentView = new LinearLayout(context);
         contentView.setOrientation(LinearLayout.VERTICAL);
         contentView.setPadding(0, 0, 0, AndroidUtilities.dp(28));
-        contentView.setBackground(new GradientDrawable(
-                GradientDrawable.Orientation.TOP_BOTTOM,
-                org.telegram.messenger.DrGramThemeInstaller.isLoveMode()
-                        ? new int[] {0xFF160A0F, 0xFF251017, 0xFF10090D}
-                        : new int[] {0xFF0C0A05, 0xFF261D09, 0xFF0C0A05}));
+        contentView.setBackground(DrGramGlassKit.pageGradient()); // DrGram Fix 36: glass canvas
 
         // DrGram Fix 31 lesson learned from the control-center crash: never call
         // setScrollbarFadingEnabled on our custom screens and keep framework
@@ -433,13 +430,8 @@ public class DrGramExploreSettingsActivity extends BaseFragment {
     }
 
     private GradientDrawable goldCard(Context context) {
-        boolean loveMode = org.telegram.messenger.DrGramThemeInstaller.isLoveMode();
-        GradientDrawable card = new GradientDrawable(
-                GradientDrawable.Orientation.LEFT_RIGHT,
-                loveMode ? new int[] {0xFF2A1018, 0xFF1C0B11} : new int[] {0xFF3A2C0E, 0xFF211A0A});
-        card.setCornerRadius(AndroidUtilities.dp(17));
-        card.setStroke(AndroidUtilities.dp(1), loveMode ? 0x66E63B52 : 0x66FFC94A);
-        return card;
+        // DrGram Fix 36: translucent glass panel with a hairline accent stroke
+        return DrGramGlassKit.panel(context, 18);
     }
 
     private void showToast(String text) {

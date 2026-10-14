@@ -26,6 +26,7 @@ import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.Components.DrGramGlassKit;
 import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.Switch;
 
@@ -56,7 +57,7 @@ public class DrGramStorageActivity extends BaseFragment {
         content = new LinearLayout(context);
         content.setOrientation(LinearLayout.VERTICAL);
         content.setPadding(0, 0, 0, AndroidUtilities.dp(24));
-        content.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
+        content.setBackground(DrGramGlassKit.pageGradient()); // DrGram Fix 36: glass canvas
         scroll.addView(content, new ScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         fragmentView = scroll;
 
@@ -277,10 +278,7 @@ public class DrGramStorageActivity extends BaseFragment {
     }
 
     private static GradientDrawable card(int stroke) {
-        GradientDrawable card = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,
-                new int[] {0xFF3A2C0E, 0xFF211A0A});
-        card.setCornerRadius(AndroidUtilities.dp(17));
-        card.setStroke(AndroidUtilities.dp(1), stroke);
-        return card;
+        // DrGram Fix 36: translucent glass panel with a hairline accent stroke
+        return DrGramGlassKit.panel(null, 18);
     }
 }

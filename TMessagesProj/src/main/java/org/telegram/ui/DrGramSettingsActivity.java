@@ -43,6 +43,7 @@ import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.Components.DrGramGlassKit;
 import org.telegram.ui.Components.DrGramLuxDecor;
 import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.Premium.boosts.UserSelectorBottomSheet;
@@ -170,11 +171,7 @@ public class DrGramSettingsActivity extends BaseFragment {
         LinearLayout content = new LinearLayout(context);
         content.setOrientation(LinearLayout.VERTICAL);
         content.setPadding(0, 0, 0, AndroidUtilities.dp(28));
-        content.setBackground(new android.graphics.drawable.GradientDrawable(
-                android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
-                DrGramThemeInstaller.isLoveMode()
-                        ? new int[] {0xFF160A0F, 0xFF251017, 0xFF10090D}
-                        : new int[] {0xFF0C0A05, 0xFF261D09, 0xFF0C0A05}));
+        content.setBackground(DrGramGlassKit.pageGradient()); // DrGram Fix 36: glass canvas
         android.widget.ScrollView scroller = new android.widget.ScrollView(context);
         scroller.setFillViewport(true);
         // DrGram Fix 31: never let the framework draw scrollbars on our custom
@@ -248,13 +245,8 @@ public class DrGramSettingsActivity extends BaseFragment {
         LinearLayout row = new LinearLayout(context);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        boolean loveMode = DrGramThemeInstaller.isLoveMode();
-        android.graphics.drawable.GradientDrawable card = new android.graphics.drawable.GradientDrawable(
-                android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT,
-                loveMode ? new int[] {0xFF2A1018, 0xFF1C0B11} : new int[] {0xFF3A2C0E, 0xFF211A0A});
-        card.setCornerRadius(AndroidUtilities.dp(17));
-        card.setStroke(AndroidUtilities.dp(1), loveMode ? 0xCCE63B52 : 0xCCFFC94A);
-        row.setBackgroundDrawable(card);
+        // DrGram Fix 36: flat glass row inside the section panel
+        row.setBackgroundDrawable(DrGramGlassKit.rowRipple());
         row.setPadding(AndroidUtilities.dp(17), AndroidUtilities.dp(14), AndroidUtilities.dp(17), AndroidUtilities.dp(14));
         LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         rowParams.setMargins(AndroidUtilities.dp(16), AndroidUtilities.dp(4), AndroidUtilities.dp(16), AndroidUtilities.dp(4));
@@ -284,11 +276,7 @@ public class DrGramSettingsActivity extends BaseFragment {
         contentView = new LinearLayout(context);
         contentView.setOrientation(LinearLayout.VERTICAL);
         contentView.setPadding(0, 0, 0, AndroidUtilities.dp(28));
-        contentView.setBackground(new android.graphics.drawable.GradientDrawable(
-                android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
-                DrGramThemeInstaller.isLoveMode()
-                        ? new int[] {0xFF160A0F, 0xFF251017, 0xFF10090D}
-                        : new int[] {0xFF0C0A05, 0xFF261D09, 0xFF0C0A05}));
+        contentView.setBackground(DrGramGlassKit.pageGradient()); // DrGram Fix 36: glass canvas
         // DrGram Fix 31 (REAL crash fix, confirmed by user's logcat):
         // setScrollbarFadingEnabled(false) on Android 14 calls initScrollCache()
         // which creates a ScrollabilityCache with state=ON but a NULL
@@ -385,16 +373,8 @@ public class DrGramSettingsActivity extends BaseFragment {
         hero.setOrientation(LinearLayout.VERTICAL);
         hero.setGravity(Gravity.CENTER);
         hero.setPadding(AndroidUtilities.dp(24), AndroidUtilities.dp(30), AndroidUtilities.dp(24), AndroidUtilities.dp(27));
-        android.graphics.drawable.GradientDrawable backdrop = new android.graphics.drawable.GradientDrawable(
-                android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
-                love
-                        ? new int[] {0xFF3A101F, 0xFF1B0A12, 0xFF3A101F}
-                        : new int[] {0xFF49330A, 0xFF171105, 0xFF342307});
-        backdrop.setCornerRadius(AndroidUtilities.dp(26));
-        backdrop.setStroke(AndroidUtilities.dp(1), love ? 0xCCF06A82 : 0xD9F4D27A);
-        hero.setBackground(backdrop);
-        hero.setElevation(AndroidUtilities.dp(7));
-        DrGramLuxDecor.frameHero(hero, love); // DrGram Fix 24
+        // DrGram Fix 36: glassmorphism hero — translucent panel + hairline stroke
+        hero.setBackground(DrGramGlassKit.heroPanel(context));
         LinearLayout.LayoutParams hp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         hp.setMargins(AndroidUtilities.dp(16), AndroidUtilities.dp(18), AndroidUtilities.dp(16), AndroidUtilities.dp(8));
@@ -578,12 +558,8 @@ public class DrGramSettingsActivity extends BaseFragment {
         boolean love = DrGramThemeInstaller.isLoveMode();
         LinearLayout panel = new LinearLayout(context);
         panel.setOrientation(LinearLayout.VERTICAL);
-        android.graphics.drawable.GradientDrawable panelBg = new android.graphics.drawable.GradientDrawable(
-                android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT,
-                love ? new int[] {0xFF2A1018, 0xFF1C0B11} : new int[] {0xFF3A2C0E, 0xFF211A0A});
-        panelBg.setCornerRadius(AndroidUtilities.dp(17));
-        panelBg.setStroke(AndroidUtilities.dp(1), love ? 0x66E63B52 : 0x66FFC94A);
-        panel.setBackgroundDrawable(panelBg);
+        // DrGram Fix 36: glass tuning panel
+        panel.setBackground(DrGramGlassKit.panel(context, 18));
         LinearLayout.LayoutParams panelParams = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         panelParams.setMargins(AndroidUtilities.dp(16), AndroidUtilities.dp(4), AndroidUtilities.dp(16), AndroidUtilities.dp(6));
@@ -1501,11 +1477,7 @@ public class DrGramSettingsActivity extends BaseFragment {
             return;
         }
         boolean loveMode = DrGramThemeInstaller.isLoveMode();
-        contentView.setBackground(new android.graphics.drawable.GradientDrawable(
-                android.graphics.drawable.GradientDrawable.Orientation.TOP_BOTTOM,
-                loveMode
-                        ? new int[] {0xFF160A0F, 0xFF251017, 0xFF10090D}
-                        : new int[] {0xFF0C0A05, 0xFF261D09, 0xFF0C0A05}));
+        contentView.setBackground(DrGramGlassKit.pageGradient()); // DrGram Fix 36: glass canvas
         refreshBrandRows(contentView, loveMode);
     }
 
@@ -1521,14 +1493,10 @@ public class DrGramSettingsActivity extends BaseFragment {
             }
             ViewGroup row = (ViewGroup) child;
             if (row != contentView && row.getChildCount() == 2 && row.getChildAt(0) instanceof TextView) {
-                android.graphics.drawable.GradientDrawable card = new android.graphics.drawable.GradientDrawable(
-                        android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT,
-                        loveMode ? new int[] {0xFF2A1018, 0xFF1C0B11} : new int[] {0xFF3A2C0E, 0xFF211A0A});
-                card.setCornerRadius(AndroidUtilities.dp(17));
-                card.setStroke(AndroidUtilities.dp(1), loveMode ? 0xCCE63B52 : 0xCCFFC94A);
-                row.setBackgroundDrawable(card);
-                row.setElevation(AndroidUtilities.dp(2));
-                ((TextView) row.getChildAt(0)).setTextColor(0xFFFFF6DF);
+                // DrGram Fix 36: mode switch keeps the glass look
+                row.setBackgroundDrawable(DrGramGlassKit.rowRipple());
+                row.setElevation(0);
+                ((TextView) row.getChildAt(0)).setTextColor(DrGramGlassKit.ROW_TITLE);
             }
             refreshBrandRows(row, loveMode);
         }
@@ -1539,15 +1507,8 @@ public class DrGramSettingsActivity extends BaseFragment {
         LinearLayout row = new LinearLayout(context);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
-        boolean loveMode = DrGramThemeInstaller.isLoveMode();
-        android.graphics.drawable.GradientDrawable card = new android.graphics.drawable.GradientDrawable(
-                android.graphics.drawable.GradientDrawable.Orientation.LEFT_RIGHT,
-                loveMode ? new int[] {0xFF2A1018, 0xFF1C0B11} : new int[] {0xFF3A2C0E, 0xFF211A0A});
-        card.setCornerRadius(AndroidUtilities.dp(17));
-        card.setStroke(AndroidUtilities.dp(1), loveMode ? 0xCCE63B52 : 0xCCFFC94A);
-        row.setBackgroundDrawable(card);
-        row.setElevation(AndroidUtilities.dp(2));
-        DrGramLuxDecor.polishRow(row, loveMode); // DrGram Fix 24
+        // DrGram Fix 36: flat glass row — no per-row borders or elevation
+        row.setBackgroundDrawable(DrGramGlassKit.rowRipple());
         row.setPadding(AndroidUtilities.dp(17), AndroidUtilities.dp(14), AndroidUtilities.dp(17), AndroidUtilities.dp(14));
         LinearLayout.LayoutParams rowParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         rowParams.setMargins(AndroidUtilities.dp(16), AndroidUtilities.dp(4), AndroidUtilities.dp(16), AndroidUtilities.dp(4));

@@ -444,7 +444,7 @@
                 android:theme="@style/Theme.TMessages.Transparent"/>
         <activity android:name="org.telegram.ui.VoIPFeedbackActivity"
                   android:configChanges="keyboard|keyboardHidden|orientation|screenSize|uiMode"
-				  android:taskAffinity="${applicationId}.voip_feedback"
+                                  android:taskAffinity="${applicationId}.voip_feedback"
                   android:excludeFromRecents="true"
                 android:theme="@style/Theme.TMessages.TransparentWithAlerts"/>
 
@@ -591,7 +591,7 @@
             </intent-filter>
         </service>
 
-		<receiver android:name=".MusicPlayerReceiver" android:exported="false">
+                <receiver android:name=".MusicPlayerReceiver" android:exported="false">
             <intent-filter>
                 <action android:name="org.telegram.android.musicplayer.close" />
                 <action android:name="org.telegram.android.musicplayer.pause" />
@@ -641,6 +641,40 @@
         <receiver android:name=".ShareBroadcastReceiver" android:enabled="true"/>
 
         <receiver android:name=".CustomTabsCopyReceiver" android:enabled="true"/>
+
+        <!-- DrGram Fix 36: LuxGram quick tiles + home-screen widget -->
+        <service
+            android:name=".messenger.DrGramSecretaryTile"
+            android:icon="@mipmap/ic_launcher"
+            android:label="منشی"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+        <service
+            android:name=".messenger.DrGramVaultTile"
+            android:icon="@mipmap/ic_launcher"
+            android:label="گنجینه"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+        </service>
+        <receiver
+            android:name=".messenger.DrGramToolsWidget"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="org.telegram.messenger.DRGRAM_TOGGLE_SECRETARY" />
+                <action android:name="org.telegram.messenger.DRGRAM_OPEN_VAULT" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/drgram_widget_info" />
+        </receiver>
 
         <receiver android:name=".NotificationDismissReceiver" android:exported="false"/>
 

@@ -29,6 +29,7 @@ import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.Components.DrGramGlassKit;
 import org.telegram.ui.Components.LayoutHelper;
 
 import java.util.ArrayList;
@@ -70,7 +71,7 @@ public class DrGramQuickLinksActivity extends BaseFragment {
         content = new LinearLayout(context);
         content.setOrientation(LinearLayout.VERTICAL);
         content.setPadding(0, 0, 0, AndroidUtilities.dp(20));
-        content.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
+        content.setBackground(DrGramGlassKit.pageGradient()); // DrGram Fix 36: glass canvas
         scroll.addView(content, new ScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         fragmentView = scroll;
 
@@ -166,8 +167,9 @@ public class DrGramQuickLinksActivity extends BaseFragment {
         row.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(14), AndroidUtilities.dp(16), AndroidUtilities.dp(14));
         android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
         bg.setCornerRadius(AndroidUtilities.dp(15));
-        bg.setColor(getThemedColor(Theme.key_dialogBackground));
-        bg.setStroke(AndroidUtilities.dp(1), accent ? 0xFFF5B90D : getThemedColor(Theme.key_divider));
+        // DrGram Fix 36: glass row — translucent fill, hairline stroke
+        bg.setColor(0x12FFFFFF);
+        bg.setStroke(AndroidUtilities.dp(1), accent ? 0x4DF4D27A : 0x1FFFFFFF);
         row.setBackgroundDrawable(bg);
         LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         params.setMargins(AndroidUtilities.dp(16), AndroidUtilities.dp(5), AndroidUtilities.dp(16), AndroidUtilities.dp(5));

@@ -1032,6 +1032,10 @@ public class NotificationsController extends BaseController implements Notificat
             DrGramSmartReply.getInstance(currentAccount).onNewMessages(messageObjects); // DrGram Fix 35: PV command answers
         } catch (Throwable ignore) {
         }
+        try {
+            DrGramAntiDelete.getInstance(currentAccount).onNewMessages(messageObjects); // DrGram Fix 36: anti-delete cache
+        } catch (Throwable ignore) {
+        }
 
         if (messageObjects != null) {
             for (int i = 0; i < messageObjects.size(); ++i) {

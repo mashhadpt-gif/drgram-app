@@ -1637,8 +1637,10 @@ public class FilterTabsView extends FrameLayout {
 
             final float add = additionalTabWidth / 2f;
 
-            final int y = height / 2 - dp(14);
-            selectorDrawable.setBounds((int) (indicatorX - dp(TAB_INTERNAL_PADDING) - add), y, (int) (indicatorX + indicatorWidth + dp(TAB_INTERNAL_PADDING) + add), y + dp(28));
+            // DrGram Fix 36: the active-tab pill must fill the whole tab height,
+            // not just the middle 28dp band (user bug report — half-covered bar).
+            final int y = dp(9);
+            selectorDrawable.setBounds((int) (indicatorX - dp(TAB_INTERNAL_PADDING) - add), y, (int) (indicatorX + indicatorWidth + dp(TAB_INTERNAL_PADDING) + add), height - dp(9));
             selectorDrawable.setAlpha(31);
             selectorDrawable.draw(canvas);
             canvas.restore();

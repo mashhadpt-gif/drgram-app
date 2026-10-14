@@ -163,9 +163,12 @@ public class FragmentFloatingButton extends FrameLayout implements FactorAnimato
         } else {
             imageView.setColorFilter(Theme.getColor(Theme.key_chats_actionIcon, resourcesProvider), PorterDuff.Mode.SRC_IN);
             progressView.setProgressColor(Theme.getColor(Theme.key_chats_actionIcon, resourcesProvider));
+            // DrGram Fix 36: the compose FAB follows the brand palette keys —
+            // onyx fill + gold icon in Gold/LOVE modes — instead of the
+            // featuredStickers keys that rendered a solid bright circle.
             setBackground(Theme.createSimpleSelectorCircleDrawable(dp(48),
-                Theme.getColor(Theme.key_featuredStickers_addButton, resourcesProvider),
-                Theme.getColor(Theme.key_featuredStickers_addButtonPressed, resourcesProvider)
+                Theme.getColor(Theme.key_chats_actionBackground, resourcesProvider),
+                Theme.getColor(Theme.key_chats_actionPressedBackground, resourcesProvider)
             ));
         }
     }

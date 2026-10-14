@@ -28,6 +28,7 @@ import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.Components.DrGramGlassKit;
 import org.telegram.ui.Components.LayoutHelper;
 
 import java.util.ArrayList;
@@ -61,7 +62,7 @@ public class DrGramPrivateContactsActivity extends BaseFragment {
         rows = new LinearLayout(context);
         rows.setOrientation(LinearLayout.VERTICAL);
         rows.setPadding(0, AndroidUtilities.dp(8), 0, AndroidUtilities.dp(24));
-        rows.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
+        rows.setBackground(DrGramGlassKit.pageGradient()); // DrGram Fix 36: glass canvas
         scroll.addView(rows, new ScrollView.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         fragmentView = scroll;
         rebuildRows();
@@ -106,8 +107,9 @@ public class DrGramPrivateContactsActivity extends BaseFragment {
             row.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(12), AndroidUtilities.dp(16), AndroidUtilities.dp(12));
             GradientDrawable bg = new GradientDrawable();
             bg.setCornerRadius(AndroidUtilities.dp(14));
-            bg.setColor(isPrivate ? 0xFF2B1017 : getThemedColor(Theme.key_dialogBackground));
-            bg.setStroke(AndroidUtilities.dp(isPrivate ? 2 : 1), isPrivate ? 0xFFE63B52 : getThemedColor(Theme.key_divider));
+            // DrGram Fix 36: glass row — private contacts keep their red ring
+            bg.setColor(isPrivate ? 0x262B1017 : 0x12FFFFFF);
+            bg.setStroke(AndroidUtilities.dp(isPrivate ? 2 : 1), isPrivate ? 0xFFE63B52 : 0x1FFFFFFF);
             row.setBackgroundDrawable(bg);
 
             TextView title = new TextView(context);

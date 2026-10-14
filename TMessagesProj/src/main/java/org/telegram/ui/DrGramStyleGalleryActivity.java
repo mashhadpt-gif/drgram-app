@@ -44,6 +44,7 @@ import org.telegram.messenger.SharedConfig;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.Components.DrGramGlassKit;
 import org.telegram.ui.Components.DrGramLuxDecor;
 import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.Switch;
@@ -86,11 +87,7 @@ public class DrGramStyleGalleryActivity extends BaseFragment {
         contentView = new LinearLayout(context);
         contentView.setOrientation(LinearLayout.VERTICAL);
         contentView.setPadding(0, 0, 0, AndroidUtilities.dp(28));
-        contentView.setBackground(new GradientDrawable(
-                GradientDrawable.Orientation.TOP_BOTTOM,
-                DrGramThemeInstaller.isLoveMode()
-                        ? new int[] {0xFF160A0F, 0xFF251017, 0xFF10090D}
-                        : new int[] {0xFF0C0A05, 0xFF261D09, 0xFF0C0A05}));
+        contentView.setBackground(DrGramGlassKit.pageGradient()); // DrGram Fix 36: glass canvas
 
         // Fix 31 lesson: never setScrollbarFadingEnabled on custom screens; the
         // framework scrollbars stay disabled so the page is draw-proof.
@@ -469,7 +466,7 @@ public class DrGramStyleGalleryActivity extends BaseFragment {
         LinearLayout card = new LinearLayout(context);
         card.setOrientation(LinearLayout.HORIZONTAL);
         card.setGravity(Gravity.CENTER_VERTICAL);
-        card.setBackgroundDrawable(goldCard(context));
+        card.setBackgroundDrawable(DrGramGlassKit.rowRipple()); // DrGram Fix 36: flat glass row
         LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         cardParams.setMargins(AndroidUtilities.dp(16), AndroidUtilities.dp(4), AndroidUtilities.dp(16), AndroidUtilities.dp(4));
@@ -620,10 +617,9 @@ public class DrGramStyleGalleryActivity extends BaseFragment {
         card.setOrientation(LinearLayout.VERTICAL);
         card.setGravity(Gravity.START);
         card.setPadding(AndroidUtilities.dp(15), AndroidUtilities.dp(13), AndroidUtilities.dp(13), AndroidUtilities.dp(13));
-        GradientDrawable bg = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,
-                new int[] {gradStart, gradEnd});
-        bg.setCornerRadius(AndroidUtilities.dp(17));
-        bg.setStroke(AndroidUtilities.dp(active ? 2 : 1), accent);
+        // DrGram Fix 36: glass brand card — the brand accent lives in the stroke and preview
+        GradientDrawable bg = DrGramGlassKit.panel(context, 17);
+        bg.setStroke(AndroidUtilities.dp(active ? 2 : 1), active ? accent : 0x33FFFFFF);
         card.setBackgroundDrawable(bg);
 
         card.addView(makePreviewMock(context, 0xFF151109, 0xFF241D0E, accent, accent));
@@ -654,10 +650,9 @@ public class DrGramStyleGalleryActivity extends BaseFragment {
         LinearLayout card = new LinearLayout(context);
         card.setOrientation(LinearLayout.VERTICAL);
         card.setPadding(AndroidUtilities.dp(15), AndroidUtilities.dp(13), AndroidUtilities.dp(13), AndroidUtilities.dp(13));
-        GradientDrawable cardBg = new GradientDrawable(GradientDrawable.Orientation.LEFT_RIGHT,
-                new int[] {0xFF3A2C0E, 0xFF211A0A});
-        cardBg.setCornerRadius(AndroidUtilities.dp(17));
-        cardBg.setStroke(AndroidUtilities.dp(active ? 2 : 1), active ? 0xFFFFC94A : 0x66FFC94A);
+        // DrGram Fix 36: glass curated card
+        GradientDrawable cardBg = DrGramGlassKit.panel(context, 17);
+        cardBg.setStroke(AndroidUtilities.dp(active ? 2 : 1), active ? 0x66F4D27A : 0x1FFFFFFF);
         card.setBackgroundDrawable(cardBg);
         LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
@@ -771,13 +766,8 @@ public class DrGramStyleGalleryActivity extends BaseFragment {
     }
 
     private GradientDrawable goldCard(Context context) {
-        boolean loveMode = DrGramThemeInstaller.isLoveMode();
-        GradientDrawable card = new GradientDrawable(
-                GradientDrawable.Orientation.LEFT_RIGHT,
-                loveMode ? new int[] {0xFF2A1018, 0xFF1C0B11} : new int[] {0xFF3A2C0E, 0xFF211A0A});
-        card.setCornerRadius(AndroidUtilities.dp(17));
-        card.setStroke(AndroidUtilities.dp(1), loveMode ? 0x66E63B52 : 0x66FFC94A);
-        return card;
+        // DrGram Fix 36: translucent glass panel with a hairline accent stroke
+        return DrGramGlassKit.panel(context, 18);
     }
 
     //endregion
@@ -864,18 +854,21 @@ public class DrGramStyleGalleryActivity extends BaseFragment {
     }
 
     private void addHeader(Context context, String title, String subtitle) {
+        // DrGram Fix 36: the same typographic rhythm as the Tools page
         TextView header = new TextView(context);
         header.setTypeface(AndroidUtilities.bold());
-        header.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 17);
-        header.setTextColor(0xFFFFC94A);
-        header.setPadding(AndroidUtilities.dp(24), AndroidUtilities.dp(18), AndroidUtilities.dp(24), AndroidUtilities.dp(4));
-        header.setText(title);
+        header.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+        header.setLetterSpacing(0.04f);
+        header.setTextColor(DrGramGlassKit.accent());
+        header.setPadding(AndroidUtilities.dp(21), AndroidUtilities.dp(24), AndroidUtilities.dp(21), AndroidUtilities.dp(3));
+        header.setText("❖  " + title);
         contentView.addView(header);
         if (subtitle != null) {
             TextView sub = new TextView(context);
-            sub.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12);
-            sub.setTextColor(0x99E4D2A5);
-            sub.setPadding(AndroidUtilities.dp(24), 0, AndroidUtilities.dp(24), AndroidUtilities.dp(4));
+            sub.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 11.5f);
+            sub.setTextColor(DrGramGlassKit.hint());
+            sub.setLineSpacing(AndroidUtilities.dp(2), 1f);
+            sub.setPadding(AndroidUtilities.dp(21), 0, AndroidUtilities.dp(21), AndroidUtilities.dp(12));
             sub.setText(subtitle);
             contentView.addView(sub);
         }

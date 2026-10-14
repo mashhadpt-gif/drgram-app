@@ -26,6 +26,7 @@ import org.telegram.messenger.R;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.BaseFragment;
 import org.telegram.ui.ActionBar.Theme;
+import org.telegram.ui.Components.DrGramGlassKit;
 
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -64,7 +65,7 @@ public class DrGramLinkExtractorActivity extends BaseFragment {
         LinearLayout content = new LinearLayout(context);
         content.setOrientation(LinearLayout.VERTICAL);
         content.setPadding(AndroidUtilities.dp(16), AndroidUtilities.dp(12), AndroidUtilities.dp(16), AndroidUtilities.dp(24));
-        content.setBackgroundColor(getThemedColor(Theme.key_windowBackgroundWhite));
+        content.setBackground(DrGramGlassKit.pageGradient()); // DrGram Fix 36: glass canvas
 
         TextView hint = new TextView(context);
         hint.setText(LocaleController.getString(R.string.DrGramLinkExtractorHint));

@@ -6961,11 +6961,31 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
 
     View feedbackView;
 
+    /** DrGram Fix 36: opens the vault when the home widget or the quick tile asked for it. */
+    private void drgramHandleOpenVault() {
+        try {
+            Intent intent = getIntent();
+            if (intent == null || !intent.getBooleanExtra("drgram_open_vault", false)) {
+                return;
+            }
+            intent.removeExtra("drgram_open_vault");
+            AndroidUtilities.runOnUIThread(() -> {
+                try {
+                    presentFragment(new DrGramVaultActivity(), !fragmentsStack.isEmpty());
+                } catch (Throwable t) {
+                    FileLog.e(t);
+                }
+            }, 240);
+        } catch (Throwable ignore) {
+        }
+    }
+
     @Override
     protected void onResume() {
         super.onResume();
         isResumed = true;
         pipActivityHandler.onResume();
+        drgramHandleOpenVault(); // DrGram Fix 36: widget / quick-tile deep open
         if (onResumeStaticCallback != null) {
             onResumeStaticCallback.run();
             onResumeStaticCallback = null;
