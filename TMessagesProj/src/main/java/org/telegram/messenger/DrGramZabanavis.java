@@ -213,8 +213,8 @@ public class DrGramZabanavis {
         return out;
     }
 
-    private static android.text.SpannableString wrap(String text, Object span) {
-        android.text.SpannableString s = new android.text.SpannableString(text);
+    private static android.text.SpannableString wrap(CharSequence text, Object span) {
+        android.text.SpannableString s = android.text.SpannableString.valueOf(text);
         s.setSpan(span, 0, s.length(), 0);
         return s;
     }
