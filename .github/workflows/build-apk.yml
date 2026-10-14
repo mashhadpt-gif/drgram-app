@@ -29,6 +29,7 @@ on:
   push:
     branches:
       - 'drgram-new-version-2026'
+      - 'fix/**'
     tags:
       - 'v*'
 
