@@ -35,8 +35,9 @@ public class DrGramPhotoBeautify {
     }
 
     /**
-     * Processes the bitmap in place (returns the same bitmap). When no faces
-     * are found the pass degrades to a global gentle skin smooth.
+     * Processes the bitmap in place (returns the same bitmap). When no face
+     * can be localized confidently, the original image is preserved; never
+     * fall back to blurring the entire frame.
      */
     public static Bitmap process(Bitmap bitmap, Camera.Face[] cameraFaces, float strength, float nose, float teeth) {
         if (bitmap == null || bitmap.isRecycled() || bitmap.getConfig() == null) {
