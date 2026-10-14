@@ -3844,7 +3844,6 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
      * camera frame pipeline (rather than being a color-only post-filter).
      */
     private void showBeautyControls(Context context) {
-        final org.telegram.messenger.DrGramMedia media = null; // settings are static; no instance required
         LinearLayout panel = new LinearLayout(context);
         panel.setOrientation(LinearLayout.VERTICAL);
         panel.setPadding(AndroidUtilities.dp(20), AndroidUtilities.dp(8), AndroidUtilities.dp(20), AndroidUtilities.dp(4));
@@ -3863,6 +3862,39 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
                 org.telegram.messenger.DrGramMedia::setBeautifyNose);
         addBeautySlider(context, panel, "روشنایی دندان", org.telegram.messenger.DrGramMedia.beautifyTeeth(),
                 org.telegram.messenger.DrGramMedia::setBeautifyTeeth);
+
+        TextView savePreset = new TextView(context);
+        savePreset.setText("☆ ذخیره این ترکیب به‌عنوان فیلتر دلخواه");
+        savePreset.setTextSize(14);
+        savePreset.setGravity(Gravity.CENTER);
+        savePreset.setTextColor(0xFFFFFFFF);
+        savePreset.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(10), AndroidUtilities.dp(12), AndroidUtilities.dp(10));
+        GradientDrawable presetBg = new GradientDrawable();
+        presetBg.setColor(0xFF5B3A85);
+        presetBg.setCornerRadius(AndroidUtilities.dp(12));
+        savePreset.setBackground(presetBg);
+        savePreset.setOnClickListener(v -> {
+            org.telegram.messenger.DrGramMedia.saveCurrentBeautyPreset();
+            Bulletin.makeText(this, "فیلتر دلخواه ذخیره شد", Bulletin.LENGTH_SHORT).show();
+        });
+        panel.addView(savePreset, new LinearLayout.LayoutParams(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+        TextView applyPreset = new TextView(context);
+        applyPreset.setText("↻ اعمال فیلتر ذخیره‌شده");
+        applyPreset.setTextSize(14);
+        applyPreset.setGravity(Gravity.CENTER);
+        applyPreset.setTextColor(0xFFFFFFFF);
+        applyPreset.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(10), AndroidUtilities.dp(12), AndroidUtilities.dp(10));
+        applyPreset.setOnClickListener(v -> {
+            if (org.telegram.messenger.DrGramMedia.applyBeautyPreset()) {
+                enabled.setChecked(org.telegram.messenger.DrGramMedia.isBeautifyEnabled());
+                updateFxStripSelection();
+                Bulletin.makeText(this, "فیلتر دلخواه اعمال شد", Bulletin.LENGTH_SHORT).show();
+            } else {
+                Bulletin.makeText(this, "ابتدا یک فیلتر دلخواه ذخیره کن", Bulletin.LENGTH_SHORT).show();
+            }
+        });
+        panel.addView(applyPreset, new LinearLayout.LayoutParams(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
         new AlertDialog.Builder(context)
                 .setTitle("زیباسازی چهره")
