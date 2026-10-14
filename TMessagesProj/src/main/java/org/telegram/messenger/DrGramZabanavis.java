@@ -114,7 +114,7 @@ public class DrGramZabanavis {
             int accent = accentColor();
             rb.setHighlightColor(0x00000000);
             try {
-                android.graphics.drawable.ColorStateList csl = new android.graphics.drawable.ColorStateList(
+                android.content.res.ColorStateList csl = new android.content.res.ColorStateList(
                         new int[][]{{android.R.attr.state_checked}, {}},
                         new int[]{accent, 0x66888888});
                 rb.setButtonTintList(csl);
