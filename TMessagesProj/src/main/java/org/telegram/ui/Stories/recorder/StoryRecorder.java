@@ -3880,7 +3880,7 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
         savePreset.setBackground(presetBg);
         savePreset.setOnClickListener(v -> {
             org.telegram.messenger.DrGramMedia.saveCurrentBeautyPreset();
-            Bulletin.makeText(this, "فیلتر دلخواه ذخیره شد", Bulletin.LENGTH_SHORT).show();
+            BulletinFactory.of(captionContainer, resourcesProvider).createSimpleBulletin(R.raw.chats_infotip, "فیلتر دلخواه ذخیره شد").show();
         });
         panel.addView(savePreset, new LinearLayout.LayoutParams(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
@@ -3897,9 +3897,9 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
                 beautySliders.get(1).setProgress(Math.round(org.telegram.messenger.DrGramMedia.beautifyNose() * 100f));
                 beautySliders.get(2).setProgress(Math.round(org.telegram.messenger.DrGramMedia.beautifyTeeth() * 100f));
                 updateFxStripSelection();
-                Bulletin.makeText(this, "فیلتر دلخواه اعمال شد", Bulletin.LENGTH_SHORT).show();
+                BulletinFactory.of(captionContainer, resourcesProvider).createSimpleBulletin(R.raw.chats_infotip, "فیلتر دلخواه اعمال شد").show();
             } else {
-                Bulletin.makeText(this, "ابتدا یک فیلتر دلخواه ذخیره کن", Bulletin.LENGTH_SHORT).show();
+                BulletinFactory.of(captionContainer, resourcesProvider).createSimpleBulletin(R.raw.error, "ابتدا یک فیلتر دلخواه ذخیره کن").show();
             }
         });
         panel.addView(applyPreset, new LinearLayout.LayoutParams(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
