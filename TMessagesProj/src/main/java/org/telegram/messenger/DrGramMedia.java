@@ -129,6 +129,10 @@ public class DrGramMedia {
         prefs().edit().putFloat("camera_beautify_nose", clampBeauty(value)).apply();
     }
 
+    public static float beautifyNoseUniform() {
+        return isBeautifyEnabled() ? beautifyNose() : 0f;
+    }
+
     /** Teeth whitening intensity 0..1. */
     public static float beautifyTeeth() {
         try {
@@ -143,6 +147,10 @@ public class DrGramMedia {
 
     public static void setBeautifyTeeth(float value) {
         prefs().edit().putFloat("camera_beautify_teeth", clampBeauty(value)).apply();
+    }
+
+    public static float beautifyTeethUniform() {
+        return isBeautifyEnabled() ? beautifyTeeth() : 0f;
     }
 
     private static float clampBeauty(float value) {
@@ -199,7 +207,8 @@ public class DrGramMedia {
 
     /** True when any camera processing is active (drives face detection startup). */
     public static boolean cameraBeautyActive() {
-        return beautifyUniform() > 0.001f || beautifyNose() > 0.001f || beautifyTeeth() > 0.001f;
+        return isBeautifyEnabled() && (beautifyUniform() > 0.001f
+                || beautifyNose() > 0.001f || beautifyTeeth() > 0.001f);
     }
 
     public static void setStoryGradientEnabled(boolean value) {
