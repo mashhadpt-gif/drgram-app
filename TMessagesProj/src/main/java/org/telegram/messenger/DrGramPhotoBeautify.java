@@ -35,8 +35,10 @@ public class DrGramPhotoBeautify {
     }
 
     /**
-     * Processes the bitmap in place (returns the same bitmap). When no faces
-     * are found the pass degrades to a global gentle skin smooth.
+     * Processes the bitmap in place (returns the same bitmap). If face detection
+     * fails, leave the image untouched rather than smoothing skin-colored regions
+     * across the whole frame; this prevents backgrounds, hair and clothing from
+     * becoming waxy on devices that cannot reliably detect a face.
      */
     public static Bitmap process(Bitmap bitmap, Camera.Face[] cameraFaces, float strength, float nose, float teeth) {
         if (bitmap == null || bitmap.isRecycled() || bitmap.getConfig() == null) {
@@ -56,6 +58,11 @@ public class DrGramPhotoBeautify {
             ArrayList<FaceBox> faces = collectFaces(cameraFaces, W, H);
             if (faces.isEmpty()) {
                 faces = detectFacesFallback(px, W, H);
+            }
+            // Fail closed: no face landmarks/box means no retouching. A global
+            // skin-color mask can blur walls, hair and clothes and looks artificial.
+            if (faces.isEmpty()) {
+                return bitmap;
             }
 
             if (strength > 0.001f) {
