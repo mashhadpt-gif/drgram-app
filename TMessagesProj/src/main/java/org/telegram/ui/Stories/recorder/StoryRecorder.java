@@ -3839,9 +3839,9 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
     private final java.util.ArrayList<TextView> fxChips = new java.util.ArrayList<>();
 
     /**
-     * Live camera beauty controls. Values are consumed by CameraView's shader,
-     * so the preview updates while the sliders move and is recorded with the
-     * camera frame pipeline (rather than being a color-only post-filter).
+     * Camera preview beauty controls. Values are consumed by CameraView's
+     * shader for immediate preview feedback. The preview effect must not be
+     * confused with proof that every recording/stream encoder uses the shader.
      */
     private interface BeautyValueListener {
         void onValue(float value);
