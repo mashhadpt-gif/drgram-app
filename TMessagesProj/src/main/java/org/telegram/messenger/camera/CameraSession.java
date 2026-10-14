@@ -59,7 +59,7 @@ public class CameraSession {
     // DrGram Fix 41: latest Camera1 face-detection result, consumed by the
     // CameraView shader (skin smoothing / nose slim / teeth whiten).
     public volatile android.hardware.Camera.Face[] drgramFaces;
-    public final android.hardware.Camera.FaceDetectionListener drgramFaceListener = faces -> drgramFaces = faces;
+    public final android.hardware.Camera.FaceDetectionListener drgramFaceListener = (faces, cam) -> drgramFaces = faces;
 
     private int infoCameraId = -1;
     Camera.CameraInfo info = new Camera.CameraInfo();
