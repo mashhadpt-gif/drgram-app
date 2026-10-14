@@ -103,7 +103,7 @@ public class DrGramMedia {
     }
 
     public static void setBeautifyStrength(float value) {
-        prefs().edit().putFloat("camera_beautify_strength", value).apply();
+        prefs().edit().putFloat("camera_beautify_strength", clampBeauty(value)).apply();
     }
 
     /** The shader uniform value actually fed to the camera pipeline (0 = off). */
@@ -126,7 +126,7 @@ public class DrGramMedia {
     }
 
     public static void setBeautifyNose(float value) {
-        prefs().edit().putFloat("camera_beautify_nose", value).apply();
+        prefs().edit().putFloat("camera_beautify_nose", clampBeauty(value)).apply();
     }
 
     /** Teeth whitening intensity 0..1. */
@@ -142,7 +142,14 @@ public class DrGramMedia {
     }
 
     public static void setBeautifyTeeth(float value) {
-        prefs().edit().putFloat("camera_beautify_teeth", value).apply();
+        prefs().edit().putFloat("camera_beautify_teeth", clampBeauty(value)).apply();
+    }
+
+    private static float clampBeauty(float value) {
+        if (Float.isNaN(value) || Float.isInfinite(value)) {
+            return 0f;
+        }
+        return Math.max(0f, Math.min(1f, value));
     }
 
     /** Selected camera FX id (0 = none; 1..12 = effect pack). */
