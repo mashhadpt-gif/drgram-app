@@ -3856,12 +3856,13 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
         panel.addView(enabled, new LinearLayout.LayoutParams(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
         enabled.setOnCheckedChangeListener((button, checked) -> org.telegram.messenger.DrGramMedia.setBeautifyEnabled(checked));
 
-        addBeautySlider(context, panel, "صافی طبیعی پوست", org.telegram.messenger.DrGramMedia.beautifyStrength(),
-                org.telegram.messenger.DrGramMedia::setBeautifyStrength);
-        addBeautySlider(context, panel, "فرم‌دهی ملایم بینی", org.telegram.messenger.DrGramMedia.beautifyNose(),
-                org.telegram.messenger.DrGramMedia::setBeautifyNose);
-        addBeautySlider(context, panel, "روشنایی دندان", org.telegram.messenger.DrGramMedia.beautifyTeeth(),
-                org.telegram.messenger.DrGramMedia::setBeautifyTeeth);
+        java.util.ArrayList<android.widget.SeekBar> beautySliders = new java.util.ArrayList<>();
+        beautySliders.add(addBeautySlider(context, panel, "صافی طبیعی پوست", org.telegram.messenger.DrGramMedia.beautifyStrength(),
+                org.telegram.messenger.DrGramMedia::setBeautifyStrength));
+        beautySliders.add(addBeautySlider(context, panel, "فرم‌دهی ملایم بینی", org.telegram.messenger.DrGramMedia.beautifyNose(),
+                org.telegram.messenger.DrGramMedia::setBeautifyNose));
+        beautySliders.add(addBeautySlider(context, panel, "روشنایی دندان", org.telegram.messenger.DrGramMedia.beautifyTeeth(),
+                org.telegram.messenger.DrGramMedia::setBeautifyTeeth));
 
         TextView savePreset = new TextView(context);
         savePreset.setText("☆ ذخیره این ترکیب به‌عنوان فیلتر دلخواه");
@@ -3888,6 +3889,9 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
         applyPreset.setOnClickListener(v -> {
             if (org.telegram.messenger.DrGramMedia.applyBeautyPreset()) {
                 enabled.setChecked(org.telegram.messenger.DrGramMedia.isBeautifyEnabled());
+                beautySliders.get(0).setProgress(Math.round(org.telegram.messenger.DrGramMedia.beautifyStrength() * 100f));
+                beautySliders.get(1).setProgress(Math.round(org.telegram.messenger.DrGramMedia.beautifyNose() * 100f));
+                beautySliders.get(2).setProgress(Math.round(org.telegram.messenger.DrGramMedia.beautifyTeeth() * 100f));
                 updateFxStripSelection();
                 Bulletin.makeText(this, "فیلتر دلخواه اعمال شد", Bulletin.LENGTH_SHORT).show();
             } else {
@@ -3912,7 +3916,7 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
                 .show();
     }
 
-    private void addBeautySlider(Context context, LinearLayout panel, String label, float value,
+    private android.widget.SeekBar addBeautySlider(Context context, LinearLayout panel, String label, float value,
                                  java.util.function.Consumer<Float> onValueChanged) {
         TextView title = new TextView(context);
         title.setText(label);
@@ -3938,6 +3942,7 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
             @Override public void onStartTrackingTouch(android.widget.SeekBar seekBar) {}
             @Override public void onStopTrackingTouch(android.widget.SeekBar seekBar) {}
         });
+        return slider;
     }
 
     private android.widget.HorizontalScrollView buildFxStrip(Context context) {
