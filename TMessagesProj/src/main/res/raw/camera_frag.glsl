@@ -111,10 +111,11 @@ mediump float ellipseFalloff(mediump vec2 p, mediump vec2 c, mediump vec2 halfSi
   return 1.0 - smoothstep(0.75, 1.35, e);
 }
 
-// Face weight: strongest smoothing inside detected faces; 1.0 when no faces.
+// Face weight: strongest smoothing inside detected faces. If face detection
+// is unavailable, disable retouching instead of smoothing the entire frame.
 mediump float faceWeight(mediump vec2 p) {
   if (fxFaceCount < 0.5) {
-    return 1.0;
+    return 0.0;
   }
   mediump float w = 0.0;
   for (int i = 0; i < 2; i++) {

@@ -372,7 +372,26 @@ public class DrGramBackupActivity extends BaseFragment {
                 JSONObject fileJson = new JSONObject();
                 for (java.util.Map.Entry<String, ?> entry : prefs.getAll().entrySet()) {
                     Object value = entry.getValue();
-                    fileJson.put(entry.getKey(), value == null ? "" : String.valueOf(value));
+                    JSONObject typed = new JSONObject();
+                    if (value instanceof Boolean) {
+                        typed.put("type", "boolean").put("value", value);
+                    } else if (value instanceof Integer) {
+                        typed.put("type", "int").put("value", value);
+                    } else if (value instanceof Long) {
+                        typed.put("type", "long").put("value", value);
+                    } else if (value instanceof Float) {
+                        typed.put("type", "float").put("value", value);
+                    } else if (value instanceof java.util.Set) {
+                        typed.put("type", "string_set");
+                        org.json.JSONArray values = new org.json.JSONArray();
+                        for (Object item : (java.util.Set<?>) value) {
+                            if (item instanceof String) values.put((String) item);
+                        }
+                        typed.put("value", values);
+                    } else {
+                        typed.put("type", "string").put("value", value == null ? "" : String.valueOf(value));
+                    }
+                    fileJson.put(entry.getKey(), typed);
                 }
                 root.put(prefsName, fileJson);
             }
@@ -391,6 +410,10 @@ public class DrGramBackupActivity extends BaseFragment {
         Iterator<String> keys = root.keys();
         while (keys.hasNext()) {
             String prefsName = keys.next();
+            // Never allow a backup to overwrite Telegram's own preferences.
+            if (prefsName == null || !prefsName.startsWith("drgram_")) {
+                throw new IllegalArgumentException("unsupported preferences");
+            }
             JSONObject fileJson = root.getJSONObject(prefsName);
             SharedPreferences.Editor editor = ApplicationLoader.applicationContext
                     .getSharedPreferences(prefsName, Context.MODE_PRIVATE).edit();
@@ -398,7 +421,37 @@ public class DrGramBackupActivity extends BaseFragment {
             Iterator<String> entries = fileJson.keys();
             while (entries.hasNext()) {
                 String key = entries.next();
-                editor.putString(key, fileJson.optString(key));
+                Object raw = fileJson.get(key);
+                // Version 1 backups stored every value as a string; keep them restorable.
+                if (!(raw instanceof JSONObject)) {
+                    editor.putString(key, raw == JSONObject.NULL ? "" : String.valueOf(raw));
+                    continue;
+                }
+                JSONObject typed = (JSONObject) raw;
+                String type = typed.optString("type", "string");
+                Object value = typed.opt("value");
+                if ("boolean".equals(type)) {
+                    editor.putBoolean(key, typed.optBoolean("value", false));
+                } else if ("int".equals(type)) {
+                    editor.putInt(key, typed.optInt("value", 0));
+                } else if ("long".equals(type)) {
+                    editor.putLong(key, typed.optLong("value", 0L));
+                } else if ("float".equals(type)) {
+                    editor.putFloat(key, (float) typed.optDouble("value", 0.0d));
+                } else if ("string_set".equals(type)) {
+                    org.json.JSONArray values = typed.optJSONArray("value");
+                    java.util.HashSet<String> set = new java.util.HashSet<>();
+                    if (values != null) {
+                        for (int i = 0; i < values.length(); i++) {
+                            if (!values.isNull(i)) set.add(values.optString(i));
+                        }
+                    }
+                    editor.putStringSet(key, set);
+                } else if ("string".equals(type)) {
+                    editor.putString(key, value == null || value == JSONObject.NULL ? "" : String.valueOf(value));
+                } else {
+                    throw new IllegalArgumentException("unsupported preference type");
+                }
             }
             editor.apply();
         }

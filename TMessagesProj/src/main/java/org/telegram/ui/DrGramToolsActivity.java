@@ -1237,7 +1237,9 @@ public class DrGramToolsActivity extends BaseFragment {
 
         TextView titleView = new TextView(context);
         titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 14.5f);
-        titleView.setTextColor(0xFFF1EADA);
+        // High-contrast foreground: beauty and voice controls must remain readable
+        // over the translucent dark glass surface in both brand themes.
+        titleView.setTextColor(0xFFFFFFFF);
         titleView.setText(title);
         titleView.setGravity(Gravity.START);
         row.addView(titleView, LayoutHelper.createLinear(0, LayoutHelper.WRAP_CONTENT, 1f));
