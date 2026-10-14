@@ -1263,6 +1263,7 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
         private int dualHandle;
         private int scaleHandle;
         private int blurHandle;
+        private int beautifyHandle; // DrGram Fix 40
         private int alphaHandle;
         private int crossfadeHandle;
         private int shapeFromHandle;
@@ -1406,6 +1407,7 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
                     dualHandle = GLES20.glGetUniformLocation(drawProgram, "dual");
                     scaleHandle = GLES20.glGetUniformLocation(drawProgram, "scale");
                     blurHandle = GLES20.glGetUniformLocation(drawProgram, "blur");
+                    beautifyHandle = GLES20.glGetUniformLocation(drawProgram, "beautify"); // DrGram Fix 40
                     alphaHandle = GLES20.glGetUniformLocation(drawProgram, "alpha");
                     crossfadeHandle = GLES20.glGetUniformLocation(drawProgram, "crossfade");
                     shapeFromHandle = GLES20.glGetUniformLocation(drawProgram, "shapeFrom");
@@ -1785,6 +1787,7 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
                     GLES20.glUniform1f(dualHandle, 1f);
                 }
                 GLES20.glUniform1f(blurHandle, i == 0 ? camera1Blur : 0f);
+                GLES20.glUniform1f(beautifyHandle, org.telegram.messenger.DrGramMedia.beautifyUniform()); // DrGram Fix 40
                 if (i == 1) {
                     GLES20.glUniform1f(alphaHandle, 1);
                     if (a < 0) {
@@ -2417,6 +2420,7 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
         private int alphaHandle;
         private int scaleHandle;
         private int blurHandle;
+        private int beautifyHandle; // DrGram Fix 40
         private int zeroTimeStamps;
         private Integer lastCameraId = 0;
 
@@ -2793,6 +2797,7 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
                 GLES20.glUniformMatrix4fv(textureMatrixHandle, 1, false, mSTMatrix[i], 0);
 
                 GLES20.glUniform1f(blurHandle, 0);
+                GLES20.glUniform1f(beautifyHandle, org.telegram.messenger.DrGramMedia.beautifyUniform()); // DrGram Fix 40
                 Size size = previewSize[i];
                 if (size != null && cameraSession[i] != null) {
                     int angle = cameraSession[i].getWorldAngle();
@@ -3158,6 +3163,7 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
                     dualHandle = GLES20.glGetUniformLocation(drawProgram, "dual");
                     scaleHandle = GLES20.glGetUniformLocation(drawProgram, "scale");
                     blurHandle = GLES20.glGetUniformLocation(drawProgram, "blur");
+                    beautifyHandle = GLES20.glGetUniformLocation(drawProgram, "beautify"); // DrGram Fix 40
                     alphaHandle = GLES20.glGetUniformLocation(drawProgram, "alpha");
                     crossfadeHandle = GLES20.glGetUniformLocation(drawProgram, "crossfade");
                     shapeFromHandle = GLES20.glGetUniformLocation(drawProgram, "shapeFrom");

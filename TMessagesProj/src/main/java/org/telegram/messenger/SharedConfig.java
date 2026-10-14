@@ -360,6 +360,7 @@ public class SharedConfig {
     public static boolean drgramGlassUI = true;
     public static boolean drgramGoldChat = true;
     public static boolean drgramAutoProxy = true; // DrGram Fix 26: auto MTProto proxy (telegramvpn.org)
+    public static boolean drgramAutoProxyVpnOff = true; // DrGram Fix 40: drop the auto proxy while a VPN is up
     public static boolean drgramVazirFont = true;
 
     // DrGram settings center
@@ -691,6 +692,7 @@ public class SharedConfig {
             drgramGlassUI = preferences.getBoolean("drgramGlassUI", true);
             drgramGoldChat = preferences.getBoolean("drgramGoldChat", true);
             drgramAutoProxy = preferences.getBoolean("drgramAutoProxy", true); // DrGram Fix 26
+            drgramAutoProxyVpnOff = preferences.getBoolean("drgramAutoProxyVpnOff", true); // DrGram Fix 40
             drgramVazirFont = preferences.getBoolean("drgramVazirFont", true);
             drgramAutoForward = preferences.getBoolean("drgramAutoForward", true);
             drgramHideChannelAds = preferences.getBoolean("drgramHideChannelAds", true);
@@ -1316,6 +1318,12 @@ public class SharedConfig {
         drgramAutoProxy = !drgramAutoProxy;
         ApplicationLoader.applicationContext.getSharedPreferences("mainconfig", Activity.MODE_PRIVATE)
                 .edit().putBoolean("drgramAutoProxy", drgramAutoProxy).apply();
+    }
+
+    public static void toggleDrgramAutoProxyVpnOff() { // DrGram Fix 40
+        drgramAutoProxyVpnOff = !drgramAutoProxyVpnOff;
+        ApplicationLoader.applicationContext.getSharedPreferences("mainconfig", Activity.MODE_PRIVATE)
+                .edit().putBoolean("drgramAutoProxyVpnOff", drgramAutoProxyVpnOff).apply();
     }
 
     public static void setDrgramThemeApplied(boolean value) {

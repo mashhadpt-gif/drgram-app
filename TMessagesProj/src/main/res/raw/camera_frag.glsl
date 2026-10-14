@@ -12,6 +12,7 @@ uniform float alpha;
 uniform float shapeFrom, shapeTo, shapeT;
 uniform float dual;
 uniform float blur;
+uniform float beautify;
 
 float modI(float a,float b) {
   return floor(a-floor((a+0.5)/b)*b+0.5);
@@ -82,6 +83,30 @@ vec4 program() {
   else
     return mix(texture2D(sTexture, uv), makeblur(), blur) * vec4(1., 1., 1., dalpha);
 }
+// DrGram Fix 40: skin-smoothing (صاف کردن صورت) — 8-tap edge-aware blur.
+// beautify = 0 is a pixel-identical early-out, so OFF is stock behaviour.
+vec4 beautifySample(vec4 base) {
+  if (beautify <= 0.001)
+    return base;
+  vec3 C = base.rgb;
+  vec3 sum = C;
+  float wsum = 1.0;
+  for (int i = 0; i < 8; i++) {
+    float ang = float(i) * 0.78539816;
+    vec2 off = vec2(cos(ang), sin(ang)) * 1.7 / pixelWH;
+    vec3 S = texture2D(sTexture, uv + off).rgb;
+    float w = 1.0 - min(1.0, distance(S, C) * 5.0);
+    sum += S * w;
+    wsum += w;
+  }
+  base.rgb = mix(C, sum / wsum, beautify);
+  base.rgb += beautify * 0.025;
+  return base;
+}
 void main() {
-  gl_FragColor = dual < .5 ? texture2D(sTexture, uv) : program();
+  if (dual < .5) {
+    gl_FragColor = beautifySample(texture2D(sTexture, uv));
+  } else {
+    gl_FragColor = program();
+  }
 }

@@ -1,6 +1,10 @@
 package org.telegram.messenger;
 
+import android.content.Context;
 import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
 import android.text.TextUtils;
 import android.widget.Toast;
 
@@ -38,16 +42,129 @@ public class DrGramAutoProxy {
     private static final int MAX_CANDIDATES = 6;
 
     private static volatile boolean running;
+    private static volatile boolean vpnWatcherRegistered;
+    private static volatile boolean lastVpnState;
 
     private static void finish() {
         running = false;
     }
 
+    /** True when any Android VPN is the active network (DrGram Fix 40). */
+    public static boolean isVpnActive() {
+        try {
+            ConnectivityManager cm = (ConnectivityManager) ApplicationLoader.applicationContext.getSystemService(Context.CONNECTIVITY_SERVICE);
+            if (cm == null) {
+                return false;
+            }
+            Network active = cm.getActiveNetwork();
+            if (active == null) {
+                return false;
+            }
+            NetworkCapabilities caps = cm.getNetworkCapabilities(active);
+            return caps != null && caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN);
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    /**
+     * DrGram Fix 40: manual "تعویض خودکار پروکسی" — the user explicitly asks for
+     * the best auto-found proxy right now. Unlike onAppOpen this overrides a
+     * manually picked proxy, because the tap IS the user's intent.
+     */
+    public static void forceSwitch() {
+        try {
+            if (running) {
+                return;
+            }
+            if (SharedConfig.drgramAutoProxyVpnOff && isVpnActive()) {
+                AndroidUtilities.runOnUIThread(DrGramAutoProxy::toastVpnActive);
+                return;
+            }
+            running = true;
+            AndroidUtilities.runOnUIThread(() -> running = false, 90_000);
+            fetchAndPick();
+        } catch (Throwable t) {
+            running = false;
+            FileLog.e(t);
+        }
+    }
+
+    private static void toastVpnActive() {
+        toast("DrGramProxyVpnActive");
+    }
+
+    private static void toast(String key) {
+        try {
+            Toast.makeText(ApplicationLoader.applicationContext, LocaleController.getString(key, org.telegram.messenger.R.string.DrGramProxyVpnActive), Toast.LENGTH_SHORT).show();
+        } catch (Throwable ignore) {}
+    }
+
+    /**
+     * DrGram Fix 40: while the VPN toggle is on, an active Android VPN switches
+     * the auto-applied MTProto proxy back off (and keeps onAppOpen away).
+     * Registered once, acts on transitions only.
+     */
+    public static void registerVpnWatcher() {
+        if (vpnWatcherRegistered) {
+            return;
+        }
+        try {
+            ConnectivityManager cm = (ConnectivityManager) ApplicationLoader.applicationContext.getSystemService(Context.CONNECTIVITY_SERVICE);
+            if (cm == null) {
+                return;
+            }
+            vpnWatcherRegistered = true;
+            lastVpnState = isVpnActive();
+            cm.registerDefaultNetworkCallback(new ConnectivityManager.NetworkCallback() {
+                @Override
+                public void onCapabilitiesChanged(Network network, NetworkCapabilities capabilities) {
+                    try {
+                        boolean vpn = capabilities != null && capabilities.hasTransport(NetworkCapabilities.TRANSPORT_VPN);
+                        if (vpn == lastVpnState) {
+                            return;
+                        }
+                        lastVpnState = vpn;
+                        if (!vpn || !SharedConfig.drgramAutoProxyVpnOff) {
+                            return;
+                        }
+                        AndroidUtilities.runOnUIThread(() -> {
+                            try {
+                                if (!SharedConfig.drgramAutoProxyVpnOff || !SharedConfig.isProxyEnabled()) {
+                                    return;
+                                }
+                                if (SharedConfig.currentProxy != null && !isDrgramAutoProxy(SharedConfig.currentProxy)) {
+                                    return; // a manual proxy stays untouched
+                                }
+                                SharedPreferences preferences = MessagesController.getGlobalMainSettings();
+                                preferences.edit().putBoolean("proxy_enabled", false).commit();
+                                ConnectionsManager.setProxySettings(false, null);
+                                NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.proxySettingsChanged);
+                                toast("DrGramProxyVpnProxyOff");
+                            } catch (Throwable t) {
+                                FileLog.e(t);
+                            }
+                        });
+                    } catch (Throwable t) {
+                        FileLog.e(t);
+                    }
+                }
+            });
+        } catch (Throwable t) {
+            vpnWatcherRegistered = false;
+            FileLog.e(t);
+        }
+    }
+
     /** Call from the UI thread (LaunchActivity, delayed a few seconds). */
     public static void onAppOpen() {
         try {
+            registerVpnWatcher(); // DrGram Fix 40
             if (running || !SharedConfig.drgramAutoProxy) {
                 return;
+            }
+            if (SharedConfig.drgramAutoProxyVpnOff && isVpnActive()) {
+                return; // VPN is handling connectivity — leave the proxy alone
             }
             if (SharedConfig.isProxyEnabled() && SharedConfig.currentProxy != null
                     && !isDrgramAutoProxy(SharedConfig.currentProxy)) {

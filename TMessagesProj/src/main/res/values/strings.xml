@@ -11761,5 +11761,24 @@
     <string name="DrGramVoiceF2M">Female → Male</string>
     <string name="DrGramStudioEcho">Studio echo</string>
     <string name="DrGramLuxSound">Luxury notification sound</string>
+    <!-- DrGram Fix 40 -->
+    <string name="DrGramProxyAutoSwitch">Auto-switch proxy</string>
+    <string name="DrGramProxySwitching">Testing and connecting the best proxy…</string>
+    <string name="DrGramProxyVpnOff">Disable auto proxy while VPN is on</string>
+    <string name="DrGramProxyVpnActive">VPN is active — auto proxy skipped</string>
+    <string name="DrGramProxyVpnProxyOff">Proxy turned off (VPN is active)</string>
+    <string name="DrGramSmartCmdWeather">Weather (city in the row below)</string>
+    <string name="DrGramSmartCmdFal">Hafez fortune</string>
+    <string name="DrGramSmartCmdSave">Save post to Saved Messages (reply)</string>
+    <string name="DrGramSmartCmdSticker">Turn image into sticker (reply)</string>
+    <string name="DrGramSmartCmdPhoto">Turn sticker into photo (reply)</string>
+    <string name="DrGramSmartCmdRename">Rename group + text</string>
+    <string name="DrGramSmartCmdDesc">Group description + text</string>
+    <string name="DrGramSmartCityTitle">Weather city</string>
+    <string name="DrGramSmartCityHint">Type your city name, e.g. Tehran or Mashhad</string>
+    <string name="DrGramSmartNeedArg">Add the text after the command, e.g. «Name: LuxGram»</string>
+    <string name="DrGramBeautify">Face beautify (stories &amp; video)</string>
+    <string name="DrGramBeautifyLight">Light</string>
+    <string name="DrGramBeautifyMedium">Medium</string>
+    <string name="DrGramBeautifyStrong">Strong</string>
 </resources>
-

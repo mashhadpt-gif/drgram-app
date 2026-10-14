@@ -75,6 +75,42 @@ public class DrGramMedia {
         }
     }
 
+    // DrGram Fix 40: camera beautify (صاف کردن صورت) for stories & video messages
+
+    /** True when the camera skin-smoothing effect is enabled. */
+    public static boolean isBeautifyEnabled() {
+        try {
+            return prefs().getBoolean("camera_beautify", true);
+        } catch (Exception e) {
+            return true;
+        }
+    }
+
+    public static void setBeautifyEnabled(boolean value) {
+        prefs().edit().putBoolean("camera_beautify", value).apply();
+    }
+
+    /** Effect intensity 0..1, persisted separately. */
+    public static float beautifyStrength() {
+        try {
+            float v = prefs().getFloat("camera_beautify_strength", 0.55f);
+            if (v < 0f) v = 0f;
+            if (v > 1f) v = 1f;
+            return v;
+        } catch (Exception e) {
+            return 0.55f;
+        }
+    }
+
+    public static void setBeautifyStrength(float value) {
+        prefs().edit().putFloat("camera_beautify_strength", value).apply();
+    }
+
+    /** The shader uniform value actually fed to the camera pipeline (0 = off). */
+    public static float beautifyUniform() {
+        return isBeautifyEnabled() ? beautifyStrength() : 0f;
+    }
+
     public static void setStoryGradientEnabled(boolean value) {
         prefs().edit().putBoolean("story_gradient", value).apply();
     }

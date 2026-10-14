@@ -784,6 +784,37 @@ public class DrGramToolsActivity extends BaseFragment {
         });
         addSectionRow(luxSoundRow);
 
+        // DrGram Fix 40: camera beautify (صاف کردن صورت) for stories & video messages
+        Switch beautifySwitch = new Switch(context);
+        beautifySwitch.setChecked(org.telegram.messenger.DrGramMedia.isBeautifyEnabled(), false);
+        LinearLayout beautifyRow = makeRow(context, LocaleController.getString(R.string.DrGramBeautify), beautifySwitch);
+        beautifyRow.setTag("media_beautify");
+        beautifyRow.setOnClickListener(v -> {
+            if (getParentActivity() == null) {
+                return;
+            }
+            float current = org.telegram.messenger.DrGramMedia.beautifyStrength();
+            String[] items = {
+                    LocaleController.getString(R.string.DrGramBeautifyLight) + (current <= 0.3f + 0.01f ? "  ✔" : ""),
+                    LocaleController.getString(R.string.DrGramBeautifyMedium) + (current > 0.3f + 0.01f && current <= 0.6f + 0.01f ? "  ✔" : ""),
+                    LocaleController.getString(R.string.DrGramBeautifyStrong) + (current > 0.6f + 0.01f ? "  ✔" : "")
+            };
+            new AlertDialog.Builder(getParentActivity(), getResourceProvider())
+                    .setTitle(LocaleController.getString(R.string.DrGramBeautify))
+                    .setItems(items, (dialog, which) -> {
+                        float v2 = which == 0 ? 0.3f : (which == 1 ? 0.55f : 0.85f);
+                        org.telegram.messenger.DrGramMedia.setBeautifyEnabled(true);
+                        org.telegram.messenger.DrGramMedia.setBeautifyStrength(v2);
+                        beautifySwitch.setChecked(true, false);
+                    })
+                    .setNeutralButton(LocaleController.getString(R.string.DrGramVoiceOff), (dialog, which) -> {
+                        org.telegram.messenger.DrGramMedia.setBeautifyEnabled(false);
+                        beautifySwitch.setChecked(false, false);
+                    })
+                    .show();
+        });
+        addSectionRow(beautifyRow);
+
         // DrGram Fix 38: pick your own love/gold notification chime
         boolean drgramLoveNow = org.telegram.messenger.DrGramThemeInstaller.isLoveMode();
         String drgramCustom = drgramLoveNow ? DrGramLuxSounds.customLoveSound() : DrGramLuxSounds.customGoldSound();

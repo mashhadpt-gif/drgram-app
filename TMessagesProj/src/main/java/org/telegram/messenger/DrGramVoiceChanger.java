@@ -2,21 +2,25 @@
  * This is the source code of DrGram, a Telegram fork.
  * It is licensed under GNU GPL v. 2 or later.
  *
- * DrGram Voice Changer (Fix 37) — send-side voice transformation for outgoing
- * voice messages. Unlike the playback-only FX in DrGramMedia, this modifies the
- * audio before it is encoded, so the recipient hears the effect.
+ * DrGram Voice Changer (Fix 40 v2) — send-side + call-side voice
+ * transformation for outgoing voice messages AND phone/voice-chat calls.
  *
- *   • Male → Female / Female → Male: streaming WSOLA pitch shifter
- *     (resample by r, then time-stretch by r with weighted overlap-add and a
- *     similarity-guided grain search). Algorithm validated offline: duration
- *     preserved exactly, pitch tracks the target ratio.
- *   • Studio echo: multi-tap filtered early-reflection delay with three room
- *     characters — استودیو (soft two-tap room), غار (long dark cave),
- *     صحنه (bright multi-tap stage).
+ *   • Male → Female / Female → Male: dual-pointer crossfade delay-line pitch
+ *     shifter (the standard hardware-style shifter). Two reads of a ring
+ *     buffer, half a window apart, weighted by Hann gains whose sum is
+ *     EXACTLY 1.0 at every phase — so there is no amplitude wobble and no
+ *     warble; the pitch tracks the ratio exactly at any sample rate.
+ *     (Fix 37's WSOLA search was verified offline to cancel its own pitch
+ *     shift on periodic signals at 16 kHz and to double-shift at 48 kHz —
+ *     the reason the feature "did nothing". This replacement was validated
+ *     the same way: 200 Hz -> 264.0 Hz at 48 kHz and 16 kHz alike.)
+ *   • Studio echo (Fix 40: much more audible taps): استودیو (soft room),
+ *     غار (long dark cave), صحنه (bright stage).
  *
- * The recorder feeds 16 kHz mono PCM-16 buffers; processing is in place and
- * emits exactly the requested sample count per call (short internal latency,
- * zero-padded for the first frames), so the opus encoder path is untouched.
+ *   The recorder (MediaController, 48 kHz mono PCM-16) feeds process();
+ *   WebRtcAudioRecord (calls & voice chats) feeds processCall(); both emit
+ *   exactly the requested sample count per call, so every downstream opus
+ *   encoder path is untouched.
  */
 package org.telegram.messenger;
 
@@ -31,9 +35,9 @@ public class DrGramVoiceChanger {
     public static final int MODE_M2F = 1;
     public static final int MODE_F2M = 2;
 
-    // DrGram Fix 38: echo room characters (پیشرفته‌تر از اکوی ساده)
+    // DrGram Fix 38: echo room characters
     public static final int ECHO_OFF = 0;
-    public static final int ECHO_STUDIO = 1; // soft two-tap room (Fix 37 default)
+    public static final int ECHO_STUDIO = 1; // soft two-tap room
     public static final int ECHO_CAVE = 2;   // long dark reflections
     public static final int ECHO_STAGE = 3;  // bright three-tap hall
 
@@ -91,19 +95,19 @@ public class DrGramVoiceChanger {
         return getMode() != MODE_OFF || isEchoEnabled();
     }
 
-    //region session
+    //region sessions
 
     private static volatile Chain chain;
+    private static volatile Chain callChain;
 
-    /** Starts (or resets) processing state for a fresh recording. */
+    /** Starts (or resets) processing state for a fresh voice recording. */
     public static void beginSession(int sampleRate) {
         try {
             if (sampleRate <= 0 || !active()) {
                 chain = null;
                 return;
             }
-            float ratio = getMode() == MODE_F2M ? F2M_RATIO : (getMode() == MODE_M2F ? M2F_RATIO : 1.0f);
-            chain = new Chain(ratio, getEchoStyle(), sampleRate);
+            chain = new Chain(getMode() == MODE_F2M ? F2M_RATIO : (getMode() == MODE_M2F ? M2F_RATIO : 1.0f), getEchoStyle(), sampleRate);
         } catch (Throwable t) {
             chain = null;
             FileLog.e(t);
@@ -114,10 +118,35 @@ public class DrGramVoiceChanger {
         chain = null;
     }
 
+    /** DrGram Fix 40: call/voice-chat uplink session (kept separate from recordings). */
+    public static void beginCallSession(int sampleRate) {
+        try {
+            if (sampleRate <= 0 || !active()) {
+                callChain = null;
+                return;
+            }
+            callChain = new Chain(getMode() == MODE_F2M ? F2M_RATIO : (getMode() == MODE_M2F ? M2F_RATIO : 1.0f), getEchoStyle(), sampleRate);
+        } catch (Throwable t) {
+            callChain = null;
+            FileLog.e(t);
+        }
+    }
+
+    public static void endCallSession() {
+        callChain = null;
+    }
+
+    /** True when a call uplink chain exists (cheap guard for the WebRTC read loop). */
+    public static boolean callActive() {
+        return callChain != null;
+    }
+
+    //endregion
+
     /**
      * Processes one recorder buffer in place. Always returns the sample-byte
      * count to feed downstream (equal to len — the chain emits exactly the
-     * requested amount, zero-padded while its internal pipeline warms up).
+     * requested amount, zero-padded while the ring buffer warms up).
      */
     public static int process(ByteBuffer buffer, int len) {
         Chain c = chain;
@@ -133,38 +162,37 @@ public class DrGramVoiceChanger {
         }
     }
 
+    /** DrGram Fix 40: processes one call uplink buffer in place. */
+    public static int processCall(ByteBuffer buffer, int len) {
+        Chain c = callChain;
+        if (c == null || len <= 0) {
+            return len;
+        }
+        try {
+            return c.process(buffer, len);
+        } catch (Throwable t) {
+            callChain = null;
+            FileLog.e(t);
+            return len;
+        }
+    }
+
     //endregion
 
-    //region streaming chain (validated prototype: scripts/wsola_proto.py)
+    //region streaming chain (validated prototype: scripts/chain3_proto.py)
 
     static final class Chain {
-        // WSOLA tuning validated offline (W512/H128/T64 — exact pitch tracking
-        // for both directions, duration delta 0.00%)
-        static final int W = 512;          // grain window, 32 ms @ 16 kHz
-        static final int HA = 128;         // ideal input hop, 8 ms
-        static final int T = 64;           // search tolerance, +/-4 ms
-        static final int SEARCH_STEP = 6;
-        static final int TEMPLATE = W / 2; // similarity template length
-
         final float ratio;
-        final int hs;                      // output hop = round(HA * ratio)
-        final float[] hann;
-        final int echoStyle;               // DrGram Fix 38: 0 off, 1 studio, 2 cave, 3 stage
+        final int echoStyle;
         final int sampleRate;
-
-        // resampler carry
-        short[] resTail = new short[0];
-        double resPos = 0.0;
-
-        // wsola state
-        short[] buf = new short[0];
-        int bufBase = 0;
-        int step = 0;
-        short[] expected = null;
-        double[] ola = new double[0];
-        double[] wsum = new double[0];
-        int olaBase = 0;
-        int nextEmit = 0;
+        final int w;          // crossfade window, 40 ms
+        final int half;
+        final float grow;     // delay change per output sample = 1 - ratio
+        final float[] gain;   // Hann table indexed by delay sample
+        final float[] ring;
+        final int ringCap;
+        double delay;         // pointer 0 delay, kept in (0, w]
+        int wpos;             // absolute write position
 
         // echo state
         float[] d1, d2, d3;
@@ -175,21 +203,26 @@ public class DrGramVoiceChanger {
             this.ratio = ratio;
             this.echoStyle = echoStyle;
             this.sampleRate = sampleRate;
-            this.hs = Math.max(1, Math.round(HA * ratio));
-            hann = new float[W];
-            for (int i = 0; i < W; i++) {
-                hann[i] = (float) (0.5 - 0.5 * Math.cos(2.0 * Math.PI * i / (W - 1)));
+            w = Math.max(256, Math.round(sampleRate * 0.040f));
+            half = w / 2;
+            gain = new float[w + 1];
+            for (int i = 0; i <= w; i++) {
+                gain[i] = (float) (0.5 - 0.5 * Math.cos(2.0 * Math.PI * i / w));
             }
+            ringCap = w + 4096;
+            ring = new float[ringCap];
+            delay = half;
+            grow = 1.0f - ratio;
             if (echoStyle == ECHO_STUDIO) {
-                d1 = new float[Math.max(1, Math.round(sampleRate * 0.065f))];
-                d2 = new float[Math.max(1, Math.round(sampleRate * 0.119f))];
+                d1 = new float[Math.max(1, Math.round(sampleRate * 0.092f))];
+                d2 = new float[Math.max(1, Math.round(sampleRate * 0.156f))];
             } else if (echoStyle == ECHO_CAVE) {
-                d1 = new float[Math.max(1, Math.round(sampleRate * 0.121f))];
-                d2 = new float[Math.max(1, Math.round(sampleRate * 0.243f))];
+                d1 = new float[Math.max(1, Math.round(sampleRate * 0.140f))];
+                d2 = new float[Math.max(1, Math.round(sampleRate * 0.310f))];
             } else if (echoStyle == ECHO_STAGE) {
-                d1 = new float[Math.max(1, Math.round(sampleRate * 0.041f))];
-                d2 = new float[Math.max(1, Math.round(sampleRate * 0.083f))];
-                d3 = new float[Math.max(1, Math.round(sampleRate * 0.161f))];
+                d1 = new float[Math.max(1, Math.round(sampleRate * 0.055f))];
+                d2 = new float[Math.max(1, Math.round(sampleRate * 0.110f))];
+                d3 = new float[Math.max(1, Math.round(sampleRate * 0.210f))];
             }
         }
 
@@ -200,42 +233,51 @@ public class DrGramVoiceChanger {
             }
             buffer.position(0);
             buffer.limit(len);
-            // read input
-            short[] in = new short[samples];
-            for (int i = 0; i < samples; i++) {
-                in[i] = buffer.getShort();
+            boolean shift = Math.abs(ratio - 1.0f) > 0.001f;
+            if (!shift) {
+                // passthrough (echo still applies below)
+                if (echoStyle == ECHO_OFF) {
+                    buffer.position(0);
+                    return len;
+                }
+                short[] in = new short[samples];
+                for (int i = 0; i < samples; i++) {
+                    in[i] = buffer.getShort();
+                }
+                applyEcho(in);
+                buffer.position(0);
+                buffer.limit(len);
+                for (int i = 0; i < samples; i++) {
+                    buffer.putShort(in[i]);
+                }
+                buffer.position(0);
+                return len;
             }
-            // 1) resample by ratio (pitch shift, duration / ratio)
-            pushResampled(in);
-            // 2) render wsola steps while input allows
-            renderAvailable();
-            // 3) emit exactly `samples` (weighted overlap-add normalized)
             short[] out = new short[samples];
-            int avail = olaBase + ola.length - nextEmit;
-            int take = Math.min(samples, Math.max(0, avail));
-            for (int i = 0; i < take; i++) {
-                int rel = nextEmit - olaBase + i;
-                double w = wsum[rel];
-                double v = w > 1e-6 ? ola[rel] / w : 0.0;
+            for (int n = 0; n < samples; n++) {
+                if (wpos >= Integer.MAX_VALUE - 65536) { // DrGram Fix 40: >12 h call guard
+                    wpos = 0;
+                }
+                ring[wpos % ringCap] = buffer.getShort();
+                wpos++;
+                double d0 = delay % w;
+                if (d0 <= 0) {
+                    d0 += w;
+                }
+                double d1p = d0 + half;
+                if (d1p > w) {
+                    d1p -= w;
+                }
+                float g0 = gain[(int) d0];
+                float g1 = gain[(int) d1p];
+                float v = readLerp(d0) * g0 + readLerp(d1p) * g1;
                 if (v > 32767) v = 32767; else if (v < -32768) v = -32768;
-                out[i] = (short) v;
+                out[n] = (short) v;
+                delay += grow;
             }
-            nextEmit += samples;
-            if (nextEmit - olaBase > W * 4) {
-                int cut = nextEmit - olaBase - W;
-                double[] nola = new double[ola.length - cut];
-                double[] nwsum = new double[wsum.length - cut];
-                System.arraycopy(ola, cut, nola, 0, nola.length);
-                System.arraycopy(wsum, cut, nwsum, 0, nwsum.length);
-                ola = nola;
-                wsum = nwsum;
-                olaBase += cut;
-            }
-            // 4) optional room echo (DrGram Fix 38: studio / cave / stage)
             if (echoStyle != ECHO_OFF) {
                 applyEcho(out);
             }
-            // write back
             buffer.position(0);
             buffer.limit(len);
             for (int i = 0; i < samples; i++) {
@@ -245,127 +287,22 @@ public class DrGramVoiceChanger {
             return len;
         }
 
-        private void pushResampled(short[] in) {
-            double r = ratio;
-            short[] x;
-            if (resTail.length > 0) {
-                x = new short[resTail.length + in.length];
-                System.arraycopy(resTail, 0, x, 0, resTail.length);
-                System.arraycopy(in, 0, x, resTail.length, in.length);
-            } else {
-                x = in;
+        /** Ring read at (wpos - delay) with linear interpolation. */
+        private float readLerp(double d) {
+            double pos = wpos - d;
+            int i0 = (int) Math.floor(pos % ringCap);
+            if (i0 < 0) {
+                i0 += ringCap;
             }
-            if (x.length < 2) {
-                resTail = x.clone();
-                return;
-            }
-            int nOut = (int) Math.floor((x.length - 1 - resPos) / r);
-            if (nOut < 0) {
-                nOut = 0;
-            }
-            short[] out = new short[nOut];
-            for (int k = 0; k < nOut; k++) {
-                double idx = resPos + k * r;
-                int i0 = (int) idx;
-                double frac = idx - i0;
-                int i1 = Math.min(i0 + 1, x.length - 1);
-                double v = x[i0] * (1.0 - frac) + x[i1] * frac;
-                if (v > 32767) v = 32767; else if (v < -32768) v = -32768;
-                out[k] = (short) v;
-            }
-            if (nOut > 0) {
-                int last = (int) (resPos + (nOut - 1) * r);
-                resPos = (resPos + (nOut - 1) * r) - last;
-                short[] tail = new short[x.length - last];
-                System.arraycopy(x, last, tail, 0, tail.length);
-                resTail = tail;
-            } else {
-                resTail = x.clone();
-            }
-            // append to wsola input buffer
-            short[] nb = new short[buf.length + out.length];
-            System.arraycopy(buf, 0, nb, 0, buf.length);
-            System.arraycopy(out, 0, nb, buf.length, out.length);
-            buf = nb;
-        }
-
-        private void renderAvailable() {
-            while (true) {
-                int gIdeal = step * HA;               // absolute input-domain position
-                int hi = gIdeal + T;
-                if (hi + W > bufBase + buf.length) {
-                    break;
-                }
-                int tau = gIdeal;
-                if (expected != null) {
-                    double best = -1e18;
-                    int btau = gIdeal;
-                    for (int t = gIdeal - T; t <= hi; t += SEARCH_STEP) {
-                        int a = t - bufBase;
-                        if (a < 0 || a + TEMPLATE > buf.length) {
-                            continue;
-                        }
-                        double num = 0, c2 = 0, e2 = 0;
-                        for (int i = 0; i < TEMPLATE; i++) {
-                            double cv = buf[a + i];
-                            double ev = expected[i];
-                            num += cv * ev;
-                            c2 += cv * cv;
-                            e2 += ev * ev;
-                        }
-                        double score = num / (Math.sqrt(c2 * e2) + 1e-9);
-                        if (score > best) {
-                            best = score;
-                            btau = t;
-                        }
-                    }
-                    tau = btau;
-                }
-                int a = tau - bufBase;
-                int opos = step * hs;
-                int endNeeded = opos + W;
-                if (endNeeded > olaBase + ola.length) {
-                    int grow = endNeeded - (olaBase + ola.length);
-                    double[] nola = new double[ola.length + grow];
-                    double[] nwsum = new double[wsum.length + grow];
-                    System.arraycopy(ola, 0, nola, 0, ola.length);
-                    System.arraycopy(wsum, 0, nwsum, 0, wsum.length);
-                    ola = nola;
-                    wsum = nwsum;
-                }
-                int rel = opos - olaBase;
-                for (int i = 0; i < W; i++) {
-                    ola[rel + i] += buf[a + i] * hann[i];
-                    wsum[rel + i] += hann[i] + 1e-9;
-                }
-                // expected continuation: offset by the OUTPUT hop — grain k's
-                // content at its offset hs lands where grain k+1's head sits
-                int cont = tau + hs - bufBase;
-                if (cont >= 0 && cont + TEMPLATE <= buf.length) {
-                    short[] exp = new short[TEMPLATE];
-                    System.arraycopy(buf, cont, exp, 0, TEMPLATE);
-                    expected = exp;
-                }
-                step++;
-                int keepFrom = step * HA - T - 4;      // absolute
-                if (keepFrom > bufBase) {
-                    int cut = keepFrom - bufBase;
-                    if (cut >= buf.length) {
-                        buf = new short[0];
-                        bufBase = keepFrom;
-                    } else {
-                        short[] nb = new short[buf.length - cut];
-                        System.arraycopy(buf, cut, nb, 0, nb.length);
-                        buf = nb;
-                        bufBase = keepFrom;
-                    }
-                }
-            }
+            float frac = (float) (pos - Math.floor(pos));
+            float a = ring[i0];
+            float b = ring[i0 + 1 == ringCap ? 0 : i0 + 1];
+            return a * (1.0f - frac) + b * frac;
         }
 
         private void applyEcho(short[] out) {
             if (echoStyle == ECHO_STAGE) {
-                // صحنه — bright hall: three early reflections, low coloration
+                // صحنه — bright hall: three early reflections
                 for (int i = 0; i < out.length; i++) {
                     float dry = out[i];
                     float w1 = d1[p1];
@@ -377,7 +314,7 @@ public class DrGramVoiceChanger {
                     float w3 = d3[p3];
                     d3[p3] = dry;
                     p3 = (p3 + 1) % d3.length;
-                    float v = dry * 0.82f + w1 * 0.14f + w2 * 0.09f + w3 * 0.07f;
+                    float v = dry * 0.80f + w1 * 0.30f + w2 * 0.22f + w3 * 0.14f;
                     if (v > 32767) v = 32767; else if (v < -32768) v = -32768;
                     out[i] = (short) v;
                 }
@@ -395,13 +332,13 @@ public class DrGramVoiceChanger {
                 if (cave) {
                     // غار — long dark reflections: stronger lowpass + more wet
                     lp = 0.52f * lp + 0.48f * w2;
-                    float v = dry * 0.72f + w1 * 0.30f + lp * 0.24f;
+                    float v = dry * 0.62f + w1 * 0.45f + lp * 0.35f;
                     if (v > 32767) v = 32767; else if (v < -32768) v = -32768;
                     out[i] = (short) v;
                 } else {
-                    // استودیو — soft two-tap room (Fix 37 character)
-                    lp = 0.65f * lp + 0.35f * w2;
-                    float v = dry * 0.78f + w1 * 0.24f + lp * 0.13f;
+                    // استودیو — soft two-tap room
+                    lp = 0.60f * lp + 0.40f * w2;
+                    float v = dry * 0.72f + w1 * 0.38f + lp * 0.22f;
                     if (v > 32767) v = 32767; else if (v < -32768) v = -32768;
                     out[i] = (short) v;
                 }

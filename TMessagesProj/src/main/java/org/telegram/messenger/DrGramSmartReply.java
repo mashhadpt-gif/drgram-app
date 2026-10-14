@@ -70,10 +70,18 @@ public class DrGramSmartReply {
 
     //region command registry
 
-    private static final String[] INFO_IDS = {"time", "date", "id", "username", "battery", "me", "help"};
+    private static final String[] INFO_IDS = {"time", "date", "id", "username", "battery", "me", "weather", "fal", "help"};
     private static final String[] INFO_DEFAULTS = {
-            "ساعت", "تاریخ", "ایدی", "یوزرنیم", "باطری", "من", "راهنما"
+            "ساعت", "تاریخ", "ایدی", "یوزرنیم", "باطری", "من", "آب و هوا", "فال حافظ", "راهنما"
     };
+
+    // DrGram Fix 40: reply-driven commands (owner fires them on any replied post)
+    private static final String[] REPLY_IDS = {"save", "sticker", "photo"};
+    private static final String[] REPLY_DEFAULTS = {"ذخیره", "استیکر شو", "عکس شو"};
+
+    // DrGram Fix 40: group admin commands with arguments («اسم گروه: نام جدید»)
+    private static final String[] GROUP_PREFIX_IDS = {"rename", "desc"};
+    private static final String[] GROUP_PREFIX_DEFAULTS = {"اسم گروه", "توضیحات"};
 
     private static final String[] GROUP_IDS = {"kick", "pin", "del", "delall", "link", "mute", "ban", "unban", "promote"};
     private static final String[] GROUP_DEFAULTS = {
@@ -84,6 +92,14 @@ public class DrGramSmartReply {
         return INFO_IDS;
     }
 
+    public static String[] replyIds() {
+        return REPLY_IDS;
+    }
+
+    public static String[] groupPrefixIds() {
+        return GROUP_PREFIX_IDS;
+    }
+
     public static String[] groupIds() {
         return GROUP_IDS;
     }
@@ -92,6 +108,16 @@ public class DrGramSmartReply {
         for (int i = 0; i < INFO_IDS.length; i++) {
             if (INFO_IDS[i].equals(id)) {
                 return INFO_DEFAULTS[i];
+            }
+        }
+        for (int i = 0; i < REPLY_IDS.length; i++) {
+            if (REPLY_IDS[i].equals(id)) {
+                return REPLY_DEFAULTS[i];
+            }
+        }
+        for (int i = 0; i < GROUP_PREFIX_IDS.length; i++) {
+            if (GROUP_PREFIX_IDS[i].equals(id)) {
+                return GROUP_PREFIX_DEFAULTS[i];
             }
         }
         for (int i = 0; i < GROUP_IDS.length; i++) {
@@ -229,6 +255,35 @@ public class DrGramSmartReply {
         return null;
     }
 
+    /** DrGram Fix 40: exact-match reply commands (ذخیره / استیکر شو / عکس شو). */
+    private String matchReply(String text) {
+        for (int i = 0; i < REPLY_IDS.length; i++) {
+            if (isOn(REPLY_IDS[i]) && norm(getTrigger(REPLY_IDS[i])).equals(text)) {
+                return REPLY_IDS[i];
+            }
+        }
+        return null;
+    }
+
+    /** DrGram Fix 40: prefix group commands — returns {id, argument} or null. */
+    private String[] matchGroupPrefix(String text) {
+        for (int i = 0; i < GROUP_PREFIX_IDS.length; i++) {
+            if (!isOn(GROUP_PREFIX_IDS[i])) {
+                continue;
+            }
+            String trigger = norm(getTrigger(GROUP_PREFIX_IDS[i]));
+            if (text.startsWith(trigger)) {
+                String rest = text.substring(trigger.length()).trim();
+                // separators: «:» «:» «،» «-» or just a space
+                if (rest.length() > 0 && ":،:-".indexOf(rest.charAt(0)) >= 0) {
+                    rest = rest.substring(1).trim();
+                }
+                return new String[]{GROUP_PREFIX_IDS[i], rest};
+            }
+        }
+        return null;
+    }
+
     //endregion
 
     //region PV module — incoming auto answers
@@ -287,8 +342,44 @@ public class DrGramSmartReply {
         }
         lastAnswerTimes.put(key, now);
 
-        String answer = infoId != null ? infoAnswer(infoId, sender, false) : applyPlaceholders(custom[1], sender);
-        sendAnswer(dialogId, answer);
+        if (infoId != null) {
+            if ("weather".equals(infoId)) {
+                answerWeather(dialogId); // async, network off the main thread
+                return;
+            }
+            sendAnswer(dialogId, infoAnswer(infoId, sender, false));
+        } else {
+            sendAnswer(dialogId, applyPlaceholders(custom[1], sender));
+        }
+    }
+
+    /** DrGram Fix 40: آب و هوا — async open-meteo fetch, answer lands in the chat. */
+    private void answerWeather(long dialogId) {
+        Utilities.globalQueue.postRunnable(() -> {
+            String answer = DrGramWeather.fetchAnswer();
+            if (answer == null) {
+                answer = "⛔️ دریافت آب و هوا ناموفق بود؛ اتصال اینترنت را بررسی کن";
+            }
+            String finalAnswer = answer;
+            AndroidUtilities.runOnUIThread(() -> sendAnswer(dialogId, finalAnswer));
+        });
+    }
+
+    /** DrGram Fix 40: dispatches the reply-driven commands (ذخیره / استیکر شو / عکس شو). */
+    private boolean runReplyCommand(String replyId, long dialogId, MessageObject reply) {
+        if ("save".equals(replyId)) {
+            DrGramStickerTools.saveToPv(currentAccount, dialogId, reply);
+            return true;
+        }
+        if ("sticker".equals(replyId)) {
+            DrGramStickerTools.toSticker(currentAccount, dialogId, reply);
+            return true;
+        }
+        if ("photo".equals(replyId)) {
+            DrGramStickerTools.toPhoto(currentAccount, dialogId, reply);
+            return true;
+        }
+        return false;
     }
 
     //endregion
@@ -323,7 +414,9 @@ public class DrGramSmartReply {
         String norm = norm(params.message);
         String infoId = matchInfo(norm);
         String groupId = infoId == null ? matchGroup(norm) : null;
-        if (infoId == null && groupId == null) {
+        String replyId = infoId == null && groupId == null ? matchReply(norm) : null;
+        String[] prefix = infoId == null && groupId == null && replyId == null ? matchGroupPrefix(norm) : null;
+        if (infoId == null && groupId == null && replyId == null && prefix == null) {
             return false;
         }
 
@@ -337,8 +430,33 @@ public class DrGramSmartReply {
         MessageObject reply = params.replyToMsg;
 
         if (infoId != null) {
+            if ("weather".equals(infoId)) {
+                answerWeather(dialogId);
+                return true;
+            }
             TLRPC.User me = UserConfig.getInstance(currentAccount).getCurrentUser();
             sendAnswer(dialogId, infoAnswer(infoId, me, true));
+            return true;
+        }
+
+        if (replyId != null) { // DrGram Fix 40: ذخیره / استیکر شو / عکس شو also work in groups
+            return runReplyCommand(replyId, dialogId, reply);
+        }
+
+        if (prefix != null) { // DrGram Fix 40: اسم گروه / توضیحات — admin only
+            if (!admin) {
+                notice(dialogId, "🚫 " + LocaleController.getString(R.string.DrGramSmartNeedAdmin));
+                return true;
+            }
+            if (prefix[1] == null || prefix[1].trim().length() == 0) {
+                notice(dialogId, "✍️ " + LocaleController.getString(R.string.DrGramSmartNeedArg));
+                return true;
+            }
+            if ("rename".equals(prefix[0])) {
+                execRename(chatId, chat, prefix[1].trim());
+            } else {
+                execDesc(chatId, chat, prefix[1].trim());
+            }
             return true;
         }
 
@@ -417,20 +535,32 @@ public class DrGramSmartReply {
         }
         String norm = norm(params.message);
         String infoId = matchInfo(norm);
-        String[] custom = infoId == null ? matchCustom(norm) : null;
-        if (infoId == null && custom == null) {
+        String replyId = infoId == null ? matchReply(norm) : null;
+        String[] custom = infoId == null && replyId == null ? matchCustom(norm) : null;
+        if (infoId == null && replyId == null && custom == null) {
             return false;
         }
         long now = System.currentTimeMillis();
-        String key = dialogId + ":" + (infoId != null ? infoId : custom[0]);
+        String key = dialogId + ":" + (infoId != null ? infoId : replyId != null ? replyId : custom[0]);
         Long last = lastAnswerTimes.get(key);
         if (last != null && now - last < 2500L) {
             return true; // answered moments ago — swallow anyway to avoid a doubled echo
         }
         lastAnswerTimes.put(key, now);
+        if (replyId != null) {
+            return runReplyCommand(replyId, dialogId, params.replyToMsg);
+        }
+        if (infoId != null) {
+            if ("weather".equals(infoId)) {
+                answerWeather(dialogId);
+                return true;
+            }
+            TLRPC.User me = UserConfig.getInstance(currentAccount).getCurrentUser();
+            sendAnswer(dialogId, infoAnswer(infoId, me, false));
+            return true;
+        }
         TLRPC.User me = UserConfig.getInstance(currentAccount).getCurrentUser();
-        String answer = infoId != null ? infoAnswer(infoId, me, false) : applyPlaceholders(custom[1], me);
-        sendAnswer(dialogId, answer);
+        sendAnswer(dialogId, applyPlaceholders(custom[1], me));
         return true;
     }
 
@@ -438,6 +568,20 @@ public class DrGramSmartReply {
 
     private void execPin(TLRPC.Chat chat, int messageId) {
         runOnUi(() -> MessagesController.getInstance(currentAccount).pinMessage(chat, null, messageId, false, false, false));
+    }
+
+    /** DrGram Fix 40: گروه را تغییر نام بده. */
+    private void execRename(long chatId, TLRPC.Chat chat, String title) {
+        TLRPC.TL_channels_editTitle req = new TLRPC.TL_channels_editTitle();
+        req.channel = MessagesController.getInstance(currentAccount).getInputChannel(chatId);
+        req.title = title;
+        sendRequest(req, -(long) chatId, "✏️ نام گروه تغییر کرد");
+    }
+
+    /** DrGram Fix 40: توضیحات گروه را عوض کن. */
+    private void execDesc(long chatId, TLRPC.Chat chat, String about) {
+        MessagesController.getInstance(currentAccount).updateChatAbout(chatId, about, null);
+        notice(-(long) chatId, "✏️ توضیحات گروه تغییر کرد");
     }
 
     private void execDelete(long chatId, TLRPC.Chat chat, boolean mega, int messageId) {
@@ -586,6 +730,9 @@ public class DrGramSmartReply {
             String u = about.username;
             return u == null || u.length() == 0 ? "🔖 یوزرنیم نداری" : "🔖 یوزرنیم: @" + u;
         }
+        if ("fal".equals(id)) { // DrGram Fix 40: offline Hafez oracle
+            return DrGramHafez.random();
+        }
         if ("battery".equals(id)) {
             return "🔋 باطری گوشی: " + batteryPercent() + "%";
         }
@@ -616,7 +763,24 @@ public class DrGramSmartReply {
                 if (isOn("link")) {
                     b.append("• ").append(getTrigger("link")).append("\n");
                 }
+                b.append("\n— دستورهای با متن —\n"); // DrGram Fix 40
+                for (String p : GROUP_PREFIX_IDS) {
+                    if (isOn(p)) {
+                        b.append("• ").append(getTrigger(p)).append(": <متن>\n");
+                    }
+                }
+                for (String r : REPLY_IDS) {
+                    if (isOn(r)) {
+                        b.append("• ").append(getTrigger(r)).append(" (با ریپلی)\n");
+                    }
+                }
             } else {
+                b.append("\n— دستورهای با ریپلی —\n"); // DrGram Fix 40
+                for (String r : REPLY_IDS) {
+                    if (isOn(r)) {
+                        b.append("• ").append(getTrigger(r)).append("\n");
+                    }
+                }
                 ArrayList<String[]> custom = getCustomCommands();
                 if (!custom.isEmpty()) {
                     b.append("\n— دستورهای شخصی —\n");

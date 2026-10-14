@@ -63,6 +63,7 @@ import org.telegram.ui.Cells.TextCheckCell;
 import org.telegram.ui.Cells.TextInfoPrivacyCell;
 import org.telegram.ui.Cells.TextSettingsCell;
 import org.telegram.ui.Components.CheckBox2;
+import org.telegram.ui.Components.BulletinFactory;
 import org.telegram.ui.Components.CubicBezierInterpolator;
 import org.telegram.ui.Components.LayoutHelper;
 import org.telegram.ui.Components.NumberTextView;
@@ -100,6 +101,8 @@ public class ProxyListActivity extends BaseFragment implements NotificationCente
     private int rotationRow;
     private int rotationTimeoutRow;
     private int rotationTimeoutInfoRow;
+    private int autoSwitchRow; // DrGram Fix 40
+    private int vpnOffRow; // DrGram Fix 40
     private int deleteAllRow;
 
     private ItemTouchHelper itemTouchHelper;
@@ -391,6 +394,18 @@ public class ProxyListActivity extends BaseFragment implements NotificationCente
         frameLayout.addView(listView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.TOP | Gravity.LEFT));
         listView.setAdapter(listAdapter);
         listView.setOnItemClickListener((view, position) -> {
+            if (position == autoSwitchRow) { // DrGram Fix 40
+                try {
+                    BulletinFactory.of(this).createSimpleBulletin(R.raw.contact_check, AndroidUtilities.replaceTags("<b>" + getString(R.string.DrGramProxyAutoSwitch) + "</b> — " + getString(R.string.DrGramProxySwitching))).show();
+                } catch (Throwable ignore) {}
+                org.telegram.messenger.DrGramAutoProxy.forceSwitch();
+                return;
+            } else if (position == vpnOffRow) { // DrGram Fix 40
+                SharedConfig.toggleDrgramAutoProxyVpnOff();
+                TextCheckCell checkCell = (TextCheckCell) view;
+                checkCell.setChecked(SharedConfig.drgramAutoProxyVpnOff);
+                return;
+            }
             if (position == useProxyRow) {
                 if (SharedConfig.currentProxy == null) {
                     if (!proxyList.isEmpty()) {
@@ -613,6 +628,8 @@ public class ProxyListActivity extends BaseFragment implements NotificationCente
         } else {
             useProxyShadowRow = -1;
         }
+        autoSwitchRow = rowCount++; // DrGram Fix 40: pick + connect the best auto-found proxy now
+        vpnOffRow = rowCount++; // DrGram Fix 40: drop the auto proxy while a VPN is up
         connectionsHeaderRow = rowCount++;
 
         if (notify) {
@@ -838,7 +855,9 @@ public class ProxyListActivity extends BaseFragment implements NotificationCente
                 case VIEW_TYPE_TEXT_SETTING: {
                     TextSettingsCell textCell = (TextSettingsCell) holder.itemView;
                     textCell.setTextColor(Theme.getColor(Theme.key_windowBackgroundWhiteBlackText));
-                    if (position == proxyAddRow) {
+                    if (position == autoSwitchRow) { // DrGram Fix 40
+                        textCell.setText(getString(R.string.DrGramProxyAutoSwitch), true);
+                    } else if (position == proxyAddRow) {
                         textCell.setText(getString(R.string.AddProxy), deleteAllRow != -1);
                     } else if (position == deleteAllRow) {
                         textCell.setTextColor(Theme.getColor(Theme.key_text_RedRegular));
@@ -859,6 +878,8 @@ public class ProxyListActivity extends BaseFragment implements NotificationCente
                         checkCell.setTextAndCheck(getString(R.string.UseProxySettings), useProxySettings, rotationRow != -1);
                     } else if (position == rotationRow) {
                         checkCell.setTextAndCheck(getString(R.string.UseProxyRotation), SharedConfig.proxyRotationEnabled, true);
+                    } else if (position == vpnOffRow) { // DrGram Fix 40
+                        checkCell.setTextAndCheck(getString(R.string.DrGramProxyVpnOff), SharedConfig.drgramAutoProxyVpnOff, false);
                     }
                     break;
                 }
@@ -930,6 +951,8 @@ public class ProxyListActivity extends BaseFragment implements NotificationCente
                     checkCell.setChecked(useProxySettings);
                 } else if (position == rotationRow) {
                     checkCell.setChecked(SharedConfig.proxyRotationEnabled);
+                } else if (position == vpnOffRow) { // DrGram Fix 40
+                    checkCell.setChecked(SharedConfig.drgramAutoProxyVpnOff);
                 }
             }
         }
@@ -937,7 +960,7 @@ public class ProxyListActivity extends BaseFragment implements NotificationCente
         @Override
         public boolean isEnabled(RecyclerView.ViewHolder holder) {
             int position = holder.getAdapterPosition();
-            return position == useProxyRow || position == rotationRow || position == proxyAddRow || position == deleteAllRow || position >= proxyStartRow && position < proxyEndRow;
+            return position == useProxyRow || position == rotationRow || position == proxyAddRow || position == deleteAllRow || position == autoSwitchRow || position == vpnOffRow || position >= proxyStartRow && position < proxyEndRow;
         }
 
         @Override
@@ -993,6 +1016,10 @@ public class ProxyListActivity extends BaseFragment implements NotificationCente
                 return -8;
             } else if (position == rotationRow) {
                 return -9;
+            } else if (position == autoSwitchRow) {
+                return -14; // DrGram Fix 40
+            } else if (position == vpnOffRow) {
+                return -15; // DrGram Fix 40
             } else if (position == rotationTimeoutRow) {
                 return -10;
             } else if (position == rotationTimeoutInfoRow) {

@@ -26,6 +26,7 @@ import org.telegram.messenger.LocaleController;
 import org.telegram.messenger.R;
 import org.telegram.messenger.DrGramSmartReply;
 import org.telegram.messenger.DrGramThemeInstaller;
+import org.telegram.messenger.DrGramWeather; // DrGram Fix 40
 import org.telegram.messenger.FileLog;
 import org.telegram.ui.ActionBar.ActionBar;
 import org.telegram.ui.ActionBar.AlertDialog;
@@ -295,12 +296,29 @@ public class DrGramSmartReplyActivity extends BaseFragment {
         String[] labelIds = {
                 "DrGramSmartCmdTime",
                 "DrGramSmartCmdDate", "DrGramSmartCmdId", "DrGramSmartCmdUsername",
-                "DrGramSmartCmdBattery", "DrGramSmartCmdMe", "DrGramSmartCmdHelp"
+                "DrGramSmartCmdBattery", "DrGramSmartCmdMe", "DrGramSmartCmdWeather",
+                "DrGramSmartCmdFal", "DrGramSmartCmdHelp"
         };
         for (int i = 0; i < infoIds.length; i++) {
             String id = infoIds[i];
             String label = localeLabel(labelIds[i]);
             card.addView(makeCommandRow(context, id, label, engine.getTrigger(id), engine.isOn(id), true));
+        }
+
+        // DrGram Fix 40: weather city picker
+        LinearLayout cityRow = makeActionRow(context,
+                LocaleController.getString(R.string.DrGramSmartCityTitle) + "\n" + DrGramWeather.getCity(),
+                v -> showCityDialog());
+        cityRow.setTag("weather_city");
+        card.addView(cityRow);
+
+        // DrGram Fix 40: reply-driven commands (ذخیره / استیکر شو / عکس شو)
+        String[] replyIds = DrGramSmartReply.replyIds();
+        String[] replyLabels = {"DrGramSmartCmdSave", "DrGramSmartCmdSticker", "DrGramSmartCmdPhoto"};
+        for (int i = 0; i < replyIds.length; i++) {
+            String id = replyIds[i];
+            card.addView(makeCommandRow(context, id, localeLabel(replyLabels[i]),
+                    engine.getTrigger(id), engine.isOn(id), true));
         }
 
         customListContainer = new LinearLayout(context);
@@ -329,6 +347,48 @@ public class DrGramSmartReplyActivity extends BaseFragment {
             card.addView(makeCommandRow(context, id, localeLabel(labelIds[i]),
                     engine.getTrigger(id), engine.isOn(id), false));
         }
+
+        // DrGram Fix 40: group prefix commands (اسم گروه / توضیحات)
+        String[] prefixIds = DrGramSmartReply.groupPrefixIds();
+        String[] prefixLabels = {"DrGramSmartCmdRename", "DrGramSmartCmdDesc"};
+        for (int i = 0; i < prefixIds.length; i++) {
+            String id = prefixIds[i];
+            card.addView(makeCommandRow(context, id, localeLabel(prefixLabels[i]),
+                    engine.getTrigger(id), engine.isOn(id), false));
+        }
+
+        // DrGram Fix 40: reply commands also fire inside groups (owner)
+        String[] replyIds = DrGramSmartReply.replyIds();
+        String[] replyLabels = {"DrGramSmartCmdSave", "DrGramSmartCmdSticker", "DrGramSmartCmdPhoto"};
+        for (int i = 0; i < replyIds.length; i++) {
+            String id = replyIds[i];
+            card.addView(makeCommandRow(context, id, localeLabel(replyLabels[i]),
+                    engine.getTrigger(id), engine.isOn(id), false));
+        }
+    }
+
+    /** DrGram Fix 40: pick the weather city with a text dialog (validated by geocoding). */
+    private void showCityDialog() {
+        if (getParentActivity() == null) {
+            return;
+        }
+        android.app.AlertDialog.Builder builder = new android.app.AlertDialog.Builder(getParentActivity());
+        builder.setTitle(LocaleController.getString(R.string.DrGramSmartCityTitle));
+        builder.setMessage(LocaleController.getString(R.string.DrGramSmartCityHint));
+        final android.widget.EditText input = new android.widget.EditText(getParentActivity());
+        input.setSingleLine(true);
+        input.setText(DrGramWeather.getCity());
+        int pad = AndroidUtilities.dp(20);
+        input.setPadding(pad, pad / 2, pad, pad / 2);
+        builder.setView(input);
+        builder.setPositiveButton(LocaleController.getString(R.string.Done), (dialog, which) -> {
+            String name = input.getText().toString().trim();
+            if (name.length() > 0) {
+                DrGramWeather.changeCity(name, null);
+            }
+        });
+        builder.setNegativeButton(LocaleController.getString(R.string.Cancel), null);
+        builder.show();
     }
 
     private String localeLabel(String resName) {
