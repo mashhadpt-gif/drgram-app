@@ -6971,7 +6971,7 @@ public class LaunchActivity extends BasePermissionsActivity implements INavigati
             intent.removeExtra("drgram_open_vault");
             AndroidUtilities.runOnUIThread(() -> {
                 try {
-                    presentFragment(new DrGramVaultActivity(), !mainFragmentsStack.isEmpty());
+                    presentFragment(new DrGramVaultActivity());
                 } catch (Throwable t) {
                     FileLog.e(t);
                 }
