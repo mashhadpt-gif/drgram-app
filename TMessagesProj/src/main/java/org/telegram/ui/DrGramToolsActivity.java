@@ -830,6 +830,40 @@ public class DrGramToolsActivity extends BaseFragment {
         addSectionRow(makeActionRow(context, LocaleController.getString(R.string.DrGramDownloadsEntry), v -> openDownloads()));
         addSectionRow(makeActionRow(context, LocaleController.getString(R.string.DrGramLinkExtractorTitle), v ->
                 presentFragment(new DrGramLinkExtractorActivity())));
+
+        // DrGram Fix 39: send guard — confirm before sending voice / sticker / GIF
+        addHeader(context, LocaleController.getString(R.string.DrGramGuardSection),
+                LocaleController.getString(R.string.DrGramGuardHint));
+
+        Switch guardVoiceSwitch = new Switch(context);
+        guardVoiceSwitch.setChecked(org.telegram.messenger.DrGramSendGuard.voiceConfirmEnabled(), false);
+        LinearLayout guardVoiceRow = makeRow(context, LocaleController.getString(R.string.DrGramGuardVoice), guardVoiceSwitch);
+        guardVoiceRow.setOnClickListener(v -> {
+            boolean newState = !org.telegram.messenger.DrGramSendGuard.voiceConfirmEnabled();
+            org.telegram.messenger.DrGramSendGuard.setVoiceConfirmEnabled(newState);
+            guardVoiceSwitch.setChecked(newState, false);
+        });
+        addSectionRow(guardVoiceRow);
+
+        Switch guardStickerSwitch = new Switch(context);
+        guardStickerSwitch.setChecked(org.telegram.messenger.DrGramSendGuard.stickerConfirmEnabled(), false);
+        LinearLayout guardStickerRow = makeRow(context, LocaleController.getString(R.string.DrGramGuardSticker), guardStickerSwitch);
+        guardStickerRow.setOnClickListener(v -> {
+            boolean newState = !org.telegram.messenger.DrGramSendGuard.stickerConfirmEnabled();
+            org.telegram.messenger.DrGramSendGuard.setStickerConfirmEnabled(newState);
+            guardStickerSwitch.setChecked(newState, false);
+        });
+        addSectionRow(guardStickerRow);
+
+        Switch guardGifSwitch = new Switch(context);
+        guardGifSwitch.setChecked(org.telegram.messenger.DrGramSendGuard.gifConfirmEnabled(), false);
+        LinearLayout guardGifRow = makeRow(context, LocaleController.getString(R.string.DrGramGuardGif), guardGifSwitch);
+        guardGifRow.setOnClickListener(v -> {
+            boolean newState = !org.telegram.messenger.DrGramSendGuard.gifConfirmEnabled();
+            org.telegram.messenger.DrGramSendGuard.setGifConfirmEnabled(newState);
+            guardGifSwitch.setChecked(newState, false);
+        });
+        addSectionRow(guardGifRow);
     }
 
     /** DrGram Fix 37: title with the current send-side voice changer mode. */

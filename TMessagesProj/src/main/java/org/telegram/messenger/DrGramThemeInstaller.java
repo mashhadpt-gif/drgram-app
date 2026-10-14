@@ -52,8 +52,9 @@ public class DrGramThemeInstaller {
      * holding an older installed copy silently get a fresh install from the new
      * asset on the next app start, so palette upgrades reach every user.
      * v6 = Fix 37 dark-blur chat wallpaper embedded in both brand themes (WPS).
+     * v8 = Fix 39 metallic champagne-gold bubbles (dull mustard repainted).
      */
-    public static final int THEME_ASSET_VERSION = 7; // Fix 38: glass (translucent) bubble gradients
+    public static final int THEME_ASSET_VERSION = 8; // Fix 39: metallic gold bubble repaint
 
     private static volatile boolean tried = false;
 
