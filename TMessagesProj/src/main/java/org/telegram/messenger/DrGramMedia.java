@@ -166,6 +166,37 @@ public class DrGramMedia {
         prefs().edit().putInt("camera_fx", id).apply();
     }
 
+    /** Save the current camera look as the user's single custom preset. */
+    public static void saveBeautyPreset() {
+        prefs().edit()
+                .putBoolean("preset_enabled", isBeautifyEnabled())
+                .putFloat("preset_strength", beautifyStrength())
+                .putFloat("preset_nose", beautifyNose())
+                .putFloat("preset_teeth", beautifyTeeth())
+                .putInt("preset_fx", cameraFx())
+                .apply();
+    }
+
+    /** Apply the user's saved look. Returns false until a preset has been saved. */
+    public static boolean applyBeautyPreset() {
+        if (!prefs().getBoolean("preset_saved", false)) {
+            return false;
+        }
+        prefs().edit()
+                .putBoolean("camera_beautify", prefs().getBoolean("preset_enabled", true))
+                .putFloat("camera_beautify_strength", clampBeauty(prefs().getFloat("preset_strength", 0.55f)))
+                .putFloat("camera_beautify_nose", clampBeauty(prefs().getFloat("preset_nose", 0.5f)))
+                .putFloat("camera_beautify_teeth", clampBeauty(prefs().getFloat("preset_teeth", 0.6f)))
+                .putInt("camera_fx", Math.max(0, Math.min(12, prefs().getInt("preset_fx", 0))))
+                .apply();
+        return true;
+    }
+
+    public static void saveCurrentBeautyPreset() {
+        saveBeautyPreset();
+        prefs().edit().putBoolean("preset_saved", true).apply();
+    }
+
     /** True when any camera processing is active (drives face detection startup). */
     public static boolean cameraBeautyActive() {
         return beautifyUniform() > 0.001f || beautifyNose() > 0.001f || beautifyTeeth() > 0.001f;
