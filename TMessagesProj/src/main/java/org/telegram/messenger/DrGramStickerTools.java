@@ -45,7 +45,7 @@ public class DrGramStickerTools {
                     notice(dialogId, "⛔️ عکسی برای تبدیل پیدا نشد");
                     return;
                 }
-                File target = FileLoader.getPathToAttach(size, true);
+                File target = FileLoader.getInstance(account).getPathToAttach(size, true);
                 if (target == null || !target.exists() || target.length() == 0) {
                     FileLoader.getInstance(account).loadFile(ImageLocation.getForPhoto(size, media.photo), media.photo, null, 0, 0);
                     notice(dialogId, "⏳ عکس در حال دانلود است، چند لحظه بعد دوباره بفرست");
@@ -55,7 +55,7 @@ public class DrGramStickerTools {
                 processSticker(account, dialogId, target);
             } else if (media.document instanceof TLRPC.TL_document) {
                 TLRPC.TL_document doc = (TLRPC.TL_document) media.document;
-                File target = FileLoader.getPathToAttach(doc, true);
+                File target = FileLoader.getInstance(account).getPathToAttach(doc, true);
                 if (target == null || !target.exists() || target.length() == 0) {
                     FileLoader.getInstance(account).loadFile(doc, null, 0, 0);
                     notice(dialogId, "⏳ فایل در حال دانلود است، چند لحظه بعد دوباره بفرست");
@@ -103,7 +103,7 @@ public class DrGramStickerTools {
                 notice(dialogId, "⛔️ این فایل تصویر نیست");
                 return;
             }
-            File target = FileLoader.getPathToAttach(doc, true);
+            File target = FileLoader.getInstance(account).getPathToAttach(doc, true);
             if (target == null || !target.exists() || target.length() == 0) {
                 FileLoader.getInstance(account).loadFile(doc, null, 0, 0);
                 notice(dialogId, "⏳ استیکر در حال دانلود است، چند لحظه بعد دوباره بفرست");
@@ -146,7 +146,7 @@ public class DrGramStickerTools {
                     notice(fromDialogId, "⛔️ عکس پست پیدا نشد");
                     return;
                 }
-                File target = FileLoader.getPathToAttach(size, true);
+                File target = FileLoader.getInstance(account).getPathToAttach(size, true);
                 if (target == null || !target.exists() || target.length() == 0) {
                     FileLoader.getInstance(account).loadFile(ImageLocation.getForPhoto(size, media.photo), media.photo, null, 0, 0);
                     notice(fromDialogId, "⏳ در حال دانلود عکس…");
@@ -156,7 +156,7 @@ public class DrGramStickerTools {
                 sendSavedPhoto(account, saved, target, fromDialogId);
             } else if (media.document instanceof TLRPC.TL_document) {
                 TLRPC.TL_document doc = (TLRPC.TL_document) media.document;
-                File target = FileLoader.getPathToAttach(doc, true);
+                File target = FileLoader.getInstance(account).getPathToAttach(doc, true);
                 if (target == null || !target.exists() || target.length() == 0) {
                     FileLoader.getInstance(account).loadFile(doc, null, 0, 0);
                     notice(fromDialogId, "⏳ در حال دانلود فایل…");
