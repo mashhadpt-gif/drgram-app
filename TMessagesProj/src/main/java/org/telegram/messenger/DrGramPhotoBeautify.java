@@ -58,6 +58,14 @@ public class DrGramPhotoBeautify {
                 faces = detectFacesFallback(px, W, H);
             }
 
+            // Never apply a whole-frame blur when face detection fails. The
+            // previous fallback softened hair, eyes, clothes and background,
+            // producing a visibly smeared photo. Fail closed instead: keep the
+            // original pixels unless we can localize a face safely.
+            if (faces.isEmpty()) {
+                return bitmap;
+            }
+
             if (strength > 0.001f) {
                 smoothSkin(px, W, H, faces, strength);
             }
