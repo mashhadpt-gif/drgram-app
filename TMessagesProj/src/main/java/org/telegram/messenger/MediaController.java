@@ -1124,6 +1124,7 @@ public class MediaController implements AudioManager.OnAudioFocusChangeListener,
                 buffer.rewind();
                 int len = audioRecorder.read(buffer, buffer.capacity());
                 if (len > 0) {
+                    len = DrGramVoiceChanger.process(buffer, len); // DrGram Fix 37: send-side voice changer
                     buffer.limit(len);
                     double sum = 0;
                     try {
@@ -4801,6 +4802,7 @@ public class MediaController implements AudioManager.OnAudioFocusChangeListener,
                 fileBuffer.rewind();
 
                 audioRecorder.startRecording();
+                DrGramVoiceChanger.beginSession(sampleRate); // DrGram Fix 37: voice changer state
             } catch (Exception e) {
                 FileLog.e(e);
                 recordingAudio = null;
@@ -4905,6 +4907,7 @@ public class MediaController implements AudioManager.OnAudioFocusChangeListener,
             }
             fileEncodingQueue.postRunnable(() -> {
                 stopRecord();
+                DrGramVoiceChanger.endSession(); // DrGram Fix 37: drop changer state with the finished take
                 final File recordingAudioFileToSend = joinRecord(recordingPrevAudioFileToSend_, recordingAudioFileToSend_, audioToSend);
                 if (recordingAudioFileToSend == null) {
                     if (BuildVars.LOGS_ENABLED) {

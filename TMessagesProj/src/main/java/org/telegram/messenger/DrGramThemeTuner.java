@@ -38,12 +38,33 @@ public final class DrGramThemeTuner {
     /**
      * Rewrites the accent-family colors of an .attheme file in place.
      * Returns true when the file was processed (even if nothing changed).
+     *
+     * Fix 37: the theme assets may now carry an embedded wallpaper — a "WPS"
+     * marker line followed by raw JPEG bytes. Only the TEXT head is decoded and
+     * tuned; everything from the WPS marker on is copied byte-for-byte.
      */
     public static boolean tune(File themeFile, boolean red, int intensity) {
         try {
-            StringBuilder out = new StringBuilder((int) themeFile.length() + 512);
-            BufferedReader reader = new BufferedReader(
-                    new InputStreamReader(new FileInputStream(themeFile), "UTF-8"));
+            java.io.RandomAccessFile raf = new java.io.RandomAccessFile(themeFile, "r");
+            byte[] all = new byte[(int) raf.length()];
+            raf.readFully(all);
+            raf.close();
+
+            byte[] marker = new byte[]{'\n', 'W', 'P', 'S', '\n'};
+            int cut = indexOf(all, marker);
+            String headText;
+            byte[] tail = null;
+            if (cut >= 0) {
+                headText = new String(all, 0, cut + 1, "ISO-8859-1"); // head incl. trailing \n
+                tail = new byte[all.length - (cut + 1)];              // starts at 'W','P','S',...
+                System.arraycopy(all, cut + 1, tail, 0, tail.length);
+            } else {
+                headText = new String(all, "ISO-8859-1");
+            }
+
+            StringBuilder out = new StringBuilder(headText.length() + 512);
+            BufferedReader reader = new BufferedReader(new InputStreamReader(
+                    new java.io.ByteArrayInputStream(headText.getBytes("ISO-8859-1")), "UTF-8"));
             String line;
             while ((line = reader.readLine()) != null) {
                 out.append(tuneLine(line, red, intensity)).append('\n');
@@ -51,12 +72,31 @@ public final class DrGramThemeTuner {
             reader.close();
             FileOutputStream fos = new FileOutputStream(themeFile, false);
             fos.write(out.toString().getBytes("UTF-8"));
+            if (tail != null) {
+                fos.write(tail);
+            }
             fos.close();
             return true;
         } catch (Throwable t) {
             FileLog.e(t);
             return false;
         }
+    }
+
+    private static int indexOf(byte[] data, byte[] pattern) {
+        if (data == null || pattern == null || pattern.length == 0 || data.length < pattern.length) {
+            return -1;
+        }
+        outer:
+        for (int i = 0; i <= data.length - pattern.length; i++) {
+            for (int j = 0; j < pattern.length; j++) {
+                if (data[i + j] != pattern[j]) {
+                    continue outer;
+                }
+            }
+            return i;
+        }
+        return -1;
     }
 
     private static String tuneLine(String line, boolean red, int intensity) {

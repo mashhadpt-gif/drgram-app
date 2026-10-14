@@ -391,6 +391,11 @@ public class DrGramStyleGalleryActivity extends BaseFragment {
         LinearLayout titleRow = new LinearLayout(context);
         titleRow.setOrientation(LinearLayout.HORIZONTAL);
         titleRow.setGravity(Gravity.CENTER_VERTICAL);
+        // Fix 37 bugfix: the row must span the card — as a WRAP_CONTENT child the
+        // value chip hugged the title text ("سایز فونت16 pt"); MATCH_PARENT pushes
+        // the value to the opposite edge, and the side margins give it air.
+        titleRow.setLayoutParams(new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         TextView titleView = new TextView(context);
         titleView.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 15);
         titleView.setTypeface(AndroidUtilities.bold());
@@ -402,8 +407,10 @@ public class DrGramStyleGalleryActivity extends BaseFragment {
         valueView.setTypeface(AndroidUtilities.bold());
         valueView.setTextColor(accent);
         valueView.setText(format.format(currentValue));
-        titleRow.addView(valueView, new LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        LinearLayout.LayoutParams valueParams = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        valueParams.setMargins(AndroidUtilities.dp(8), 0, AndroidUtilities.dp(8), 0);
+        titleRow.addView(valueView, valueParams);
         card.addView(titleRow);
 
         SeekBar slider = makeLuxSlider(context, currentValue - min, max - min, accent);

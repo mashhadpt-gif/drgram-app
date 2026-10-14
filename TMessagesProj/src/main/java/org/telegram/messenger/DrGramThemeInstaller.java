@@ -51,8 +51,9 @@ public class DrGramThemeInstaller {
      * animated motion wallpapers + gradient bubbles + full de-blue sweep). Devices
      * holding an older installed copy silently get a fresh install from the new
      * asset on the next app start, so palette upgrades reach every user.
+     * v6 = Fix 37 dark-blur chat wallpaper embedded in both brand themes (WPS).
      */
-    public static final int THEME_ASSET_VERSION = 5;
+    public static final int THEME_ASSET_VERSION = 6;
 
     private static volatile boolean tried = false;
 

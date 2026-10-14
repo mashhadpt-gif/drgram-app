@@ -4497,6 +4497,15 @@ public class NotificationsController extends BaseController implements Notificat
                 soundPath = customSoundPath;
                 isDefault = false;
             }
+            // DrGram Fix 37: luxury brand chime (gold bell / love glass-harp) when
+            // the user has not picked a personal sound — custom choices always win
+            if (soundPath != null && (soundPath.equalsIgnoreCase("Default") || soundPath.equals(defaultPath))) {
+                String luxPath = DrGramLuxSounds.channelSound();
+                if (luxPath != null) {
+                    soundPath = luxPath;
+                    isInternalSoundFile = false;
+                }
+            }
             if (customImportance != 3 && importance != customImportance) {
                 importance = customImportance;
                 isDefault = false;

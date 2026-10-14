@@ -301,15 +301,23 @@ public class DrGramSmartReply {
      * the command text is never posted to the group.
      */
     public boolean onOutgoingCommand(SendMessagesHelper.SendMessageParams params) {
-        if (!isGroupEnabled() || params == null || params.message == null) {
+        if (params == null || params.message == null) {
             return false;
+        }
+        if (replyDepth > 0) {
+            return false; // our own answers pass through sendMessage — never re-trigger
         }
         if (params.scheduleDate != 0) {
             return false; // scheduled texts are never treated as commands
         }
         long dialogId = params.peer;
         if (dialogId >= 0) {
-            return false; // group module: chats only
+            // DrGram Fix 37: the owner can fire PV commands from their own side
+            // too — the typed command is swallowed and the answer is posted here
+            return onOutgoingPvCommand(params, dialogId);
+        }
+        if (!isGroupEnabled()) {
+            return false;
         }
 
         String norm = norm(params.message);
@@ -397,6 +405,34 @@ public class DrGramSmartReply {
     }
 
     //endregion
+
+    /**
+     * Fix 37: PV commands can also be fired by the owner from their own side of
+     * any private chat (or Saved Messages). The command text is consumed and the
+     * answer is posted in the same chat — a live way to test and use the bot.
+     */
+    private boolean onOutgoingPvCommand(SendMessagesHelper.SendMessageParams params, long dialogId) {
+        if (!isPvEnabled() || dialogId <= 0) {
+            return false;
+        }
+        String norm = norm(params.message);
+        String infoId = matchInfo(norm);
+        String[] custom = infoId == null ? matchCustom(norm) : null;
+        if (infoId == null && custom == null) {
+            return false;
+        }
+        long now = System.currentTimeMillis();
+        String key = dialogId + ":" + (infoId != null ? infoId : custom[0]);
+        Long last = lastAnswerTimes.get(key);
+        if (last != null && now - last < 2500L) {
+            return true; // answered moments ago — swallow anyway to avoid a doubled echo
+        }
+        lastAnswerTimes.put(key, now);
+        TLRPC.User me = UserConfig.getInstance(currentAccount).getCurrentUser();
+        String answer = infoId != null ? infoAnswer(infoId, me, false) : applyPlaceholders(custom[1], me);
+        sendAnswer(dialogId, answer);
+        return true;
+    }
 
     //region executors
 

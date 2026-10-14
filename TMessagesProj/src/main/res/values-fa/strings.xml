@@ -690,47 +690,57 @@
     <string name="DrGramSmartCmdBan">بن کردن (با ریپلی)</string>
     <string name="DrGramSmartCmdUnban">رفع بن (با ریپلی)</string>
     <string name="DrGramSmartCmdPromote">ادمین کردن (با ریپلی)</string>
-    <!-- DrGram Fix 36: Anti-Delete -->
-    <string name="DrGramAntiDeleteSectionTitle">Anti-Delete</string>
-    <string name="DrGramAntiDeleteSectionHint">Deleted messages of the other side stay saved with you.</string>
-    <string name="DrGramAntiDeleteOpen">Open the deleted bag</string>
-    <string name="DrGramAntiDeleteTitle">Anti-Delete</string>
-    <string name="DrGramAntiDeleteModule">Module</string>
-    <string name="DrGramAntiDeleteHint">While enabled, every incoming text is cached; when it is deleted on the server, the copy moves to the bag below. Text content only in this version.</string>
-    <string name="DrGramAntiDeleteEnable">Keep deleted messages</string>
-    <string name="DrGramAntiDeleteCount">Messages in the bag</string>
-    <string name="DrGramAntiDeleteBag">Deleted-message bag</string>
-    <string name="DrGramAntiDeleteClear">Clear the bag</string>
-    <string name="DrGramAntiDeleteClearConfirm">All saved deleted messages will be removed. Continue?</string>
-    <string name="DrGramAntiDeleteEmpty">Nothing yet. When someone deletes a message, it appears here.</string>
+    <!-- DrGram Fix 36: Anti-Delete (Fix 37: Persian) -->
+    <string name="DrGramAntiDeleteSectionTitle">ضد حذف</string>
+    <string name="DrGramAntiDeleteSectionHint">پیام‌های حذف‌شده‌ی طرف مقابل پیش تو می‌ماند.</string>
+    <string name="DrGramAntiDeleteOpen">باز کردن کیف پیام‌های حذف‌شده</string>
+    <string name="DrGramAntiDeleteTitle">ضد حذف</string>
+    <string name="DrGramAntiDeleteModule">ماژول</string>
+    <string name="DrGramAntiDeleteHint">وقتی فعال باشد همه‌ی متن‌های دریافتی ذخیره می‌شوند؛ هر پیام که از سرور حذف شود، نسخه‌اش به کیف پایین منتقل می‌شود. در این نسخه فقط متن پیام‌ها نگه داشته می‌شود.</string>
+    <string name="DrGramAntiDeleteEnable">نگه‌داشتن پیام‌های حذف‌شده</string>
+    <string name="DrGramAntiDeleteCount">پیام‌های داخل کیف</string>
+    <string name="DrGramAntiDeleteBag">کیف پیام‌های حذف‌شده</string>
+    <string name="DrGramAntiDeleteClear">خالی کردن کیف</string>
+    <string name="DrGramAntiDeleteClearConfirm">همه‌ی پیام‌های حذف‌شده‌ی ذخیره‌شده پاک می‌شوند. ادامه می‌دهی؟</string>
+    <string name="DrGramAntiDeleteEmpty">هنوز چیزی نیست. وقتی کسی پیامی را حذف کند، همین‌جا ظاهر می‌شود.</string>
 
-    <!-- DrGram Fix 36: Encrypted Backup -->
-    <string name="DrGramBackupSectionTitle">Encrypted backup</string>
-    <string name="DrGramBackupSectionHint">All LuxGram settings in one AES-GCM encrypted file.</string>
-    <string name="DrGramBackupOpen">Open encrypted backup</string>
-    <string name="DrGramBackupTitle">Encrypted Backup</string>
-    <string name="DrGramBackupHero">Every LuxGram tool setting — secretary, smart reply, anti-delete, vault, style and more — packed into one AES-256 encrypted file, locked with your password.</string>
-    <string name="DrGramBackupActions">Actions</string>
-    <string name="DrGramBackupCreate">Create encrypted backup</string>
-    <string name="DrGramBackupRestoreHint">Tap a file below to restore it</string>
-    <string name="DrGramBackupCount">Backups</string>
-    <string name="DrGramBackupFiles">Backup files</string>
-    <string name="DrGramBackupEmpty">No backup yet — create the first one.</string>
-    <string name="DrGramBackupPasswordHint">Choose a password for this backup file (at least 4 characters)</string>
-    <string name="DrGramBackupShortPassword">The password must be at least 4 characters</string>
-    <string name="DrGramBackupDone">Backup created and encrypted</string>
-    <string name="DrGramBackupFailed">Backup failed</string>
-    <string name="DrGramBackupRestore">Restore</string>
-    <string name="DrGramBackupRestored">Restored — close and reopen the app to see everything</string>
-    <string name="DrGramBackupWrongPassword">Wrong password or damaged file</string>
+    <!-- DrGram Fix 36: Encrypted Backup (Fix 37: Persian) -->
+    <string name="DrGramBackupSectionTitle">بکاپ رمزنگاری‌شده</string>
+    <string name="DrGramBackupSectionHint">همه‌ی تنظیمات لوکس گرام در یک فایل رمزنگاری‌شده‌ی AES-GCM.</string>
+    <string name="DrGramBackupOpen">باز کردن بکاپ رمزنگاری‌شده</string>
+    <string name="DrGramBackupTitle">بکاپ رمزنگاری‌شده</string>
+    <string name="DrGramBackupHero">همه‌ی تنظیمات ابزارهای لوکس گرام — منشی، پاسخ هوشمند، ضد حذف، خزانه، استایل و بیشتر — در یک فایل رمزنگاری‌شده‌ی AES-256 با رمز اختصاصی تو.</string>
+    <string name="DrGramBackupActions">اقدامات</string>
+    <string name="DrGramBackupCreate">ساخت بکاپ رمزنگاری‌شده</string>
+    <string name="DrGramBackupRestoreHint">برای بازگردانی روی یکی از فایل‌های زیر بزن</string>
+    <string name="DrGramBackupCount">بکاپ‌ها</string>
+    <string name="DrGramBackupFiles">فایل‌های بکاپ</string>
+    <string name="DrGramBackupEmpty">هنوز بکاپی نیست — اولین را بساز.</string>
+    <string name="DrGramBackupPasswordHint">یک رمز برای این فایل بکاپ انتخاب کن (حداقل ۴ نویسه)</string>
+    <string name="DrGramBackupShortPassword">رمز باید حداقل ۴ نویسه باشد</string>
+    <string name="DrGramBackupDone">بکاپ ساخته و رمزنگاری شد</string>
+    <string name="DrGramBackupFailed">ساخت بکاپ ناموفق بود</string>
+    <string name="DrGramBackupRestore">بازگردانی</string>
+    <string name="DrGramBackupRestored">بازگردانی شد — برای دیدن همه‌چیز برنامه را ببند و دوباره باز کن</string>
+    <string name="DrGramBackupWrongPassword">رمز اشتباه است یا فایل خراب است</string>
 
-    <!-- DrGram Fix 36: Luxury profile card -->
-    <string name="DrGramCardSectionTitle">Luxury profile card</string>
-    <string name="DrGramCardSectionHint">A chic image export of your profile for sharing.</string>
-    <string name="DrGramCardOpen">Open my card</string>
-    <string name="DrGramCardTitle">Luxury Card</string>
-    <string name="DrGramCardRegenerate">Rebuild the card</string>
-    <string name="DrGramCardShare">Share the card</string>
-    <string name="DrGramCardRendered">The card was rebuilt</string>
+    <!-- DrGram Fix 36: Luxury profile card (Fix 37: Persian) -->
+    <string name="DrGramCardSectionTitle">کارت پروفایل لوکس</string>
+    <string name="DrGramCardSectionHint">خروجی تصویری شیک از پروفایلت برای اشتراک‌گذاری.</string>
+    <string name="DrGramCardOpen">باز کردن کارت من</string>
+    <string name="DrGramCardTitle">کارت لوکس</string>
+    <string name="DrGramCardRegenerate">بازسازی کارت</string>
+    <string name="DrGramCardShare">اشتراک‌گذاری کارت</string>
+    <string name="DrGramCardRendered">کارت بازسازی شد</string>
+
+    <!-- DrGram Fix 37: voice changer + lux sounds -->
+    <string name="DrGramVoiceChange">تغییر صدا</string>
+    <string name="DrGramVoiceChangePick">سبک صدای ویس خروجی</string>
+    <string name="DrGramVoiceChangeOff">خاموش</string>
+    <string name="DrGramVoiceM2F">مرد → زن</string>
+    <string name="DrGramVoiceF2M">زن → مرد</string>
+    <string name="DrGramStudioEcho">اکو استودیویی</string>
+    <string name="DrGramLuxSound">صدای اعلان لوکس</string>
+    <string name="AppIconChangedTo">آیکن برنامه به %1$s تغییر کرد</string>
 </resources>
 

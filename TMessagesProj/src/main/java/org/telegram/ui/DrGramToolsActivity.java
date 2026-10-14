@@ -29,6 +29,8 @@ import org.telegram.messenger.UserConfig;
 import org.telegram.messenger.UserObject;
 import org.telegram.messenger.DrGramChatTools;
 import org.telegram.messenger.DrGramThemeInstaller;
+import org.telegram.messenger.DrGramLuxSounds;
+import org.telegram.messenger.DrGramVoiceChanger;
 import org.telegram.messenger.FileLog;
 import org.telegram.messenger.DrGramFavorites;
 import org.telegram.messenger.DrGramMedia;
@@ -719,6 +721,32 @@ public class DrGramToolsActivity extends BaseFragment {
 
         addSectionRow(makeActionRow(context, LocaleController.getString(R.string.DrGramVoiceEffect), v -> showVoiceFxDialog(), "media_voice_fx"));
 
+        // DrGram Fix 37: send-side voice changer — the recipient hears it
+        addSectionRow(makeActionRow(context, voiceChangeRowTitle(), v -> showVoiceChangeDialog(), "media_voice_change"));
+
+        Switch echoSwitch = new Switch(context);
+        echoSwitch.setChecked(DrGramVoiceChanger.isEchoEnabled(), false);
+        LinearLayout echoRow = makeRow(context, LocaleController.getString(R.string.DrGramStudioEcho), echoSwitch);
+        echoRow.setTag("media_voice_echo");
+        echoRow.setOnClickListener(v -> {
+            boolean newState = !DrGramVoiceChanger.isEchoEnabled();
+            DrGramVoiceChanger.setEchoEnabled(newState);
+            echoSwitch.setChecked(newState, false);
+        });
+        addSectionRow(echoRow);
+
+        // DrGram Fix 37: luxury brand notification chime (gold / love)
+        Switch luxSoundSwitch = new Switch(context);
+        luxSoundSwitch.setChecked(DrGramLuxSounds.isEnabled(), false);
+        LinearLayout luxSoundRow = makeRow(context, LocaleController.getString(R.string.DrGramLuxSound), luxSoundSwitch);
+        luxSoundRow.setTag("media_lux_sound");
+        luxSoundRow.setOnClickListener(v -> {
+            boolean newState = !DrGramLuxSounds.isEnabled();
+            DrGramLuxSounds.setEnabled(newState);
+            luxSoundSwitch.setChecked(newState, false);
+        });
+        addSectionRow(luxSoundRow);
+
         storyGradientSwitch = new Switch(context);
         storyGradientSwitch.setChecked(DrGramMedia.isStoryGradientEnabled(), false);
         LinearLayout storyRow = makeRow(context, LocaleController.getString(R.string.DrGramStoryGradient), storyGradientSwitch);
@@ -742,6 +770,37 @@ public class DrGramToolsActivity extends BaseFragment {
         addSectionRow(makeActionRow(context, LocaleController.getString(R.string.DrGramDownloadsEntry), v -> openDownloads()));
         addSectionRow(makeActionRow(context, LocaleController.getString(R.string.DrGramLinkExtractorTitle), v ->
                 presentFragment(new DrGramLinkExtractorActivity())));
+    }
+
+    /** DrGram Fix 37: title with the current send-side voice changer mode. */
+    private String voiceChangeRowTitle() {
+        String[] names = {
+                LocaleController.getString(R.string.DrGramVoiceChangeOff),
+                LocaleController.getString(R.string.DrGramVoiceM2F),
+                LocaleController.getString(R.string.DrGramVoiceF2M)
+        };
+        int mode = DrGramVoiceChanger.getMode();
+        return LocaleController.getString(R.string.DrGramVoiceChange) + ": "
+                + names[Math.max(0, Math.min(names.length - 1, mode))];
+    }
+
+    private void showVoiceChangeDialog() {
+        if (getParentActivity() == null) {
+            return;
+        }
+        String[] items = {
+                LocaleController.getString(R.string.DrGramVoiceChangeOff),
+                LocaleController.getString(R.string.DrGramVoiceM2F),
+                LocaleController.getString(R.string.DrGramVoiceF2M)
+        };
+        new AlertDialog.Builder(getParentActivity(), getResourceProvider())
+                .setTitle(LocaleController.getString(R.string.DrGramVoiceChangePick))
+                .setItems(items, (dialog, which) -> {
+                    DrGramVoiceChanger.setMode(which);
+                    refreshDynamicRows();
+                })
+                .setNegativeButton(LocaleController.getString(R.string.Cancel), null)
+                .show();
     }
 
     private void showVoiceFxDialog() {
@@ -1063,6 +1122,12 @@ public class DrGramToolsActivity extends BaseFragment {
             int fx = DrGramMedia.getVoiceFx();
             titleView.setText(LocaleController.getString(R.string.DrGramVoiceEffect) + ": "
                     + names[Math.max(0, Math.min(names.length - 1, fx))]);
+        }
+        // DrGram Fix 37: keep the voice-changer row title in sync
+        View voiceChangeRow = contentView.findViewWithTag("media_voice_change");
+        if (voiceChangeRow instanceof ViewGroup) {
+            TextView titleView = (TextView) ((ViewGroup) voiceChangeRow).getChildAt(0);
+            titleView.setText(voiceChangeRowTitle());
         }
         if (guardListContainer != null) {
             View groupsRow = contentView.findViewWithTag("secretary_groups");

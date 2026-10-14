@@ -11712,5 +11712,12 @@
     <string name="DrGramCardRegenerate">Rebuild the card</string>
     <string name="DrGramCardShare">Share the card</string>
     <string name="DrGramCardRendered">The card was rebuilt</string>
+    <string name="DrGramVoiceChange">Voice changer</string>
+    <string name="DrGramVoiceChangePick">Outgoing voice style</string>
+    <string name="DrGramVoiceChangeOff">Off</string>
+    <string name="DrGramVoiceM2F">Male → Female</string>
+    <string name="DrGramVoiceF2M">Female → Male</string>
+    <string name="DrGramStudioEcho">Studio echo</string>
+    <string name="DrGramLuxSound">Luxury notification sound</string>
 </resources>
 
