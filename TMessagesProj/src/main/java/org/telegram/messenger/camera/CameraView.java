@@ -2287,8 +2287,10 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
     private static void drgramUploadBeauty(CameraSessionWrapper session,
             int noseHandle, int teethHandle, int fxHandle, int faceCountHandle,
             int facesHandle, int nosesHandle, int mouthsHandle) {
-        GLES20.glUniform1f(noseHandle, org.telegram.messenger.DrGramMedia.beautifyNose());
-        GLES20.glUniform1f(teethHandle, org.telegram.messenger.DrGramMedia.beautifyTeeth());
+        // The master beauty toggle must disable every retouch uniform, not only skin smoothing.
+        boolean beautyEnabled = org.telegram.messenger.DrGramMedia.isBeautifyEnabled();
+        GLES20.glUniform1f(noseHandle, beautyEnabled ? org.telegram.messenger.DrGramMedia.beautifyNose() : 0f);
+        GLES20.glUniform1f(teethHandle, beautyEnabled ? org.telegram.messenger.DrGramMedia.beautifyTeeth() : 0f);
         GLES20.glUniform1f(fxHandle, org.telegram.messenger.DrGramMedia.cameraFx());
         android.hardware.Camera.Face[] faces = null;
         try {
