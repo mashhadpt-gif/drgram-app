@@ -53,7 +53,7 @@ public class DrGramThemeInstaller {
      * asset on the next app start, so palette upgrades reach every user.
      * v6 = Fix 37 dark-blur chat wallpaper embedded in both brand themes (WPS).
      */
-    public static final int THEME_ASSET_VERSION = 6;
+    public static final int THEME_ASSET_VERSION = 7; // Fix 38: glass (translucent) bubble gradients
 
     private static volatile boolean tried = false;
 
@@ -248,6 +248,16 @@ public class DrGramThemeInstaller {
      */
     public static int accentColor() {
         return isLoveMode() ? 0xFFE63B52 : 0xFFFFC94A;
+    }
+
+    /** DrGram Fix 38: true when the GOLD LUXE brand palette is active. */
+    public static boolean isGoldMode() {
+        return !isLoveMode();
+    }
+
+    /** DrGram Fix 38: lighter companion of the accent for glass gradients. */
+    public static int accentLightColor() {
+        return isLoveMode() ? 0xFFFF7A96 : 0xFFFFE08A;
     }
 
     //region Fix 32: intensity + curated (free) themes + day/night resolution

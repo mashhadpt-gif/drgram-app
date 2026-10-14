@@ -853,11 +853,17 @@ public class MessageDrawable extends Drawable {
         Rect lastRect = new Rect();
         boolean lastDrawFullTop;
         boolean lastDrawFullBottom;
+        int lastBubbleRadius = -1; // DrGram Fix 38
 
         public boolean invalidatePath(Rect bounds, boolean drawFullBottom, boolean drawFullTop) {
-            boolean invalidate = lastRect.isEmpty() || lastRect.top != bounds.top || lastRect.bottom != bounds.bottom || lastRect.right != bounds.right || lastRect.left != bounds.left || lastDrawFullTop != drawFullTop || lastDrawFullBottom != drawFullBottom || !drawFullTop || !drawFullBottom;
+            // DrGram Fix 38: the cached bubble Path must also invalidate when the user
+            // changes گردی حباب پیام (SharedConfig.bubbleRadius). Previously only bounds
+            // were compared, so bubbles could keep a stale path when the fragment
+            // rebuild was deferred or skipped.
+            boolean invalidate = lastRect.isEmpty() || lastRect.top != bounds.top || lastRect.bottom != bounds.bottom || lastRect.right != bounds.right || lastRect.left != bounds.left || lastDrawFullTop != drawFullTop || lastDrawFullBottom != drawFullBottom || !drawFullTop || !drawFullBottom || lastBubbleRadius != org.telegram.messenger.SharedConfig.bubbleRadius;
             lastDrawFullTop = drawFullTop;
             lastDrawFullBottom = drawFullBottom;
+            lastBubbleRadius = org.telegram.messenger.SharedConfig.bubbleRadius;
             lastRect.set(bounds);
             return invalidate;
         }

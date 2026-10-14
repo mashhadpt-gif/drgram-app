@@ -8865,6 +8865,82 @@ public class DialogsActivity extends BaseFragment implements NotificationCenter.
             previewMenu[0].addView(muteItem);
         }
 
+        // DrGram Fix 38: PV lux tools — the private-chat toolkit (voice changer,
+        // favorites, AI) lives in the avatar-preview menu, private chats only,
+        // exactly where users expect these options
+        if (DialogObject.isUserDialog(dialogId) && !UserObject.isUserSelf(getMessagesController().getUser(dialogId))) {
+            final long drgramPvDid = dialogId;
+
+            ActionBarMenuSubItem pvVoiceItem = new ActionBarMenuSubItem(getParentActivity(), true, false);
+            pvVoiceItem.setTextAndIcon(LocaleController.getString(R.string.DrGramVoiceChange), R.drawable.msg_mute);
+            pvVoiceItem.setMinimumWidth(160);
+            pvVoiceItem.setOnClickListener(e -> {
+                finishPreviewFragment();
+                if (getParentActivity() == null) {
+                    return;
+                }
+                String[] pvVoiceModes = {
+                        LocaleController.getString(R.string.DrGramVoiceChangeOff),
+                        LocaleController.getString(R.string.DrGramVoiceM2F),
+                        LocaleController.getString(R.string.DrGramVoiceF2M),
+                        LocaleController.getString(R.string.DrGramStudioEcho) + " — " + LocaleController.getString(org.telegram.messenger.DrGramVoiceChanger.getEchoStyle() != org.telegram.messenger.DrGramVoiceChanger.ECHO_OFF ? R.string.DrGramEchoOn : R.string.DrGramEchoOff)
+                };
+                new AlertDialog.Builder(getParentActivity(), getResourceProvider())
+                        .setTitle(LocaleController.getString(R.string.DrGramPvTools))
+                        .setItems(pvVoiceModes, (d2, which2) -> {
+                            if (which2 <= 2) {
+                                org.telegram.messenger.DrGramVoiceChanger.setMode(which2);
+                            } else {
+                                int cur = org.telegram.messenger.DrGramVoiceChanger.getEchoStyle();
+                                org.telegram.messenger.DrGramVoiceChanger.setEchoStyle(cur == org.telegram.messenger.DrGramVoiceChanger.ECHO_OFF ? org.telegram.messenger.DrGramVoiceChanger.ECHO_STUDIO : org.telegram.messenger.DrGramVoiceChanger.ECHO_OFF);
+                            }
+                            android.widget.Toast.makeText(getParentActivity(), LocaleController.getString(R.string.DrGramPvToolsApplied), android.widget.Toast.LENGTH_SHORT).show();
+                        })
+                        .setNegativeButton(LocaleController.getString(R.string.Cancel), null)
+                        .show();
+            });
+            previewMenu[0].addView(pvVoiceItem);
+
+            ActionBarMenuSubItem pvFavItem = new ActionBarMenuSubItem(getParentActivity(), false, false);
+            pvFavItem.setTextAndIcon(LocaleController.getString(R.string.DrGramPvFavorites), R.drawable.msg_fave);
+            pvFavItem.setMinimumWidth(160);
+            pvFavItem.setOnClickListener(e -> {
+                finishPreviewFragment();
+                presentFragment(new DrGramFavoritesActivity());
+            });
+            previewMenu[0].addView(pvFavItem);
+
+            org.telegram.messenger.DrGramFavorites.Entry pvLatest = null;
+            for (org.telegram.messenger.DrGramFavorites.Entry en : org.telegram.messenger.DrGramFavorites.getInstance(currentAccount).getList()) {
+                if (en != null && en.dialogId == drgramPvDid && (pvLatest == null || en.date > pvLatest.date)) {
+                    pvLatest = en;
+                }
+            }
+            if (pvLatest != null) {
+                ActionBarMenuSubItem pvJumpItem = new ActionBarMenuSubItem(getParentActivity(), false, false);
+                pvJumpItem.setTextAndIcon(LocaleController.getString(R.string.DrGramPvJumpMarked), R.drawable.msg_saved);
+                pvJumpItem.setMinimumWidth(160);
+                final int pvJumpMsgId = pvLatest.msgId;
+                pvJumpItem.setOnClickListener(e -> {
+                    finishPreviewFragment();
+                    Bundle drgramJumpArgs = new Bundle();
+                    drgramJumpArgs.putLong("dialog_id", drgramPvDid);
+                    drgramJumpArgs.putInt("message_id", pvJumpMsgId);
+                    presentFragment(new ChatActivity(drgramJumpArgs));
+                });
+                previewMenu[0].addView(pvJumpItem);
+            }
+
+            ActionBarMenuSubItem pvAiItem = new ActionBarMenuSubItem(getParentActivity(), false, true);
+            pvAiItem.setTextAndIcon(LocaleController.getString(R.string.DrGramAiToolsTitle), R.drawable.input_ai);
+            pvAiItem.setMinimumWidth(160);
+            pvAiItem.setOnClickListener(e -> {
+                finishPreviewFragment();
+                presentFragment(new DrGramAIActivity());
+            });
+            previewMenu[0].addView(pvAiItem);
+        }
+
         if (!isCommunityCell) {
             ActionBarMenuSubItem deleteItem = new ActionBarMenuSubItem(getParentActivity(), false, true);
             deleteItem.setIconColor(getThemedColor(Theme.key_text_RedRegular));

@@ -271,6 +271,14 @@ public class AndroidUtilities {
     }
 
     private static final Hashtable<String, Typeface> typefaceCache = new Hashtable<>();
+
+    // DrGram Fix 38: full font-cache invalidation so the Vazir toggle applies live
+    public static void drgramClearTypefaceCache() {
+        mediumTypeface = null;
+        synchronized (typefaceCache) {
+            typefaceCache.clear();
+        }
+    }
     public static float touchSlop;
     private static int prevOrientation = -10;
     private static boolean waitingForSms = false;
@@ -2401,8 +2409,10 @@ public class AndroidUtilities {
             case "fonts/rmedium.ttf":
                 return "fonts/vazirmatn_medium.ttf";
             case "fonts/rmediumitalic.ttf":
+            case "fonts/ritalic.ttf":
                 return "fonts/vazirmatn_regular.ttf";
             case "fonts/mw_bold.ttf":
+            case "fonts/mw_bolditalic.ttf":
                 return "fonts/vazirmatn_bold.ttf";
             default:
                 return assetPath;
@@ -2410,6 +2420,10 @@ public class AndroidUtilities {
     }
 
     public static Typeface getTypeface(String assetPath) {
+        // DrGram Fix 38: capture italic intent BEFORE path resolution — Vazir has no
+        // italic asset, so rmediumitalic/ritalic resolve to vazirmatn_regular and the
+        // resolved path no longer contains "italic". Synthetic italic via builder.
+        final boolean drgramWantItalic = assetPath != null && assetPath.contains("italic");
         assetPath = drgramResolveFontPath(assetPath);
         synchronized (typefaceCache) {
             if (!typefaceCache.containsKey(assetPath)) {
@@ -2420,16 +2434,18 @@ public class AndroidUtilities {
                         if (assetPath.contains("vazirmatn_bold")) {
                             builder.setWeight(700);
                         } else if (assetPath.contains("vazirmatn_medium")) {
+                            // DrGram Fix 38: keep true 500 weight — the legacy
+                            // contains("medium") rule below used to override this to 700
                             builder.setWeight(500);
                         } else if (assetPath.contains("vazirmatn")) {
                             builder.setWeight(400);
                         } else if (assetPath.contains("rextrabold")) {
                             builder.setWeight(800);
                         }
-                        if (assetPath.contains("medium") || assetPath.contains("rbold")) {
+                        if (!assetPath.contains("vazirmatn") && (assetPath.contains("medium") || assetPath.contains("rbold"))) {
                             builder.setWeight(700);
                         }
-                        if (assetPath.contains("italic")) {
+                        if (drgramWantItalic || assetPath.contains("italic")) {
                             builder.setItalic(true);
                         }
                         t = builder.build();
@@ -6420,7 +6436,7 @@ public class AndroidUtilities {
         return "";
     }
 
-	public static void quietSleep(long millis) {
+        public static void quietSleep(long millis) {
         try {
             Thread.sleep(millis);
         } catch (InterruptedException ignored) {

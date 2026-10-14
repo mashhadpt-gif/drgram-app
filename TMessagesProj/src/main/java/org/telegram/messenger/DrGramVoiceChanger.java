@@ -10,8 +10,9 @@
  *     (resample by r, then time-stretch by r with weighted overlap-add and a
  *     similarity-guided grain search). Algorithm validated offline: duration
  *     preserved exactly, pitch tracks the target ratio.
- *   • Studio echo: two-tap filtered early-reflection delay for a soft
- *     studio-room ambience.
+ *   • Studio echo: multi-tap filtered early-reflection delay with three room
+ *     characters — استودیو (soft two-tap room), غار (long dark cave),
+ *     صحنه (bright multi-tap stage).
  *
  * The recorder feeds 16 kHz mono PCM-16 buffers; processing is in place and
  * emits exactly the requested sample count per call (short internal latency,
@@ -29,6 +30,12 @@ public class DrGramVoiceChanger {
     public static final int MODE_OFF = 0;
     public static final int MODE_M2F = 1;
     public static final int MODE_F2M = 2;
+
+    // DrGram Fix 38: echo room characters (پیشرفته‌تر از اکوی ساده)
+    public static final int ECHO_OFF = 0;
+    public static final int ECHO_STUDIO = 1; // soft two-tap room (Fix 37 default)
+    public static final int ECHO_CAVE = 2;   // long dark reflections
+    public static final int ECHO_STAGE = 3;  // bright three-tap hall
 
     private static final float M2F_RATIO = 1.32f;
     private static final float F2M_RATIO = 0.76f;
@@ -50,15 +57,33 @@ public class DrGramVoiceChanger {
     }
 
     public static boolean isEchoEnabled() {
+        return getEchoStyle() != ECHO_OFF;
+    }
+
+    /** DrGram Fix 38: current echo room character. Migrates the Fix 37 boolean. */
+    public static int getEchoStyle() {
         try {
-            return prefs().getBoolean("voice_send_echo", false);
+            SharedPreferences p = prefs();
+            if (p.contains("voice_send_echo_style")) {
+                return p.getInt("voice_send_echo_style", ECHO_OFF);
+            }
+            return p.getBoolean("voice_send_echo", false) ? ECHO_STUDIO : ECHO_OFF;
         } catch (Throwable t) {
-            return false;
+            return ECHO_OFF;
         }
     }
 
+    public static void setEchoStyle(int style) {
+        try {
+            prefs().edit().putInt("voice_send_echo_style", style).apply();
+        } catch (Throwable t) {
+            FileLog.e(t);
+        }
+    }
+
+    /** Kept for compatibility with older callers. */
     public static void setEchoEnabled(boolean value) {
-        prefs().edit().putBoolean("voice_send_echo", value).apply();
+        setEchoStyle(value ? ECHO_STUDIO : ECHO_OFF);
     }
 
     /** True when any send-side processing is active. */
@@ -78,7 +103,7 @@ public class DrGramVoiceChanger {
                 return;
             }
             float ratio = getMode() == MODE_F2M ? F2M_RATIO : (getMode() == MODE_M2F ? M2F_RATIO : 1.0f);
-            chain = new Chain(ratio, isEchoEnabled(), sampleRate);
+            chain = new Chain(ratio, getEchoStyle(), sampleRate);
         } catch (Throwable t) {
             chain = null;
             FileLog.e(t);
@@ -124,7 +149,7 @@ public class DrGramVoiceChanger {
         final float ratio;
         final int hs;                      // output hop = round(HA * ratio)
         final float[] hann;
-        final boolean echo;
+        final int echoStyle;               // DrGram Fix 38: 0 off, 1 studio, 2 cave, 3 stage
         final int sampleRate;
 
         // resampler carry
@@ -142,24 +167,29 @@ public class DrGramVoiceChanger {
         int nextEmit = 0;
 
         // echo state
-        float[] d1, d2;
-        int p1, p2;
+        float[] d1, d2, d3;
+        int p1, p2, p3;
         float lp;
 
-        Chain(float ratio, boolean echo, int sampleRate) {
+        Chain(float ratio, int echoStyle, int sampleRate) {
             this.ratio = ratio;
-            this.echo = echo;
+            this.echoStyle = echoStyle;
             this.sampleRate = sampleRate;
             this.hs = Math.max(1, Math.round(HA * ratio));
             hann = new float[W];
             for (int i = 0; i < W; i++) {
                 hann[i] = (float) (0.5 - 0.5 * Math.cos(2.0 * Math.PI * i / (W - 1)));
             }
-            if (echo) {
-                int delay1 = Math.round(sampleRate * 0.065f);
-                int delay2 = Math.round(sampleRate * 0.119f);
-                d1 = new float[Math.max(1, delay1)];
-                d2 = new float[Math.max(1, delay2)];
+            if (echoStyle == ECHO_STUDIO) {
+                d1 = new float[Math.max(1, Math.round(sampleRate * 0.065f))];
+                d2 = new float[Math.max(1, Math.round(sampleRate * 0.119f))];
+            } else if (echoStyle == ECHO_CAVE) {
+                d1 = new float[Math.max(1, Math.round(sampleRate * 0.121f))];
+                d2 = new float[Math.max(1, Math.round(sampleRate * 0.243f))];
+            } else if (echoStyle == ECHO_STAGE) {
+                d1 = new float[Math.max(1, Math.round(sampleRate * 0.041f))];
+                d2 = new float[Math.max(1, Math.round(sampleRate * 0.083f))];
+                d3 = new float[Math.max(1, Math.round(sampleRate * 0.161f))];
             }
         }
 
@@ -201,8 +231,8 @@ public class DrGramVoiceChanger {
                 wsum = nwsum;
                 olaBase += cut;
             }
-            // 4) optional studio echo
-            if (echo) {
+            // 4) optional room echo (DrGram Fix 38: studio / cave / stage)
+            if (echoStyle != ECHO_OFF) {
                 applyEcho(out);
             }
             // write back
@@ -334,6 +364,26 @@ public class DrGramVoiceChanger {
         }
 
         private void applyEcho(short[] out) {
+            if (echoStyle == ECHO_STAGE) {
+                // صحنه — bright hall: three early reflections, low coloration
+                for (int i = 0; i < out.length; i++) {
+                    float dry = out[i];
+                    float w1 = d1[p1];
+                    d1[p1] = dry;
+                    p1 = (p1 + 1) % d1.length;
+                    float w2 = d2[p2];
+                    d2[p2] = dry;
+                    p2 = (p2 + 1) % d2.length;
+                    float w3 = d3[p3];
+                    d3[p3] = dry;
+                    p3 = (p3 + 1) % d3.length;
+                    float v = dry * 0.82f + w1 * 0.14f + w2 * 0.09f + w3 * 0.07f;
+                    if (v > 32767) v = 32767; else if (v < -32768) v = -32768;
+                    out[i] = (short) v;
+                }
+                return;
+            }
+            final boolean cave = echoStyle == ECHO_CAVE;
             for (int i = 0; i < out.length; i++) {
                 float dry = out[i];
                 float w1 = d1[p1];
@@ -342,10 +392,19 @@ public class DrGramVoiceChanger {
                 float w2 = d2[p2];
                 d2[p2] = dry;
                 p2 = (p2 + 1) % d2.length;
-                lp = 0.65f * lp + 0.35f * w2;
-                float v = dry * 0.78f + w1 * 0.24f + lp * 0.13f;
-                if (v > 32767) v = 32767; else if (v < -32768) v = -32768;
-                out[i] = (short) v;
+                if (cave) {
+                    // غار — long dark reflections: stronger lowpass + more wet
+                    lp = 0.52f * lp + 0.48f * w2;
+                    float v = dry * 0.72f + w1 * 0.30f + lp * 0.24f;
+                    if (v > 32767) v = 32767; else if (v < -32768) v = -32768;
+                    out[i] = (short) v;
+                } else {
+                    // استودیو — soft two-tap room (Fix 37 character)
+                    lp = 0.65f * lp + 0.35f * w2;
+                    float v = dry * 0.78f + w1 * 0.24f + lp * 0.13f;
+                    if (v > 32767) v = 32767; else if (v < -32768) v = -32768;
+                    out[i] = (short) v;
+                }
             }
         }
     }

@@ -1252,6 +1252,7 @@ public class ChatActivity extends BaseFragment implements
     public final static int OPTION_DRGRAM_EXPAND = 119;
     public final static int OPTION_DRGRAM_ADV_FWD = 120; // DrGram Fix 33: advanced forward from the message menu
     public final static int OPTION_DRGRAM_AI = 121; // DrGram Fix 33: AI tools from the message menu
+    public final static int OPTION_DRGRAM_ZABANAVIS = 122; // DrGram Fix 38: message annotation styles
 
     private final static int[] allowedNotificationsDuringChatListAnimations = new int[]{
             NotificationCenter.messagesRead,
@@ -19419,6 +19420,22 @@ public class ChatActivity extends BaseFragment implements
         android.widget.Toast.makeText(getParentActivity(), LocaleController.getString(drgramAdded ? R.string.DrGramFavAdded : R.string.DrGramFavRemoved), android.widget.Toast.LENGTH_SHORT).show();
     }
 
+    /** DrGram Fix 38: raw text of a message for the zabanavis annotator. */
+    private String drgramZabanavisRawText(MessageObject mo) {
+        if (mo == null || mo.messageOwner == null) {
+            return null;
+        }
+        String raw = mo.messageOwner.message;
+        if (raw == null || raw.length() == 0) {
+            CharSequence cs = mo.messageText;
+            if (cs == null || cs.length() == 0) {
+                cs = mo.caption;
+            }
+            raw = cs != null ? cs.toString() : null;
+        }
+        return raw;
+    }
+
     private void addToSelectedMessages(MessageObject messageObject, boolean outside) {
         addToSelectedMessages(messageObject, outside, true);
     }
@@ -33815,6 +33832,32 @@ public class ChatActivity extends BaseFragment implements
                 }
                 break;
             }
+            case OPTION_DRGRAM_ZABANAVIS: {
+                // DrGram Fix 38: zabanavis — own messages are edited in place,
+                // foreign messages are transformed to the clipboard
+                final MessageObject drgramZabMo = selectedObject;
+                final String drgramZabRaw = drgramZabanavisRawText(drgramZabMo);
+                if (drgramZabMo != null && drgramZabRaw != null) {
+                    final boolean drgramOwn = drgramZabMo.isOutOwner() && drgramZabMo.getId() > 0;
+                    org.telegram.messenger.DrGramZabanavis.showPicker(ChatActivity.this, -1, style -> {
+                        if (getParentActivity() == null) {
+                            return;
+                        }
+                        if (drgramOwn) {
+                            org.telegram.messenger.DrGramZabanavis.Result r = org.telegram.messenger.DrGramZabanavis.apply(style, drgramZabRaw, drgramZabMo.messageOwner != null ? drgramZabMo.messageOwner.entities : null);
+                            SendMessagesHelper.getInstance(currentAccount).editMessage(drgramZabMo, r.text, true, ChatActivity.this, r.entities, 0, 0);
+                            android.widget.Toast.makeText(getParentActivity(), LocaleController.getString(R.string.DrGramZabanavisApplied), android.widget.Toast.LENGTH_SHORT).show();
+                        } else {
+                            String copied = org.telegram.messenger.DrGramZabanavis.copyStyled(getParentActivity(), style, drgramZabRaw, drgramZabMo.messageOwner != null ? drgramZabMo.messageOwner.entities : null);
+                            android.widget.Toast.makeText(getParentActivity(), LocaleController.getString(copied != null ? R.string.DrGramZabanavisCopied : R.string.DrGramZabanavisFailed), android.widget.Toast.LENGTH_SHORT).show();
+                        }
+                    });
+                }
+                selectedObject = null;
+                selectedObjectToEditCaption = null;
+                selectedObjectGroup = null;
+                break;
+            }
             case OPTION_COPY: {
                 final TL_iv.RichMessage copyRichMessage = selectedObject.messageOwner != null ? selectedObject.messageOwner.rich_message : null;
                 if (selectedObject.isDice()) {
@@ -46615,6 +46658,14 @@ public class ChatActivity extends BaseFragment implements
                     items.add(LocaleController.getString(R.string.DrGramAiToolsTitle));
                     options.add(OPTION_DRGRAM_AI);
                     icons.add(R.drawable.input_ai);
+                }
+                // DrGram Fix 38: zabanavis — annotate the message with a beautiful style
+                if (selectedObject != null && selectedObject.contentType == 0 && !selectedObject.isSponsored()
+                    && !selectedObject.isAnimatedEmoji() && !selectedObject.isDice()
+                    && !TextUtils.isEmpty(drgramZabanavisRawText(selectedObject))) {
+                    items.add(LocaleController.getString(R.string.DrGramZabanavisTitle));
+                    options.add(OPTION_DRGRAM_ZABANAVIS);
+                    icons.add(R.drawable.msg_edit);
                 }
                 if (selectedObject != null && selectedObject.getId() > 0 && selectedObject.contentType == 0 && !selectedObject.isSponsored()) {
                     items.add(LocaleController.getString(org.telegram.messenger.DrGramFavorites.getInstance(currentAccount).isFavorite(getDialogId(), selectedObject.getId()) ? R.string.DrGramFavRemove : R.string.DrGramFavAdd));

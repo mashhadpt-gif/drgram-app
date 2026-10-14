@@ -8006,6 +8006,15 @@ public class Theme {
         synchronized (sync) {
             if (chat_msgTextPaint == null) {
                 chat_msgTextPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
+                // DrGram Fix 38: cover plain message body text with Vazir too —
+                // previously only bold/medium chrome fonts were remapped, so chat
+                // text stayed in Roboto and looked inconsistent next to the UI.
+                if (SharedConfig.drgramVazirFont) {
+                    Typeface drgramVazir = AndroidUtilities.getTypeface("fonts/vazirmatn_regular.ttf");
+                    if (drgramVazir != null) {
+                        chat_msgTextPaint.setTypeface(drgramVazir);
+                    }
+                }
                 chat_msgGameTextPaint = new TextPaint(Paint.ANTI_ALIAS_FLAG);
                 chat_msgTextPaintEmoji = new TextPaint[6];
                 chat_msgTextPaintOneEmoji = new TextPaint(Paint.ANTI_ALIAS_FLAG);

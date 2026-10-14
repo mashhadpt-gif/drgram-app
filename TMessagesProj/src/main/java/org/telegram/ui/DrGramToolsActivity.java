@@ -61,6 +61,8 @@ public class DrGramToolsActivity extends BaseFragment {
     private Switch quickSwitch;
     private Switch storyGradientSwitch;
     private Switch drawSendSwitch;
+    // DrGram Fix 38: chime picker state (which theme the pick applies to)
+    private boolean drgramPickChimeLove;
     // DrGram Fix 34: the open glass group — every section's rows live in ONE translucent panel
     private LinearLayout glassCard;
 
@@ -72,6 +74,26 @@ public class DrGramToolsActivity extends BaseFragment {
             return drgramCreateViewInternal(context);
         } catch (Throwable t) {
             return drgramFallbackView(context, t);
+        }
+    }
+
+    // DrGram Fix 38: receive the picked audio file and store it as the
+    // love/gold chime — custom choices always beat the bundled ones
+    @Override
+    public void onActivityResultFragment(int requestCode, int resultCode, android.content.Intent data) {
+        if (requestCode != 47381 || resultCode != android.app.Activity.RESULT_OK || data == null || data.getData() == null) {
+            return;
+        }
+        try {
+            String imported = org.telegram.messenger.DrGramLuxSounds.importSound(getParentActivity(), data.getData());
+            if (imported != null) {
+                org.telegram.messenger.DrGramLuxSounds.setCustomSound(drgramPickChimeLove, imported);
+                android.widget.Toast.makeText(getParentActivity(), LocaleController.getString(R.string.DrGramLuxSoundCustom), android.widget.Toast.LENGTH_SHORT).show();
+            } else {
+                android.widget.Toast.makeText(getParentActivity(), LocaleController.getString(R.string.DrGramZabanavisFailed), android.widget.Toast.LENGTH_SHORT).show();
+            }
+        } catch (Throwable t) {
+            FileLog.e(t);
         }
     }
 
@@ -724,14 +746,29 @@ public class DrGramToolsActivity extends BaseFragment {
         // DrGram Fix 37: send-side voice changer — the recipient hears it
         addSectionRow(makeActionRow(context, voiceChangeRowTitle(), v -> showVoiceChangeDialog(), "media_voice_change"));
 
+        // DrGram Fix 38: echo is now a room-character picker (استودیو/غار/صحنه)
         Switch echoSwitch = new Switch(context);
-        echoSwitch.setChecked(DrGramVoiceChanger.isEchoEnabled(), false);
+        echoSwitch.setChecked(DrGramVoiceChanger.getEchoStyle() != DrGramVoiceChanger.ECHO_OFF, false);
         LinearLayout echoRow = makeRow(context, LocaleController.getString(R.string.DrGramStudioEcho), echoSwitch);
         echoRow.setTag("media_voice_echo");
         echoRow.setOnClickListener(v -> {
-            boolean newState = !DrGramVoiceChanger.isEchoEnabled();
-            DrGramVoiceChanger.setEchoEnabled(newState);
-            echoSwitch.setChecked(newState, false);
+            if (getParentActivity() == null) {
+                return;
+            }
+            String[] echoItems = {
+                    LocaleController.getString(R.string.DrGramEchoOff),
+                    LocaleController.getString(R.string.DrGramEchoStudio),
+                    LocaleController.getString(R.string.DrGramEchoCave),
+                    LocaleController.getString(R.string.DrGramEchoStage)
+            };
+            new AlertDialog.Builder(getParentActivity(), getResourceProvider())
+                    .setTitle(LocaleController.getString(R.string.DrGramStudioEcho))
+                    .setItems(echoItems, (dialog, which) -> {
+                        DrGramVoiceChanger.setEchoStyle(which);
+                        echoSwitch.setChecked(which != DrGramVoiceChanger.ECHO_OFF, false);
+                    })
+                    .setNegativeButton(LocaleController.getString(R.string.Cancel), null)
+                    .show();
         });
         addSectionRow(echoRow);
 
@@ -746,6 +783,29 @@ public class DrGramToolsActivity extends BaseFragment {
             luxSoundSwitch.setChecked(newState, false);
         });
         addSectionRow(luxSoundRow);
+
+        // DrGram Fix 38: pick your own love/gold notification chime
+        boolean drgramLoveNow = org.telegram.messenger.DrGramThemeInstaller.isLoveMode();
+        String drgramCustom = drgramLoveNow ? DrGramLuxSounds.customLoveSound() : DrGramLuxSounds.customGoldSound();
+        String drgramChimeLabel = LocaleController.getString(R.string.DrGramLuxSoundPick) + "\n" + (drgramCustom != null
+                ? LocaleController.getString(R.string.DrGramLuxSoundCustom)
+                : LocaleController.getString(R.string.DrGramLuxSoundBundled));
+        LinearLayout luxPickRow = makeActionRow(context, drgramChimeLabel, v -> {
+            if (getParentActivity() == null) {
+                return;
+            }
+            drgramPickChimeLove = drgramLoveNow;
+            android.content.Intent intent = new android.content.Intent(android.content.Intent.ACTION_GET_CONTENT);
+            intent.setType("audio/*");
+            intent.addCategory(android.content.Intent.CATEGORY_OPENABLE);
+            try {
+                getParentActivity().startActivityForResult(
+                        android.content.Intent.createChooser(intent, LocaleController.getString(R.string.DrGramLuxSoundPick)), 47381);
+            } catch (Throwable t) {
+                FileLog.e(t);
+            }
+        }, "media_lux_sound_pick");
+        addSectionRow(luxPickRow);
 
         storyGradientSwitch = new Switch(context);
         storyGradientSwitch.setChecked(DrGramMedia.isStoryGradientEnabled(), false);
@@ -1010,7 +1070,14 @@ public class DrGramToolsActivity extends BaseFragment {
     private LinearLayout makeRow(Context context, String title, View valueView) {
         // DrGram Fix 34: flat glass row — no per-row borders. The whole section
         // shares one translucent panel with hairline separators (grouped-list feel).
-        LinearLayout row = new LinearLayout(context);
+        // DrGram Fix 38: a quiet haptic tick on every Lux row tap (micro-interaction)
+        LinearLayout row = new LinearLayout(context) {
+            @Override
+            public boolean performClick() {
+                org.telegram.messenger.DrGramHaptics.tick(this);
+                return super.performClick();
+            }
+        };
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
         row.setBackgroundDrawable(glassRipple());

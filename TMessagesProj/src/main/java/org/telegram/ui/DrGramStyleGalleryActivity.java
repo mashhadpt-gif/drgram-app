@@ -506,6 +506,7 @@ public class DrGramStyleGalleryActivity extends BaseFragment {
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         card.setOnClickListener(v -> {
             try {
+                org.telegram.messenger.DrGramHaptics.tick(v);
                 boolean newState = onToggle.apply();
                 sw.setChecked(newState, true);
                 // every display effect changes what the app draws — rebuild surfaces
@@ -714,7 +715,9 @@ public class DrGramStyleGalleryActivity extends BaseFragment {
 
         View inView = new View(context);
         GradientDrawable inBg = new GradientDrawable();
-        inBg.setCornerRadius(AndroidUtilities.dp(10));
+        // DrGram Fix 38: preview bubbles follow the real گردی حباب پیام setting
+        // (was hardcoded dp(10), so the roundness slider seemed to do nothing)
+        inBg.setCornerRadius(AndroidUtilities.dp(org.telegram.messenger.SharedConfig.bubbleRadius));
         inBg.setColor(inBubble);
         inView.setBackgroundDrawable(inBg);
         LinearLayout.LayoutParams inParams = new LinearLayout.LayoutParams(
@@ -730,7 +733,8 @@ public class DrGramStyleGalleryActivity extends BaseFragment {
         bottomRow.setLayoutParams(bottomParams);
         View outView = new View(context);
         GradientDrawable outBg = new GradientDrawable();
-        outBg.setCornerRadius(AndroidUtilities.dp(10));
+        // DrGram Fix 38: follow SharedConfig.bubbleRadius (see in-bubble note above)
+        outBg.setCornerRadius(AndroidUtilities.dp(org.telegram.messenger.SharedConfig.bubbleRadius));
         outBg.setColor(outBubble);
         outView.setBackgroundDrawable(outBg);
         bottomRow.addView(outView, new LinearLayout.LayoutParams(

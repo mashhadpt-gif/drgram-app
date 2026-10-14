@@ -379,7 +379,10 @@ public class ChatAvatarContainer extends FrameLayout implements FactorAnimator.T
             }
 
             TLRPC.Chat chat = parentFragment.getCurrentChat();
-            statusDrawables[0] = new TypingDotsDrawable(true);
+            // DrGram Fix 38: love mode types with beating hearts
+            statusDrawables[0] = org.telegram.messenger.DrGramThemeInstaller.isLoveMode()
+                    ? new DrGramHeartDotsDrawable(true)
+                    : new TypingDotsDrawable(true);
             statusDrawables[1] = new RecordStatusDrawable(true);
             statusDrawables[2] = new SendingFileDrawable(true);
             statusDrawables[3] = new PlayingGameDrawable(false, resourcesProvider);

@@ -924,6 +924,13 @@ public class FilterTabsView extends FrameLayout {
         float rad = AndroidUtilities.dpf2(14);
         selectorDrawable.setCornerRadii(new float[]{rad, rad, rad, rad, rad, rad, rad, rad});
         selectorDrawable.setColor(Theme.getColor(tabLineColorKey, resourcesProvider));
+        // DrGram Fix 38: brand themes get a glass-gradient active pill
+        if (org.telegram.messenger.DrGramThemeInstaller.isLoveMode() || org.telegram.messenger.DrGramThemeInstaller.isGoldMode()) {
+            selectorDrawable.setColors(new int[]{
+                    org.telegram.messenger.DrGramThemeInstaller.accentLightColor(),
+                    org.telegram.messenger.DrGramThemeInstaller.accentColor()
+            });
+        }
 
         setHorizontalScrollBarEnabled(false);
         listView = new RecyclerListView(context) {
@@ -1641,7 +1648,9 @@ public class FilterTabsView extends FrameLayout {
             // not just the middle 28dp band (user bug report — half-covered bar).
             final int y = dp(9);
             selectorDrawable.setBounds((int) (indicatorX - dp(TAB_INTERNAL_PADDING) - add), y, (int) (indicatorX + indicatorWidth + dp(TAB_INTERNAL_PADDING) + add), height - dp(9));
-            selectorDrawable.setAlpha(31);
+            // DrGram Fix 38: the gradient brand pill needs more presence than the
+            // stock 12%-alpha line color to read as glass
+            selectorDrawable.setAlpha(org.telegram.messenger.DrGramThemeInstaller.isLoveMode() || org.telegram.messenger.DrGramThemeInstaller.isGoldMode() ? 74 : 31);
             selectorDrawable.draw(canvas);
             canvas.restore();
         }

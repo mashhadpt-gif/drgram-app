@@ -166,10 +166,27 @@ public class FragmentFloatingButton extends FrameLayout implements FactorAnimato
             // DrGram Fix 36: the compose FAB follows the brand palette keys —
             // onyx fill + gold icon in Gold/LOVE modes — instead of the
             // featuredStickers keys that rendered a solid bright circle.
-            setBackground(Theme.createSimpleSelectorCircleDrawable(dp(48),
-                Theme.getColor(Theme.key_chats_actionBackground, resourcesProvider),
-                Theme.getColor(Theme.key_chats_actionPressedBackground, resourcesProvider)
-            ));
+            // DrGram Fix 38: brand themes get a glassy diagonal gradient FAB
+            if (org.telegram.messenger.DrGramThemeInstaller.isLoveMode() || org.telegram.messenger.DrGramThemeInstaller.isGoldMode()) {
+                imageView.setColorFilter(0xFFFFFFFF, PorterDuff.Mode.SRC_IN);
+                progressView.setProgressColor(0xFFFFFFFF);
+                android.graphics.drawable.GradientDrawable grad = new android.graphics.drawable.GradientDrawable(
+                        android.graphics.drawable.GradientDrawable.Orientation.TL_BR,
+                        new int[]{org.telegram.messenger.DrGramThemeInstaller.accentLightColor(), org.telegram.messenger.DrGramThemeInstaller.accentColor()});
+                grad.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+                android.graphics.drawable.GradientDrawable pressed = new android.graphics.drawable.GradientDrawable();
+                pressed.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+                pressed.setColor(Theme.getColor(Theme.key_chats_actionPressedBackground, resourcesProvider));
+                android.graphics.drawable.StateListDrawable sld = new android.graphics.drawable.StateListDrawable();
+                sld.addState(new int[]{android.R.attr.state_pressed}, pressed);
+                sld.addState(new int[]{}, grad);
+                setBackground(sld);
+            } else {
+                setBackground(Theme.createSimpleSelectorCircleDrawable(dp(48),
+                    Theme.getColor(Theme.key_chats_actionBackground, resourcesProvider),
+                    Theme.getColor(Theme.key_chats_actionPressedBackground, resourcesProvider)
+                ));
+            }
         }
     }
 

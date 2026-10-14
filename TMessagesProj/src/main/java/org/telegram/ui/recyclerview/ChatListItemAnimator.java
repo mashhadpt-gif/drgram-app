@@ -334,9 +334,48 @@ public class ChatListItemAnimator extends DefaultItemAnimator {
                 ((ChatMessageCell) holder.itemView).getTransitionParams().messageEntering = true;
             }
         }
+        // DrGram Fix 38: glass blur-in entrance for brand themes — the new
+        // message condenses out of a frosted blur while fading up
+        if (holder.itemView instanceof ChatMessageCell && drgramGlassEnter()) {
+            drgramApplyEnterBlur(holder.itemView, 16f);
+        }
         mPendingAdditions.add(holder);
         return true;
     }
+
+    //region DrGram Fix 38 glass enter
+
+    private static android.animation.ValueAnimator drgramBlurAnimator;
+
+    private static boolean drgramGlassEnter() {
+        return android.os.Build.VERSION.SDK_INT >= 31
+            && SharedConfig.getDevicePerformanceClass() != SharedConfig.PERFORMANCE_CLASS_LOW
+            && (org.telegram.messenger.DrGramThemeInstaller.isLoveMode() || org.telegram.messenger.DrGramThemeInstaller.isGoldMode());
+    }
+
+    private static void drgramApplyEnterBlur(View view, float radius) {
+        try {
+            if (android.os.Build.VERSION.SDK_INT >= 31) {
+                if (radius <= 0.5f) {
+                    view.setRenderEffect(null);
+                } else {
+                    view.setRenderEffect(android.graphics.RenderEffect.createBlurEffect(radius, radius, android.graphics.Shader.TileMode.CLAMP));
+                }
+            }
+        } catch (Throwable ignore) {
+            // RenderEffect unavailable/failed — plain fade is the graceful fallback
+        }
+    }
+
+    private static void drgramClearEnterBlur(View view) {
+        if (drgramBlurAnimator != null) {
+            drgramBlurAnimator.cancel();
+            drgramBlurAnimator = null;
+        }
+        drgramApplyEnterBlur(view, 0);
+    }
+
+    //endregion
 
     public void animateAddImpl(final RecyclerView.ViewHolder holder, int addedItemsHeight) {
         final View view = holder.itemView;
@@ -348,6 +387,22 @@ public class ChatListItemAnimator extends DefaultItemAnimator {
         ChatMessageCell chatMessageCell = holder.itemView instanceof ChatMessageCell ? (ChatMessageCell) holder.itemView : null;
         if (!(chatMessageCell != null && chatMessageCell.getTransitionParams().ignoreAlpha)) {
             holder.itemView.setAlpha(1);
+        }
+        // DrGram Fix 38: animate the glass blur out — 16px frost -> crisp
+        final boolean drgramHasBlur = chatMessageCell != null && drgramGlassEnter()
+            && !(activity != null && activity.animatingMessageObjects.contains(chatMessageCell.getMessageObject()));
+        if (drgramHasBlur) {
+            if (drgramBlurAnimator != null) {
+                drgramBlurAnimator.cancel();
+            }
+            drgramBlurAnimator = android.animation.ValueAnimator.ofFloat(16f, 0f);
+            drgramBlurAnimator.setDuration(getMoveDuration());
+            drgramBlurAnimator.setInterpolator(translationInterpolator);
+            drgramBlurAnimator.addUpdateListener(a -> {
+                float r = (float) a.getAnimatedValue();
+                drgramApplyEnterBlur(view, r);
+            });
+            drgramBlurAnimator.start();
         }
         if (activity != null && chatMessageCell != null && activity.animatingMessageObjects.contains(chatMessageCell.getMessageObject())) {
             activity.animatingMessageObjects.remove(chatMessageCell.getMessageObject());
@@ -380,6 +435,8 @@ public class ChatListItemAnimator extends DefaultItemAnimator {
                         if (view instanceof ChatMessageCell) {
                             ((ChatMessageCell) view).getTransitionParams().messageEntering = false;
                         }
+                        // DrGram Fix 38: never leave frost on a cancelled cell
+                        drgramClearEnterBlur(view);
                     }
 
                     @Override
@@ -387,6 +444,8 @@ public class ChatListItemAnimator extends DefaultItemAnimator {
                         if (view instanceof ChatMessageCell) {
                             ((ChatMessageCell) view).getTransitionParams().messageEntering = false;
                         }
+                        // DrGram Fix 38: crisp end state
+                        drgramClearEnterBlur(view);
                         animation.setListener(null);
                         if (mAddAnimations.remove(holder)) {
                             dispatchAddFinished(holder);

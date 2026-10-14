@@ -37,6 +37,7 @@ import org.telegram.tgnet.SerializedData;
 import org.telegram.tgnet.TLRPC;
 import org.telegram.ui.ActionBar.AlertDialog;
 import org.telegram.ui.ActionBar.BaseFragment;
+import org.telegram.ui.ActionBar.Theme;
 import org.telegram.ui.Components.SwipeGestureSettingsView;
 import org.telegram.ui.LaunchActivity;
 
@@ -1333,6 +1334,13 @@ public class SharedConfig {
         drgramVazirFont = !drgramVazirFont;
         ApplicationLoader.applicationContext.getSharedPreferences("mainconfig", Activity.MODE_PRIVATE)
                 .edit().putBoolean("drgramVazirFont", drgramVazirFont).apply();
+        // DrGram Fix 38: make the toggle apply LIVE — previously nothing was invalidated,
+        // so cached TextPaints kept the old font and only newly created views switched.
+        try {
+            AndroidUtilities.drgramClearTypefaceCache();
+            Theme.chat_msgTextPaint = null;
+            Theme.createCommonMessageResources();
+        } catch (Throwable ignore) {}
     }
 
     public static void toggleDrgramAutoForward() {
