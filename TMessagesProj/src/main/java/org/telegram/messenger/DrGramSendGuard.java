@@ -142,9 +142,9 @@ public class DrGramSendGuard {
             String name = FileLoader.getDocumentFileName(document);
             String body;
             if (gif) {
-                body = LocaleController.getString(R.string.DrGramGuardGifAsk);
+                body = LocaleController.getString(R.string.DrGramSgGifAsk);
             } else {
-                body = LocaleController.getString(R.string.DrGramGuardStickerAsk);
+                body = LocaleController.getString(R.string.DrGramSgStickerAsk);
             }
             label.setText(body + (name != null && name.length() > 0 && !gif ? "\n" + name : ""));
             label.setTextSize(android.util.TypedValue.COMPLEX_UNIT_DIP, 15);
@@ -154,9 +154,9 @@ public class DrGramSendGuard {
             container.addView(label, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
             new AlertDialog.Builder(ctx, resourcesProvider)
-                    .setTitle(LocaleController.getString(gif ? R.string.DrGramGuardGifTitle : R.string.DrGramGuardStickerTitle))
+                    .setTitle(LocaleController.getString(gif ? R.string.DrGramSgGifTitle : R.string.DrGramSgStickerTitle))
                     .setView(container)
-                    .setPositiveButton(LocaleController.getString(R.string.DrGramGuardSend), (d, w) -> onSend.run())
+                    .setPositiveButton(LocaleController.getString(R.string.DrGramSgSend), (d, w) -> onSend.run())
                     .setNegativeButton(LocaleController.getString(R.string.Cancel), null)
                     .create()
                     .show();

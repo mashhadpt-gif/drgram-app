@@ -444,7 +444,7 @@ public class DrGramToolsActivity extends BaseFragment {
 
     private void buildGuardSection(Context context) {
         addHeader(context, LocaleController.getString(R.string.DrGramGuardTitle),
-                LocaleController.getString(R.string.DrGramGuardHint));
+                LocaleController.getString(R.string.DrGramSgHint));
 
         guardSwitch = new Switch(context);
         guardSwitch.setChecked(DrGramOnlineGuard.isEnabled(currentAccount), false);
@@ -832,12 +832,12 @@ public class DrGramToolsActivity extends BaseFragment {
                 presentFragment(new DrGramLinkExtractorActivity())));
 
         // DrGram Fix 39: send guard — confirm before sending voice / sticker / GIF
-        addHeader(context, LocaleController.getString(R.string.DrGramGuardSection),
-                LocaleController.getString(R.string.DrGramGuardHint));
+        addHeader(context, LocaleController.getString(R.string.DrGramSgSection),
+                LocaleController.getString(R.string.DrGramSgHint));
 
         Switch guardVoiceSwitch = new Switch(context);
         guardVoiceSwitch.setChecked(org.telegram.messenger.DrGramSendGuard.voiceConfirmEnabled(), false);
-        LinearLayout guardVoiceRow = makeRow(context, LocaleController.getString(R.string.DrGramGuardVoice), guardVoiceSwitch);
+        LinearLayout guardVoiceRow = makeRow(context, LocaleController.getString(R.string.DrGramSgVoice), guardVoiceSwitch);
         guardVoiceRow.setOnClickListener(v -> {
             boolean newState = !org.telegram.messenger.DrGramSendGuard.voiceConfirmEnabled();
             org.telegram.messenger.DrGramSendGuard.setVoiceConfirmEnabled(newState);
@@ -847,7 +847,7 @@ public class DrGramToolsActivity extends BaseFragment {
 
         Switch guardStickerSwitch = new Switch(context);
         guardStickerSwitch.setChecked(org.telegram.messenger.DrGramSendGuard.stickerConfirmEnabled(), false);
-        LinearLayout guardStickerRow = makeRow(context, LocaleController.getString(R.string.DrGramGuardSticker), guardStickerSwitch);
+        LinearLayout guardStickerRow = makeRow(context, LocaleController.getString(R.string.DrGramSgSticker), guardStickerSwitch);
         guardStickerRow.setOnClickListener(v -> {
             boolean newState = !org.telegram.messenger.DrGramSendGuard.stickerConfirmEnabled();
             org.telegram.messenger.DrGramSendGuard.setStickerConfirmEnabled(newState);
@@ -857,7 +857,7 @@ public class DrGramToolsActivity extends BaseFragment {
 
         Switch guardGifSwitch = new Switch(context);
         guardGifSwitch.setChecked(org.telegram.messenger.DrGramSendGuard.gifConfirmEnabled(), false);
-        LinearLayout guardGifRow = makeRow(context, LocaleController.getString(R.string.DrGramGuardGif), guardGifSwitch);
+        LinearLayout guardGifRow = makeRow(context, LocaleController.getString(R.string.DrGramSgGif), guardGifSwitch);
         guardGifRow.setOnClickListener(v -> {
             boolean newState = !org.telegram.messenger.DrGramSendGuard.gifConfirmEnabled();
             org.telegram.messenger.DrGramSendGuard.setGifConfirmEnabled(newState);
