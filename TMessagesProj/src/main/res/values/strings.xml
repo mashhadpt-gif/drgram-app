@@ -5848,7 +5848,7 @@
     <string name="DrGramZabanavisFailed">Could not complete — try again</string>
     <string name="DrGramSgSend">Send</string>
     <string name="DrGramSgSection">Confirm before sending</string>
-    <string name="DrGramSgHint">Voice, stickers and GIFs ask for your confirmation before anything leaves the chat</string>
+    <string name="DrGramSgHintSend">Voice, stickers and GIFs ask for your confirmation before anything leaves the chat</string>
     <string name="DrGramSgVoice">Confirm voice messages</string>
     <string name="DrGramSgVoiceInfo">After lifting the record button the take is played back so you can listen before confirming</string>
     <string name="DrGramSgSticker">Confirm stickers</string>
@@ -11364,7 +11364,7 @@
     <string name="DrGramVaultUnhideText">“%1$s” will appear in the chat list again.</string>
     <string name="DrGramVaultUnhideYes">Return</string>
     <string name="DrGramGuardTitle">LuxGram Online Guard</string>
-    <string name="DrGramSgHint">Notifies you when a chosen contact comes online.</string>
+    <string name="DrGramGuardHint">Notifies you when a chosen contact comes online.</string>
     <string name="DrGramGuardEnable">Online guard</string>
     <string name="DrGramGuardAdd">Add contact to guard</string>
     <string name="DrGramGuardUnknownUser">Contact</string>

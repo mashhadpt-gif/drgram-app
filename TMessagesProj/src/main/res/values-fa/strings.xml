@@ -331,7 +331,7 @@
     <string name="DrGramZabanavisFailed">انجام نشد — دوباره تلاش کن</string>
     <string name="DrGramSgSend">ارسال</string>
     <string name="DrGramSgSection">تایید قبل از ارسال</string>
-    <string name="DrGramSgHint">قبل از فرستادن ویس، استیکر و گیف ازت تایید می‌گیریم تا چیزی اشتباهی فرستاده نشه</string>
+    <string name="DrGramSgHintSend">قبل از فرستادن ویس، استیکر و گیف ازت تایید می‌گیریم تا چیزی اشتباهی فرستاده نشه</string>
     <string name="DrGramSgVoice">تایید ارسال ویس</string>
     <string name="DrGramSgVoiceInfo">بعد از رها کردن دکمه ضبط، ویس پخش می‌شه تا بشنوی و بعد تایید کنی</string>
     <string name="DrGramSgSticker">تایید ارسال استیکر</string>
@@ -378,7 +378,7 @@
     <string name="DrGramVaultUnhideText">«%1$s» دوباره در لیست چت‌ها ظاهر می‌شود.</string>
     <string name="DrGramVaultUnhideYes">بازگرداندن</string>
     <string name="DrGramGuardTitle">نگهبان آنلاین</string>
-    <string name="DrGramSgHint">وقتی مخاطب منتخبت آنلاین شود، خبرت می‌کند.</string>
+    <string name="DrGramGuardHint">وقتی مخاطب منتخبت آنلاین شود، خبرت می‌کند.</string>
     <string name="DrGramGuardEnable">نگهبان آنلاین</string>
     <string name="DrGramGuardAdd">افزودن مخاطب به نگهبان</string>
     <string name="DrGramGuardUnknownUser">مخاطب</string>

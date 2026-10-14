@@ -444,7 +444,7 @@ public class DrGramToolsActivity extends BaseFragment {
 
     private void buildGuardSection(Context context) {
         addHeader(context, LocaleController.getString(R.string.DrGramGuardTitle),
-                LocaleController.getString(R.string.DrGramSgHint));
+                LocaleController.getString(R.string.DrGramGuardHint));
 
         guardSwitch = new Switch(context);
         guardSwitch.setChecked(DrGramOnlineGuard.isEnabled(currentAccount), false);
@@ -833,7 +833,7 @@ public class DrGramToolsActivity extends BaseFragment {
 
         // DrGram Fix 39: send guard — confirm before sending voice / sticker / GIF
         addHeader(context, LocaleController.getString(R.string.DrGramSgSection),
-                LocaleController.getString(R.string.DrGramSgHint));
+                LocaleController.getString(R.string.DrGramSgHintSend));
 
         Switch guardVoiceSwitch = new Switch(context);
         guardVoiceSwitch.setChecked(org.telegram.messenger.DrGramSendGuard.voiceConfirmEnabled(), false);
