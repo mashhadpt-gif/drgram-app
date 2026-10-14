@@ -2287,8 +2287,8 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
     private static void drgramUploadBeauty(CameraSessionWrapper session,
             int noseHandle, int teethHandle, int fxHandle, int faceCountHandle,
             int facesHandle, int nosesHandle, int mouthsHandle) {
-        GLES20.glUniform1f(noseHandle, org.telegram.messenger.DrGramMedia.beautifyNose());
-        GLES20.glUniform1f(teethHandle, org.telegram.messenger.DrGramMedia.beautifyTeeth());
+        GLES20.glUniform1f(noseHandle, org.telegram.messenger.DrGramMedia.beautifyNoseUniform());
+        GLES20.glUniform1f(teethHandle, org.telegram.messenger.DrGramMedia.beautifyTeethUniform());
         GLES20.glUniform1f(fxHandle, org.telegram.messenger.DrGramMedia.cameraFx());
         android.hardware.Camera.Face[] faces = null;
         try {

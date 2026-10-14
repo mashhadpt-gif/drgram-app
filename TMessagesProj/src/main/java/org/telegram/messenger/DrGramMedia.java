@@ -103,7 +103,7 @@ public class DrGramMedia {
     }
 
     public static void setBeautifyStrength(float value) {
-        prefs().edit().putFloat("camera_beautify_strength", value).apply();
+        prefs().edit().putFloat("camera_beautify_strength", clampBeauty(value)).apply();
     }
 
     /** The shader uniform value actually fed to the camera pipeline (0 = off). */
@@ -126,7 +126,11 @@ public class DrGramMedia {
     }
 
     public static void setBeautifyNose(float value) {
-        prefs().edit().putFloat("camera_beautify_nose", value).apply();
+        prefs().edit().putFloat("camera_beautify_nose", clampBeauty(value)).apply();
+    }
+
+    public static float beautifyNoseUniform() {
+        return isBeautifyEnabled() ? beautifyNose() : 0f;
     }
 
     /** Teeth whitening intensity 0..1. */
@@ -142,7 +146,18 @@ public class DrGramMedia {
     }
 
     public static void setBeautifyTeeth(float value) {
-        prefs().edit().putFloat("camera_beautify_teeth", value).apply();
+        prefs().edit().putFloat("camera_beautify_teeth", clampBeauty(value)).apply();
+    }
+
+    public static float beautifyTeethUniform() {
+        return isBeautifyEnabled() ? beautifyTeeth() : 0f;
+    }
+
+    private static float clampBeauty(float value) {
+        if (Float.isNaN(value) || Float.isInfinite(value)) {
+            return 0f;
+        }
+        return Math.max(0f, Math.min(1f, value));
     }
 
     /** Selected camera FX id (0 = none; 1..12 = effect pack). */
@@ -159,9 +174,41 @@ public class DrGramMedia {
         prefs().edit().putInt("camera_fx", id).apply();
     }
 
+    /** Save the current camera look as the user's single custom preset. */
+    public static void saveBeautyPreset() {
+        prefs().edit()
+                .putBoolean("preset_enabled", isBeautifyEnabled())
+                .putFloat("preset_strength", beautifyStrength())
+                .putFloat("preset_nose", beautifyNose())
+                .putFloat("preset_teeth", beautifyTeeth())
+                .putInt("preset_fx", cameraFx())
+                .apply();
+    }
+
+    /** Apply the user's saved look. Returns false until a preset has been saved. */
+    public static boolean applyBeautyPreset() {
+        if (!prefs().getBoolean("preset_saved", false)) {
+            return false;
+        }
+        prefs().edit()
+                .putBoolean("camera_beautify", prefs().getBoolean("preset_enabled", true))
+                .putFloat("camera_beautify_strength", clampBeauty(prefs().getFloat("preset_strength", 0.55f)))
+                .putFloat("camera_beautify_nose", clampBeauty(prefs().getFloat("preset_nose", 0.5f)))
+                .putFloat("camera_beautify_teeth", clampBeauty(prefs().getFloat("preset_teeth", 0.6f)))
+                .putInt("camera_fx", Math.max(0, Math.min(12, prefs().getInt("preset_fx", 0))))
+                .apply();
+        return true;
+    }
+
+    public static void saveCurrentBeautyPreset() {
+        saveBeautyPreset();
+        prefs().edit().putBoolean("preset_saved", true).apply();
+    }
+
     /** True when any camera processing is active (drives face detection startup). */
     public static boolean cameraBeautyActive() {
-        return beautifyUniform() > 0.001f || beautifyNose() > 0.001f || beautifyTeeth() > 0.001f;
+        return isBeautifyEnabled() && (beautifyUniform() > 0.001f
+                || beautifyNose() > 0.001f || beautifyTeeth() > 0.001f);
     }
 
     public static void setStoryGradientEnabled(boolean value) {

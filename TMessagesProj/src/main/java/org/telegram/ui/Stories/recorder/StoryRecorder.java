@@ -3838,6 +3838,117 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
     private android.widget.HorizontalScrollView fxStrip;
     private final java.util.ArrayList<TextView> fxChips = new java.util.ArrayList<>();
 
+    /**
+     * Camera preview beauty controls. Values are consumed by CameraView's
+     * shader for immediate preview feedback. The preview effect must not be
+     * confused with proof that every recording/stream encoder uses the shader.
+     */
+    private interface BeautyValueListener {
+        void onValue(float value);
+    }
+
+    private void showBeautyControls(Context context) {
+        LinearLayout panel = new LinearLayout(context);
+        panel.setOrientation(LinearLayout.VERTICAL);
+        panel.setPadding(AndroidUtilities.dp(20), AndroidUtilities.dp(8), AndroidUtilities.dp(20), AndroidUtilities.dp(4));
+
+        android.widget.CheckBox enabled = new android.widget.CheckBox(context);
+        enabled.setText("زیباسازی زنده چهره");
+        enabled.setTextColor(0xFFFFFFFF);
+        enabled.setButtonTintList(android.content.res.ColorStateList.valueOf(0xFFF5C242));
+        enabled.setChecked(org.telegram.messenger.DrGramMedia.isBeautifyEnabled());
+        panel.addView(enabled, new LinearLayout.LayoutParams(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+        enabled.setOnCheckedChangeListener((button, checked) -> org.telegram.messenger.DrGramMedia.setBeautifyEnabled(checked));
+
+        java.util.ArrayList<android.widget.SeekBar> beautySliders = new java.util.ArrayList<>();
+        beautySliders.add(addBeautySlider(context, panel, "صافی طبیعی پوست", org.telegram.messenger.DrGramMedia.beautifyStrength(),
+                org.telegram.messenger.DrGramMedia::setBeautifyStrength));
+        beautySliders.add(addBeautySlider(context, panel, "فرم‌دهی ملایم بینی", org.telegram.messenger.DrGramMedia.beautifyNose(),
+                org.telegram.messenger.DrGramMedia::setBeautifyNose));
+        beautySliders.add(addBeautySlider(context, panel, "روشنایی دندان", org.telegram.messenger.DrGramMedia.beautifyTeeth(),
+                org.telegram.messenger.DrGramMedia::setBeautifyTeeth));
+
+        TextView savePreset = new TextView(context);
+        savePreset.setText("☆ ذخیره این ترکیب به‌عنوان فیلتر دلخواه");
+        savePreset.setTextSize(14);
+        savePreset.setGravity(Gravity.CENTER);
+        savePreset.setTextColor(0xFFFFFFFF);
+        savePreset.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(10), AndroidUtilities.dp(12), AndroidUtilities.dp(10));
+        GradientDrawable presetBg = new GradientDrawable();
+        presetBg.setColor(0xFF5B3A85);
+        presetBg.setCornerRadius(AndroidUtilities.dp(12));
+        savePreset.setBackground(presetBg);
+        savePreset.setOnClickListener(v -> {
+            org.telegram.messenger.DrGramMedia.saveCurrentBeautyPreset();
+            Bulletin.makeText(this, "فیلتر دلخواه ذخیره شد", Bulletin.LENGTH_SHORT).show();
+        });
+        panel.addView(savePreset, new LinearLayout.LayoutParams(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+        TextView applyPreset = new TextView(context);
+        applyPreset.setText("↻ اعمال فیلتر ذخیره‌شده");
+        applyPreset.setTextSize(14);
+        applyPreset.setGravity(Gravity.CENTER);
+        applyPreset.setTextColor(0xFFFFFFFF);
+        applyPreset.setPadding(AndroidUtilities.dp(12), AndroidUtilities.dp(10), AndroidUtilities.dp(12), AndroidUtilities.dp(10));
+        applyPreset.setOnClickListener(v -> {
+            if (org.telegram.messenger.DrGramMedia.applyBeautyPreset()) {
+                enabled.setChecked(org.telegram.messenger.DrGramMedia.isBeautifyEnabled());
+                beautySliders.get(0).setProgress(Math.round(org.telegram.messenger.DrGramMedia.beautifyStrength() * 100f));
+                beautySliders.get(1).setProgress(Math.round(org.telegram.messenger.DrGramMedia.beautifyNose() * 100f));
+                beautySliders.get(2).setProgress(Math.round(org.telegram.messenger.DrGramMedia.beautifyTeeth() * 100f));
+                updateFxStripSelection();
+                Bulletin.makeText(this, "فیلتر دلخواه اعمال شد", Bulletin.LENGTH_SHORT).show();
+            } else {
+                Bulletin.makeText(this, "ابتدا یک فیلتر دلخواه ذخیره کن", Bulletin.LENGTH_SHORT).show();
+            }
+        });
+        panel.addView(applyPreset, new LinearLayout.LayoutParams(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+        new AlertDialog.Builder(context)
+                .setTitle("زیباسازی چهره")
+                .setMessage("تغییرات را در پیش‌نمایش زنده ببین؛ برای نتیجه طبیعی، شدت‌ها را ملایم نگه دار.")
+                .setView(panel)
+                .setPositiveButton("بستن", null)
+                .setNeutralButton("بازگشت به حالت اصلی", (dialog, which) -> {
+                    org.telegram.messenger.DrGramMedia.setBeautifyEnabled(false);
+                    org.telegram.messenger.DrGramMedia.setBeautifyStrength(0f);
+                    org.telegram.messenger.DrGramMedia.setBeautifyNose(0f);
+                    org.telegram.messenger.DrGramMedia.setBeautifyTeeth(0f);
+                    org.telegram.messenger.DrGramMedia.setCameraFx(0);
+                    updateFxStripSelection();
+                })
+                .show();
+    }
+
+    private android.widget.SeekBar addBeautySlider(Context context, LinearLayout panel, String label, float value,
+                                 BeautyValueListener onValueChanged) {
+        TextView title = new TextView(context);
+        title.setText(label);
+        title.setTextSize(14);
+        title.setTypeface(AndroidUtilities.bold());
+        title.setTextColor(0xFFFFFFFF);
+        title.setPadding(0, AndroidUtilities.dp(8), 0, 0);
+        panel.addView(title, new LinearLayout.LayoutParams(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
+
+        android.widget.SeekBar slider = new android.widget.SeekBar(context);
+        slider.setMax(100);
+        slider.setProgress(Math.max(0, Math.min(100, Math.round(value * 100f))));
+        slider.setProgressTintList(android.content.res.ColorStateList.valueOf(0xFFF5C242));
+        slider.setThumbTintList(android.content.res.ColorStateList.valueOf(0xFFFFFFFF));
+        panel.addView(slider, new LinearLayout.LayoutParams(LayoutHelper.MATCH_PARENT, AndroidUtilities.dp(36)));
+        slider.setOnSeekBarChangeListener(new android.widget.SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(android.widget.SeekBar seekBar, int progress, boolean fromUser) {
+                if (fromUser) {
+                    onValueChanged.onValue(progress / 100f);
+                }
+            }
+            @Override public void onStartTrackingTouch(android.widget.SeekBar seekBar) {}
+            @Override public void onStopTrackingTouch(android.widget.SeekBar seekBar) {}
+        });
+        return slider;
+    }
+
     private android.widget.HorizontalScrollView buildFxStrip(Context context) {
         android.widget.HorizontalScrollView scroll = new android.widget.HorizontalScrollView(context);
         scroll.setHorizontalScrollBarEnabled(false);
@@ -3846,6 +3957,22 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setPadding(AndroidUtilities.dp(4), AndroidUtilities.dp(2), AndroidUtilities.dp(8), AndroidUtilities.dp(2));
         scroll.addView(row, LayoutHelper.createScroll(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT));
+
+        TextView beautyChip = new TextView(context);
+        beautyChip.setText("✨ زیبایی");
+        beautyChip.setTextSize(13);
+        beautyChip.setTypeface(AndroidUtilities.bold());
+        beautyChip.setPadding(AndroidUtilities.dp(14), 0, AndroidUtilities.dp(14), 0);
+        beautyChip.setGravity(Gravity.CENTER);
+        beautyChip.setTextColor(0xFFFFFFFF);
+        GradientDrawable beautyBg = new GradientDrawable();
+        beautyBg.setCornerRadius(AndroidUtilities.dp(18));
+        beautyBg.setColor(0xCC9B5DE5);
+        beautyChip.setBackground(beautyBg);
+        beautyChip.setOnClickListener(v -> showBeautyControls(context));
+        LinearLayout.LayoutParams beautyLp = new LinearLayout.LayoutParams(LayoutHelper.WRAP_CONTENT, AndroidUtilities.dp(32));
+        beautyLp.rightMargin = AndroidUtilities.dp(8);
+        row.addView(beautyChip, beautyLp);
 
         int current = org.telegram.messenger.DrGramMedia.cameraFx();
         for (int k = 0; k < FX_IDS.length; k++) {
@@ -3900,7 +4027,7 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
         if (fxStrip == null) {
             return;
         }
-        boolean show = currentPage == PAGE_CAMERA && mode != MODE_LIVE && (collageListView == null || !collageListView.isVisible());
+        boolean show = currentPage == PAGE_CAMERA && (collageListView == null || !collageListView.isVisible());
         float target = show ? 1f : 0f;
         fxStrip.animate().alpha(target).setDuration(180).withEndAction(() -> {
             if (fxStrip != null) {
