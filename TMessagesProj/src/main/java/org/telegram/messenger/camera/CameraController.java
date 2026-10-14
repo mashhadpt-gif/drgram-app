@@ -420,19 +420,40 @@ public class CameraController implements MediaRecorder.OnInfoListener {
                         BitmapFactory.Options options = new BitmapFactory.Options();
                         options.inJustDecodeBounds = true;
                         BitmapFactory.decodeByteArray(data, 0, data.length, options);
-                        //                    float scaleFactor = Math.max((float) options.outWidth / AndroidUtilities.getPhotoSize(), (float) options.outHeight / AndroidUtilities.getPhotoSize());
-                        //                    if (scaleFactor < 1) {
-                        //                        scaleFactor = 1;
-                        //                    }
+                        // DrGram Fix 41: bound the decode for the beautify pass
+                        // (bounded memory; output stays photo-grade)
+                        if (options.outWidth > 0 && options.outHeight > 0
+                                && Math.max(options.outWidth, options.outHeight) > 2560
+                                && org.telegram.messenger.DrGramMedia.cameraBeautyActive()) {
+                            options.inSampleSize = Math.max(2, Math.max(options.outWidth, options.outHeight) / 2560);
+                            while (options.outWidth / options.inSampleSize > 2560 || options.outHeight / options.inSampleSize > 2560) {
+                                options.inSampleSize *= 2;
+                            }
+                        }
                         options.inJustDecodeBounds = false;
-                        //    options.inSampleSize = (int) scaleFactor;
                         options.inPurgeable = true;
                         bitmap = BitmapFactory.decodeByteArray(data, 0, data.length, options);
                     } catch (Throwable e) {
                         FileLog.e(e);
                     }
+                    boolean drgramBeautified = false; // DrGram Fix 41
                     try {
                         orientation = getOrientation(data);
+                        // DrGram Fix 41: photo beautify (skin / nose / teeth)
+                        if (bitmap != null && org.telegram.messenger.DrGramMedia.cameraBeautyActive()) {
+                            try {
+                                Camera.Face[] faces = session.drgramFaces;
+                                bitmap = org.telegram.messenger.DrGramPhotoBeautify.process(
+                                        bitmap,
+                                        faces,
+                                        org.telegram.messenger.DrGramMedia.beautifyUniform(),
+                                        org.telegram.messenger.DrGramMedia.beautifyNose(),
+                                        org.telegram.messenger.DrGramMedia.beautifyTeeth());
+                                drgramBeautified = true;
+                            } catch (Throwable e) {
+                                FileLog.e(e);
+                            }
+                        }
                         if (info.frontCamera != 0 && flipFront) {
                             try {
                                 Matrix matrix = new Matrix();
@@ -462,7 +483,11 @@ public class CameraController implements MediaRecorder.OnInfoListener {
                             }
                         }
                         FileOutputStream outputStream = new FileOutputStream(path);
-                        outputStream.write(data);
+                        if (drgramBeautified && bitmap != null) { // DrGram Fix 41: save the processed frame
+                            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, outputStream);
+                        } else {
+                            outputStream.write(data);
+                        }
                         outputStream.flush();
                         outputStream.getFD().sync();
                         outputStream.close();
@@ -576,6 +601,7 @@ public class CameraController implements MediaRecorder.OnInfoListener {
                 }
                 camera.setPreviewTexture(texture);
                 camera.startPreview();
+                drgramStartFaceDetection(camera, session, params); // DrGram Fix 41
                 if (callback != null) {
                     AndroidUtilities.runOnUIThread(callback);
                 }
@@ -628,6 +654,7 @@ public class CameraController implements MediaRecorder.OnInfoListener {
                 session.configurePhotoCamera();
                 camera.setPreviewTexture(texture);
                 camera.startPreview();
+                drgramStartFaceDetection(camera, session, params); // DrGram Fix 41
                 if (callback != null) {
                     AndroidUtilities.runOnUIThread(callback);
                 }
@@ -639,6 +666,26 @@ public class CameraController implements MediaRecorder.OnInfoListener {
                 FileLog.e(e);
             }
         });
+    }
+
+    /** DrGram Fix 41: start Camera1 face detection when beauty processing is on. */
+    private void drgramStartFaceDetection(Camera camera, CameraSession session, Camera.Parameters params) {
+        try {
+            if (!org.telegram.messenger.DrGramMedia.cameraBeautyActive()) {
+                return;
+            }
+            int maxFaces = params.getMaxNumDetectedFaces();
+            if (maxFaces <= 0) {
+                return;
+            }
+            camera.setFaceDetectionListener(session.drgramFaceListener);
+            camera.startFaceDetection();
+            if (BuildVars.LOGS_ENABLED) {
+                FileLog.d("DrGram face detection started, maxFaces = " + maxFaces);
+            }
+        } catch (Throwable t) {
+            FileLog.e(t);
+        }
     }
 
     public void recordVideo(final Object session, final File path, boolean mirror, final VideoTakeCallback callback, final Runnable onVideoStartRecord, ICameraView cameraView) {

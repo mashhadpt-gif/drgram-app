@@ -1264,6 +1264,8 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
         private int scaleHandle;
         private int blurHandle;
         private int beautifyHandle; // DrGram Fix 40
+        // DrGram Fix 41: beauty suite + camera FX uniforms
+        private int fxNoseHandle, fxTeethHandle, fxFxHandle, fxFaceCountHandle, fxFacesHandle, fxNosesHandle, fxMouthsHandle;
         private int alphaHandle;
         private int crossfadeHandle;
         private int shapeFromHandle;
@@ -1408,6 +1410,13 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
                     scaleHandle = GLES20.glGetUniformLocation(drawProgram, "scale");
                     blurHandle = GLES20.glGetUniformLocation(drawProgram, "blur");
                     beautifyHandle = GLES20.glGetUniformLocation(drawProgram, "beautify"); // DrGram Fix 40
+                    fxNoseHandle = GLES20.glGetUniformLocation(drawProgram, "fxNose"); // DrGram Fix 41
+                    fxTeethHandle = GLES20.glGetUniformLocation(drawProgram, "fxTeeth"); // DrGram Fix 41
+                    fxFxHandle = GLES20.glGetUniformLocation(drawProgram, "fxFx"); // DrGram Fix 41
+                    fxFaceCountHandle = GLES20.glGetUniformLocation(drawProgram, "fxFaceCount"); // DrGram Fix 41
+                    fxFacesHandle = GLES20.glGetUniformLocation(drawProgram, "fxFaces"); // DrGram Fix 41
+                    fxNosesHandle = GLES20.glGetUniformLocation(drawProgram, "fxNoses"); // DrGram Fix 41
+                    fxMouthsHandle = GLES20.glGetUniformLocation(drawProgram, "fxMouths"); // DrGram Fix 41
                     alphaHandle = GLES20.glGetUniformLocation(drawProgram, "alpha");
                     crossfadeHandle = GLES20.glGetUniformLocation(drawProgram, "crossfade");
                     shapeFromHandle = GLES20.glGetUniformLocation(drawProgram, "shapeFrom");
@@ -1788,6 +1797,8 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
                 }
                 GLES20.glUniform1f(blurHandle, i == 0 ? camera1Blur : 0f);
                 GLES20.glUniform1f(beautifyHandle, org.telegram.messenger.DrGramMedia.beautifyUniform()); // DrGram Fix 40
+                drgramUploadBeauty(currentSession[i], // DrGram Fix 41
+                        fxNoseHandle, fxTeethHandle, fxFxHandle, fxFaceCountHandle, fxFacesHandle, fxNosesHandle, fxMouthsHandle);
                 if (i == 1) {
                     GLES20.glUniform1f(alphaHandle, 1);
                     if (a < 0) {
@@ -2266,6 +2277,57 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
 
     }
 
+    /**
+     * DrGram Fix 41: uploads the beauty-suite uniforms for the current frame.
+     * Face rectangles come from Camera1 face detection (sensor space
+     * -1000..1000) and are normalised to the shader's uv space. Everything is
+     * static so both the preview program and the VideoRecorder program can
+     * share the exact same mapping.
+     */
+    private static void drgramUploadBeauty(CameraSessionWrapper session,
+            int noseHandle, int teethHandle, int fxHandle, int faceCountHandle,
+            int facesHandle, int nosesHandle, int mouthsHandle) {
+        GLES20.glUniform1f(noseHandle, org.telegram.messenger.DrGramMedia.beautifyNose());
+        GLES20.glUniform1f(teethHandle, org.telegram.messenger.DrGramMedia.beautifyTeeth());
+        GLES20.glUniform1f(fxHandle, org.telegram.messenger.DrGramMedia.cameraFx());
+        android.hardware.Camera.Face[] faces = null;
+        try {
+            if (session != null && session.camera1Session != null) {
+                faces = session.camera1Session.drgramFaces;
+            }
+        } catch (Throwable ignore) {
+        }
+        float[] faceData = new float[8];
+        float[] noseData = new float[4];
+        float[] mouthData = new float[4];
+        int count = 0;
+        if (faces != null) {
+            for (int i = 0; i < faces.length && count < 2; i++) {
+                android.hardware.Camera.Face f = faces[i];
+                if (f == null || f.rect == null) {
+                    continue;
+                }
+                float cx = (f.rect.centerX() + 1000f) / 2000f;
+                float cy = (f.rect.centerY() + 1000f) / 2000f;
+                float hw = Math.max(0.03f, f.rect.width() / 2000f);
+                float hh = Math.max(0.03f, f.rect.height() / 2000f);
+                faceData[count * 4] = cx;
+                faceData[count * 4 + 1] = cy;
+                faceData[count * 4 + 2] = hw;
+                faceData[count * 4 + 3] = hh;
+                noseData[count * 2] = cx;
+                noseData[count * 2 + 1] = cy + hh * 0.08f;
+                mouthData[count * 2] = cx;
+                mouthData[count * 2 + 1] = cy + hh * 0.55f;
+                count++;
+            }
+        }
+        GLES20.glUniform1f(faceCountHandle, count);
+        GLES20.glUniform4fv(facesHandle, 2, faceData, 0);
+        GLES20.glUniform2fv(nosesHandle, 2, noseData, 0);
+        GLES20.glUniform2fv(mouthsHandle, 2, mouthData, 0);
+    }
+
     private int loadShader(int type, String shaderCode) {
         int shader = GLES20.glCreateShader(type);
         GLES20.glShaderSource(shader, shaderCode);
@@ -2421,6 +2483,8 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
         private int scaleHandle;
         private int blurHandle;
         private int beautifyHandle; // DrGram Fix 40
+        // DrGram Fix 41: beauty suite + camera FX uniforms (recorder)
+        private int fxNoseHandle, fxTeethHandle, fxFxHandle, fxFaceCountHandle, fxFacesHandle, fxNosesHandle, fxMouthsHandle;
         private int zeroTimeStamps;
         private Integer lastCameraId = 0;
 
@@ -2798,6 +2862,8 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
 
                 GLES20.glUniform1f(blurHandle, 0);
                 GLES20.glUniform1f(beautifyHandle, org.telegram.messenger.DrGramMedia.beautifyUniform()); // DrGram Fix 40
+                drgramUploadBeauty(i == 0 ? cameraSession[i] : null, // DrGram Fix 41
+                        fxNoseHandle, fxTeethHandle, fxFxHandle, fxFaceCountHandle, fxFacesHandle, fxNosesHandle, fxMouthsHandle);
                 Size size = previewSize[i];
                 if (size != null && cameraSession[i] != null) {
                     int angle = cameraSession[i].getWorldAngle();
@@ -3164,6 +3230,13 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
                     scaleHandle = GLES20.glGetUniformLocation(drawProgram, "scale");
                     blurHandle = GLES20.glGetUniformLocation(drawProgram, "blur");
                     beautifyHandle = GLES20.glGetUniformLocation(drawProgram, "beautify"); // DrGram Fix 40
+                    fxNoseHandle = GLES20.glGetUniformLocation(drawProgram, "fxNose"); // DrGram Fix 41
+                    fxTeethHandle = GLES20.glGetUniformLocation(drawProgram, "fxTeeth"); // DrGram Fix 41
+                    fxFxHandle = GLES20.glGetUniformLocation(drawProgram, "fxFx"); // DrGram Fix 41
+                    fxFaceCountHandle = GLES20.glGetUniformLocation(drawProgram, "fxFaceCount"); // DrGram Fix 41
+                    fxFacesHandle = GLES20.glGetUniformLocation(drawProgram, "fxFaces"); // DrGram Fix 41
+                    fxNosesHandle = GLES20.glGetUniformLocation(drawProgram, "fxNoses"); // DrGram Fix 41
+                    fxMouthsHandle = GLES20.glGetUniformLocation(drawProgram, "fxMouths"); // DrGram Fix 41
                     alphaHandle = GLES20.glGetUniformLocation(drawProgram, "alpha");
                     crossfadeHandle = GLES20.glGetUniformLocation(drawProgram, "crossfade");
                     shapeFromHandle = GLES20.glGetUniformLocation(drawProgram, "shapeFrom");

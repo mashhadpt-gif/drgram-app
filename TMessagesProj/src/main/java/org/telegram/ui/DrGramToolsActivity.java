@@ -746,6 +746,27 @@ public class DrGramToolsActivity extends BaseFragment {
         // DrGram Fix 37: send-side voice changer — the recipient hears it
         addSectionRow(makeActionRow(context, voiceChangeRowTitle(), v -> showVoiceChangeDialog(), "media_voice_change"));
 
+        // DrGram Fix 41: voice change intensity
+        addSectionRow(makeActionRow(context, voiceIntensityRowTitle(), v -> {
+            if (getParentActivity() == null) {
+                return;
+            }
+            int intensity = DrGramVoiceChanger.getIntensity();
+            String[] names = {
+                    LocaleController.getString(R.string.DrGramBeautifyLight) + (intensity == 0 ? "  \u2714" : ""),
+                    LocaleController.getString(R.string.DrGramBeautifyMedium) + (intensity == 1 ? "  \u2714" : ""),
+                    LocaleController.getString(R.string.DrGramBeautifyStrong) + (intensity == 2 ? "  \u2714" : "")
+            };
+            new AlertDialog.Builder(getParentActivity(), getResourceProvider())
+                    .setTitle(LocaleController.getString(R.string.DrGramVoiceIntensity))
+                    .setItems(names, (dialog, which) -> {
+                        DrGramVoiceChanger.setIntensity(which);
+                        refreshDynamicRows();
+                    })
+                    .setNegativeButton(LocaleController.getString(R.string.Cancel), null)
+                    .show();
+        }, "media_voice_intensity"));
+
         // DrGram Fix 38: echo is now a room-character picker (استودیو/غار/صحنه)
         Switch echoSwitch = new Switch(context);
         echoSwitch.setChecked(DrGramVoiceChanger.getEchoStyle() != DrGramVoiceChanger.ECHO_OFF, false);
@@ -814,6 +835,34 @@ public class DrGramToolsActivity extends BaseFragment {
                     .show();
         });
         addSectionRow(beautifyRow);
+
+        // DrGram Fix 41: nose slimming level
+        LinearLayout noseRow = makeActionRow(context, drgramLevelTitle(LocaleController.getString(R.string.DrGramBeautifyNose),
+                org.telegram.messenger.DrGramMedia.beautifyNose()), v -> {
+            if (getParentActivity() == null) {
+                return;
+            }
+            drgramShowLevelDialog(LocaleController.getString(R.string.DrGramBeautifyNose),
+                    org.telegram.messenger.DrGramMedia.beautifyNose(), v2 -> {
+                        org.telegram.messenger.DrGramMedia.setBeautifyNose(v2);
+                        refreshDynamicRows();
+                    });
+        }, "media_beautify_nose");
+        addSectionRow(noseRow);
+
+        // DrGram Fix 41: teeth whitening level
+        LinearLayout teethRow = makeActionRow(context, drgramLevelTitle(LocaleController.getString(R.string.DrGramBeautifyTeeth),
+                org.telegram.messenger.DrGramMedia.beautifyTeeth()), v -> {
+            if (getParentActivity() == null) {
+                return;
+            }
+            drgramShowLevelDialog(LocaleController.getString(R.string.DrGramBeautifyTeeth),
+                    org.telegram.messenger.DrGramMedia.beautifyTeeth(), v2 -> {
+                        org.telegram.messenger.DrGramMedia.setBeautifyTeeth(v2);
+                        refreshDynamicRows();
+                    });
+        }, "media_beautify_teeth");
+        addSectionRow(teethRow);
 
         // DrGram Fix 38: pick your own love/gold notification chime
         boolean drgramLoveNow = org.telegram.messenger.DrGramThemeInstaller.isLoveMode();
@@ -925,6 +974,43 @@ public class DrGramToolsActivity extends BaseFragment {
                     refreshDynamicRows();
                 })
                 .setNegativeButton(LocaleController.getString(R.string.Cancel), null)
+                .show();
+    }
+
+    /** DrGram Fix 41: intensity of the gender voice change (light/medium/strong). */
+    private String voiceIntensityRowTitle() {
+        int intensity = DrGramVoiceChanger.getIntensity();
+        String[] names = {
+                LocaleController.getString(R.string.DrGramBeautifyLight),
+                LocaleController.getString(R.string.DrGramBeautifyMedium),
+                LocaleController.getString(R.string.DrGramBeautifyStrong)
+        };
+        return LocaleController.getString(R.string.DrGramVoiceIntensity) + ": "
+                + names[Math.max(0, Math.min(names.length - 1, intensity))];
+    }
+
+    /** DrGram Fix 41: shared 3-level picker title with a check mark. */
+    private String drgramLevelTitle(String base, float value) {
+        String[] names = {
+                LocaleController.getString(R.string.DrGramBeautifyLight),
+                LocaleController.getString(R.string.DrGramBeautifyMedium),
+                LocaleController.getString(R.string.DrGramBeautifyStrong)
+        };
+        int idx = value <= 0.3f + 0.01f ? 0 : (value <= 0.6f + 0.01f ? 1 : 2);
+        return base + ": " + names[idx];
+    }
+
+    /** DrGram Fix 41: shared 3-level picker (0.3 / 0.55 / 0.85). */
+    private void drgramShowLevelDialog(String title, float current, org.telegram.messenger.Utilities.Callback<Float> onPick) {
+        String[] items = {
+                LocaleController.getString(R.string.DrGramBeautifyLight) + (current <= 0.3f + 0.01f ? "  \u2714" : ""),
+                LocaleController.getString(R.string.DrGramBeautifyMedium) + (current > 0.3f + 0.01f && current <= 0.6f + 0.01f ? "  \u2714" : ""),
+                LocaleController.getString(R.string.DrGramBeautifyStrong) + (current > 0.6f + 0.01f ? "  \u2714" : "")
+        };
+        new AlertDialog.Builder(getParentActivity(), getResourceProvider())
+                .setTitle(title)
+                .setItems(items, (dialog, which) -> onPick.run(which == 0 ? 0.3f : (which == 1 ? 0.55f : 0.85f)))
+                .setNeutralButton(LocaleController.getString(R.string.DrGramVoiceOff), (dialog, which) -> onPick.run(0f))
                 .show();
     }
 

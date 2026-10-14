@@ -44,6 +44,47 @@ public class DrGramVoiceChanger {
     private static final float M2F_RATIO = 1.32f;
     private static final float F2M_RATIO = 0.76f;
 
+    // DrGram Fix 41: intensity presets — Fix 40's single ratios (1.32 / 0.76)
+    // were perceived as "nothing changed": a pure 32 % shift keeps a male
+    // voice inside the male range and a 24 % drop keeps a female voice female.
+    // Three levels + formant-tilt EQ (below) make the gender flip unmistakable.
+    public static final float[] M2F_RATIOS = {1.38f, 1.55f, 1.72f};
+    public static final float[] F2M_RATIOS = {0.72f, 0.66f, 0.60f};
+
+    public static final int INTENSITY_LIGHT = 0;
+    public static final int INTENSITY_MEDIUM = 1;
+    public static final int INTENSITY_STRONG = 2;
+
+    /** Voice-change intensity 0..2 (default STRONG so the change is audible). */
+    public static int getIntensity() {
+        try {
+            int v = prefs().getInt("voice_intensity", INTENSITY_STRONG);
+            if (v < INTENSITY_LIGHT) v = INTENSITY_LIGHT;
+            if (v > INTENSITY_STRONG) v = INTENSITY_STRONG;
+            return v;
+        } catch (Throwable t) {
+            return INTENSITY_STRONG;
+        }
+    }
+
+    public static void setIntensity(int intensity) {
+        if (intensity < INTENSITY_LIGHT || intensity > INTENSITY_STRONG) {
+            intensity = INTENSITY_STRONG;
+        }
+        prefs().edit().putInt("voice_intensity", intensity).apply();
+    }
+
+    private static float currentRatio(int mode) {
+        int i = getIntensity();
+        if (mode == MODE_M2F) {
+            return M2F_RATIOS[Math.max(0, Math.min(M2F_RATIOS.length - 1, i))];
+        }
+        if (mode == MODE_F2M) {
+            return F2M_RATIOS[Math.max(0, Math.min(F2M_RATIOS.length - 1, i))];
+        }
+        return 1.0f;
+    }
+
     private static SharedPreferences prefs() {
         return ApplicationLoader.applicationContext.getSharedPreferences("drgram_media", Context.MODE_PRIVATE);
     }
@@ -107,7 +148,7 @@ public class DrGramVoiceChanger {
                 chain = null;
                 return;
             }
-            chain = new Chain(getMode() == MODE_F2M ? F2M_RATIO : (getMode() == MODE_M2F ? M2F_RATIO : 1.0f), getEchoStyle(), sampleRate);
+            chain = new Chain(currentRatio(getMode()), getEchoStyle(), sampleRate);
         } catch (Throwable t) {
             chain = null;
             FileLog.e(t);
@@ -125,7 +166,7 @@ public class DrGramVoiceChanger {
                 callChain = null;
                 return;
             }
-            callChain = new Chain(getMode() == MODE_F2M ? F2M_RATIO : (getMode() == MODE_M2F ? M2F_RATIO : 1.0f), getEchoStyle(), sampleRate);
+            callChain = new Chain(currentRatio(getMode()), getEchoStyle(), sampleRate);
         } catch (Throwable t) {
             callChain = null;
             FileLog.e(t);
@@ -194,6 +235,19 @@ public class DrGramVoiceChanger {
         double delay;         // pointer 0 delay, kept in (0, w]
         int wpos;             // absolute write position
 
+        // DrGram Fix 41: formant-tilt one-pole filters. Male→Female gets a
+        // brightening tilt (voice-tract shortening illusion), Female→Male a
+        // chest boost + darkness. Simple x + k·(x−lp) / x − k·(x−lp) forms are
+        // unconditionally stable at any sample rate.
+        final boolean m2f, f2m;
+        float lpBright, lpDark, lpChest;
+        float aBright, aDark, aChest;
+        final float TILT_BRIGHT = 0.42f, TILT_DARK = 0.38f, CHEST = 0.30f;
+
+        private static float onePoleA(float freqHz, float sr) {
+            return (float) (1.0 - Math.exp(-2.0 * Math.PI * freqHz / sr));
+        }
+
         // echo state
         float[] d1, d2, d3;
         int p1, p2, p3;
@@ -203,6 +257,17 @@ public class DrGramVoiceChanger {
             this.ratio = ratio;
             this.echoStyle = echoStyle;
             this.sampleRate = sampleRate;
+            m2f = ratio > 1.001f;
+            f2m = ratio < 0.999f;
+            if (m2f) {
+                aBright = onePoleA(1400f, sampleRate); // tilt source band
+                aDark = 1f;
+                aChest = 1f;
+            } else if (f2m) {
+                aBright = 1f;
+                aDark = onePoleA(2600f, sampleRate);   // highs to remove
+                aChest = onePoleA(280f, sampleRate);   // chest band
+            }
             w = Math.max(256, Math.round(sampleRate * 0.040f));
             half = w / 2;
             gain = new float[w + 1];
@@ -226,6 +291,20 @@ public class DrGramVoiceChanger {
             }
         }
 
+        /** DrGram Fix 41: spectral tilt — brightens M→F, darkens + chests F→M. */
+        private float tilt(float x) {
+            if (m2f) {
+                lpBright += aBright * (x - lpBright);
+                return x + TILT_BRIGHT * (x - lpBright);
+            }
+            if (f2m) {
+                lpDark += aDark * (x - lpDark);
+                lpChest += aChest * (x - lpChest);
+                return (x - TILT_DARK * (x - lpDark)) + CHEST * (lpChest - 0.45f * x);
+            }
+            return x;
+        }
+
         int process(ByteBuffer buffer, int len) {
             int samples = len / 2;
             if (samples <= 0) {
@@ -243,6 +322,11 @@ public class DrGramVoiceChanger {
                 short[] in = new short[samples];
                 for (int i = 0; i < samples; i++) {
                     in[i] = buffer.getShort();
+                }
+                for (int i = 0; i < samples; i++) {
+                    float v = tilt(in[i]);
+                    if (v > 32767) v = 32767; else if (v < -32768) v = -32768;
+                    in[i] = (short) v;
                 }
                 applyEcho(in);
                 buffer.position(0);
@@ -271,6 +355,7 @@ public class DrGramVoiceChanger {
                 float g0 = gain[(int) d0];
                 float g1 = gain[(int) d1p];
                 float v = readLerp(d0) * g0 + readLerp(d1p) * g1;
+                v = tilt(v); // DrGram Fix 41: formant tilt
                 if (v > 32767) v = 32767; else if (v < -32768) v = -32768;
                 out[n] = (short) v;
                 delay += grow;

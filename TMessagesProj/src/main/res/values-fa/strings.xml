@@ -800,8 +800,25 @@
     <string name="DrGramSmartCityTitle">شهر آب و هوا</string>
     <string name="DrGramSmartCityHint">نام شهرت را بنویس، مثلاً تهران یا مشهد</string>
     <string name="DrGramSmartNeedArg">متن دستور را بعد از دستور بنویس، مثل «اسم گروه: لوکس‌گرام»</string>
-    <string name="DrGramBeautify">زیباسازی صورت (استوری و ویدیو)</string>
     <string name="DrGramBeautifyLight">کم</string>
     <string name="DrGramBeautifyMedium">متوسط</string>
     <string name="DrGramBeautifyStrong">زیاد</string>
+    <!-- DrGram Fix 41 -->
+    <string name="DrGramBeautifyNose">کوچک کردن بینی</string>
+    <string name="DrGramBeautifyTeeth">سفید کردن دندان‌ها</string>
+    <string name="DrGramVoiceIntensity">شدت تغییر صدا</string>
+    <string name="DrGramFxTitle">افکت‌های دوربین</string>
+    <string name="DrGramFxNone">بدون افکت</string>
+    <string name="DrGramFxSunset">🌅 غروب</string>
+    <string name="DrGramFxCool">❄️ خنک</string>
+    <string name="DrGramFxPastel">🍬 پاستل</string>
+    <string name="DrGramFxVintage">🎞 قدیمی</string>
+    <string name="DrGramFxBlossom">🌸 گلگون</string>
+    <string name="DrGramFxNoir">🌗 نوآر</string>
+    <string name="DrGramFxDream">✨ رویایی</string>
+    <string name="DrGramFxNeon">🌈 نئون</string>
+    <string name="DrGramFxGlitch">📺 گلیچ</string>
+    <string name="DrGramFxPixel">🔲 پیکسلی</string>
+    <string name="DrGramFxMirror">🪞 آینه</string>
+    <string name="DrGramFxCartoon">🎨 کارتونی</string>
 </resources>

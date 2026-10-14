@@ -41,6 +41,7 @@ import android.graphics.Rect;
 import android.graphics.RectF;
 import android.graphics.RenderNode;
 import android.graphics.Shader;
+import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
@@ -838,6 +839,10 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
         if (!isShown) {
             return;
         }
+
+        // DrGram Fix 41: story FX never leak into other camera uses
+        // (round video messages, QR scanner, …)
+        org.telegram.messenger.DrGramMedia.setCameraFx(0);
 
         if (privacySheet != null) {
             privacySheet.dismiss();
@@ -2948,6 +2953,13 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
         flashViews.add(recordControl);
         recordControl.setCollageProgress(collageLayoutView.hasLayout() ? collageLayoutView.getFilledProgress() : 0.0f, true);
 
+        // DrGram Fix 41: Instagram-style live camera FX strip (story photo,
+        // story video & live preview). The chosen effect is applied by the
+        // CameraView shader in real time, before anything is recorded.
+        fxStrip = buildFxStrip(context);
+        controlContainer.addView(fxStrip, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, 40, Gravity.BOTTOM | Gravity.FILL_HORIZONTAL, 10, 0, 10, 116));
+        updateFxStripSelection();
+
         startLiveButton = new ButtonWithCounterView(context, resourcesProvider);
         startLiveButton.setRoundRadius(24);
         startLiveButton.setColor(0xFFDA435C);
@@ -3006,6 +3018,7 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
 
             mode = newMode;
             livePeerView.setShowing(mode == MODE_LIVE, true);
+            updateFxStripVisibility(); // DrGram Fix 41
             showVideoTimer(mode == MODE_VIDEO && !collageListView.isVisible(), true);
             modeSwitcherView.switchMode(newMode);
             recordControl.startAsVideo(newMode == MODE_VIDEO);
@@ -3811,6 +3824,96 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
         setActionBarButtonVisible(flashButton, currentPage == PAGE_CAMERA && !collageListView.isVisible() && flashButtonMode != null && !inCheck(), animated);
     }
 
+    // DrGram Fix 41: Instagram-style camera FX strip =========================
+
+    private static final int[] FX_IDS = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+    private static final int[] FX_LABELS = {
+            R.string.DrGramFxNone, R.string.DrGramFxSunset, R.string.DrGramFxCool,
+            R.string.DrGramFxPastel, R.string.DrGramFxVintage, R.string.DrGramFxBlossom,
+            R.string.DrGramFxNoir, R.string.DrGramFxDream, R.string.DrGramFxNeon,
+            R.string.DrGramFxGlitch, R.string.DrGramFxPixel, R.string.DrGramFxMirror,
+            R.string.DrGramFxCartoon
+    };
+
+    private android.widget.HorizontalScrollView fxStrip;
+    private final java.util.ArrayList<TextView> fxChips = new java.util.ArrayList<>();
+
+    private android.widget.HorizontalScrollView buildFxStrip(Context context) {
+        android.widget.HorizontalScrollView scroll = new android.widget.HorizontalScrollView(context);
+        scroll.setHorizontalScrollBarEnabled(false);
+        scroll.setClipToPadding(false);
+        LinearLayout row = new LinearLayout(context);
+        row.setOrientation(LinearLayout.HORIZONTAL);
+        row.setPadding(AndroidUtilities.dp(4), AndroidUtilities.dp(2), AndroidUtilities.dp(8), AndroidUtilities.dp(2));
+        scroll.addView(row, LayoutHelper.createScroll(LayoutHelper.WRAP_CONTENT, LayoutHelper.WRAP_CONTENT, Gravity.LEFT));
+
+        int current = org.telegram.messenger.DrGramMedia.cameraFx();
+        for (int k = 0; k < FX_IDS.length; k++) {
+            final int fxId = FX_IDS[k];
+            TextView chip = new TextView(context);
+            chip.setTextSize(13);
+            chip.setTypeface(AndroidUtilities.bold());
+            chip.setPadding(AndroidUtilities.dp(14), 0, AndroidUtilities.dp(14), 0);
+            chip.setGravity(Gravity.CENTER);
+            chip.setText(getString(FX_LABELS[k]));
+            chip.setTextColor(0xFFFFFFFF);
+            GradientDrawable bg = new GradientDrawable();
+            bg.setCornerRadius(AndroidUtilities.dp(18));
+            chip.setBackground(bg);
+            chip.setOnClickListener(v -> {
+                org.telegram.messenger.DrGramMedia.setCameraFx(fxId);
+                updateFxStripSelection();
+            });
+            fxChips.add(chip);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LayoutHelper.WRAP_CONTENT, AndroidUtilities.dp(32));
+            lp.rightMargin = AndroidUtilities.dp(8);
+            row.addView(chip, lp);
+            if (fxId == current) {
+                chip.setTag(true);
+            }
+        }
+        updateFxStripSelection();
+        return scroll;
+    }
+
+    private void updateFxStripSelection() {
+        int current = org.telegram.messenger.DrGramMedia.cameraFx();
+        for (int k = 0; k < fxChips.size() && k < FX_IDS.length; k++) {
+            TextView chip = fxChips.get(k);
+            boolean selected = FX_IDS[k] == current;
+            GradientDrawable bg = new GradientDrawable();
+            bg.setCornerRadius(AndroidUtilities.dp(18));
+            if (selected) {
+                bg.setColor(0xCCF5C242);
+                chip.setTextColor(0xFF1C1A14);
+            } else {
+                bg.setColor(0x59000000);
+                chip.setTextColor(0xFFFFFFFF);
+                bg.setStroke(AndroidUtilities.dp(1), 0x33FFFFFF);
+            }
+            chip.setBackground(bg);
+        }
+    }
+
+    /** Hide the FX strip outside the camera page (preview/gallery/live handoff). */
+    private void updateFxStripVisibility() {
+        if (fxStrip == null) {
+            return;
+        }
+        boolean show = currentPage == PAGE_CAMERA && mode != MODE_LIVE && (collageListView == null || !collageListView.isVisible());
+        float target = show ? 1f : 0f;
+        fxStrip.animate().alpha(target).setDuration(180).withEndAction(() -> {
+            if (fxStrip != null) {
+                fxStrip.setVisibility(show ? View.VISIBLE : View.GONE);
+            }
+        }).start();
+        if (show) {
+            fxStrip.setVisibility(View.VISIBLE);
+        }
+    }
+
+    // =========================================================================
+
     private final RecordControl.Delegate recordControlDelegate = new RecordControl.Delegate() {
         @Override
         public boolean canRecordAudio() {
@@ -4513,6 +4616,7 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
         }
 
         onNavigateStart(oldPage, page);
+        updateFxStripVisibility(); // DrGram Fix 41
         if (previewButtons != null) {
             previewButtons.appear(page == PAGE_PREVIEW, animated);
         }

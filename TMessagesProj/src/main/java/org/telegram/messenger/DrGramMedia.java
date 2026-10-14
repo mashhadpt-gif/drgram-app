@@ -111,6 +111,59 @@ public class DrGramMedia {
         return isBeautifyEnabled() ? beautifyStrength() : 0f;
     }
 
+    // DrGram Fix 41: full beauty suite (nose slimming + teeth whitening + camera FX)
+
+    /** Nose slimming intensity 0..1. */
+    public static float beautifyNose() {
+        try {
+            float v = prefs().getFloat("camera_beautify_nose", 0.5f);
+            if (v < 0f) v = 0f;
+            if (v > 1f) v = 1f;
+            return v;
+        } catch (Exception e) {
+            return 0.5f;
+        }
+    }
+
+    public static void setBeautifyNose(float value) {
+        prefs().edit().putFloat("camera_beautify_nose", value).apply();
+    }
+
+    /** Teeth whitening intensity 0..1. */
+    public static float beautifyTeeth() {
+        try {
+            float v = prefs().getFloat("camera_beautify_teeth", 0.6f);
+            if (v < 0f) v = 0f;
+            if (v > 1f) v = 1f;
+            return v;
+        } catch (Exception e) {
+            return 0.6f;
+        }
+    }
+
+    public static void setBeautifyTeeth(float value) {
+        prefs().edit().putFloat("camera_beautify_teeth", value).apply();
+    }
+
+    /** Selected camera FX id (0 = none; 1..12 = effect pack). */
+    public static int cameraFx() {
+        try {
+            return prefs().getInt("camera_fx", 0);
+        } catch (Exception e) {
+            return 0;
+        }
+    }
+
+    public static void setCameraFx(int id) {
+        if (id < 0 || id > 12) id = 0;
+        prefs().edit().putInt("camera_fx", id).apply();
+    }
+
+    /** True when any camera processing is active (drives face detection startup). */
+    public static boolean cameraBeautyActive() {
+        return beautifyUniform() > 0.001f || beautifyNose() > 0.001f || beautifyTeeth() > 0.001f;
+    }
+
     public static void setStoryGradientEnabled(boolean value) {
         prefs().edit().putBoolean("story_gradient", value).apply();
     }

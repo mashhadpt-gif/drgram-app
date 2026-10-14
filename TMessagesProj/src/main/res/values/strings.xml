@@ -11781,4 +11781,22 @@
     <string name="DrGramBeautifyLight">Light</string>
     <string name="DrGramBeautifyMedium">Medium</string>
     <string name="DrGramBeautifyStrong">Strong</string>
+    <!-- DrGram Fix 41 -->
+    <string name="DrGramBeautifyNose">Nose slimming</string>
+    <string name="DrGramBeautifyTeeth">Teeth whitening</string>
+    <string name="DrGramVoiceIntensity">Voice change intensity</string>
+    <string name="DrGramFxTitle">Camera effects</string>
+    <string name="DrGramFxNone">No effect</string>
+    <string name="DrGramFxSunset">Sunset</string>
+    <string name="DrGramFxCool">Cool</string>
+    <string name="DrGramFxPastel">Pastel</string>
+    <string name="DrGramFxVintage">Vintage</string>
+    <string name="DrGramFxBlossom">Blossom</string>
+    <string name="DrGramFxNoir">Noir</string>
+    <string name="DrGramFxDream">Dreamy</string>
+    <string name="DrGramFxNeon">Neon</string>
+    <string name="DrGramFxGlitch">Glitch</string>
+    <string name="DrGramFxPixel">Pixel</string>
+    <string name="DrGramFxMirror">Mirror</string>
+    <string name="DrGramFxCartoon">Cartoon</string>
 </resources>
