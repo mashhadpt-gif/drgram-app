@@ -54,7 +54,7 @@ public class DrGramPhotoBeautify {
         }
         try {
             final int W = bitmap.getWidth(), H = bitmap.getHeight();
-            if (W < 8 || H < 8 || (long) W * H > 12_000_000) {
+            if (W < 8 || H < 8 || (long) W * H > 14_000_000) {
                 return bitmap;
             }
             int[] px = new int[W * H];
@@ -401,9 +401,10 @@ public class DrGramPhotoBeautify {
             }
             return;
         }
-        int[] source = fxId == 9 ? px.clone() : null;
-        for (int y=0; y<H; y++) for (int x=0; x<W; x++) {
-            int idx=y*W+x, c=source==null?px[idx]:source[idx];
+        for (int y=0; y<H; y++) {
+            int[] rowCopy = fxId == 9 ? java.util.Arrays.copyOfRange(px, y * W, (y + 1) * W) : null;
+            for (int x=0; x<W; x++) {
+            int idx=y*W+x, c=px[idx];
             int a=(c>>>24)&255, r=(c>>16)&255, g=(c>>8)&255, b=c&255;
             float lum=0.299f*r+0.587f*g+0.114f*b;
             switch(fxId) {
@@ -423,12 +424,13 @@ public class DrGramPhotoBeautify {
                 case 7: r=clamp255((int)(r*1.04f+10)); g=clamp255((int)(g*1.03f+9)); b=clamp255((int)(b*1.04f+10)); break;
                 case 8: { float avg=(r+g+b)/3f; r=clamp255((int)(avg+(r-avg)*1.65f+4)); g=clamp255((int)(avg+(g-avg)*1.65f+2)); b=clamp255((int)(avg+(b-avg)*1.65f+8)); break; }
                 case 9: {
-                    int cr=source[y*W+Math.max(0,Math.min(W-1,x+3))], cb=source[y*W+Math.max(0,Math.min(W-1,x-3))];
+                    int cr=rowCopy[Math.max(0,Math.min(W-1,x+3))], cb=rowCopy[Math.max(0,Math.min(W-1,x-3))];
                     r=(cr>>16)&255; b=cb&255; break;
                 }
                 default: break;
             }
             px[idx]=(a<<24)|(clamp255(r)<<16)|(clamp255(g)<<8)|clamp255(b);
+            }
         }
     }
 
