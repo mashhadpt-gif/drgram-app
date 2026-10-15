@@ -16,6 +16,8 @@ uniform float beautify;
 // DrGram Fix 41: full beauty suite + Instagram-style camera FX
 uniform float fxNose;        // 0..1 nose slimming
 uniform float fxTeeth;       // 0..1 teeth whitening
+uniform float fxEyes;        // 0..1 conservative eye enlargement
+uniform float fxJaw;         // 0..1 lower-face slimming
 uniform float fxFx;          // selected camera effect id (0 = none)
 uniform float fxFaceCount;   // 0..2
 uniform vec4 fxFaces[2];     // xy = face center (uv), zw = half size (uv)
@@ -146,17 +148,45 @@ mediump float skinMask(mediump vec3 c) {
 // Sampling coordinate is pushed AWAY from the nose line horizontally, so the
 // rendered image compresses toward it -> slimmer nose, natural edges.
 highp vec2 drgramWarp(highp vec2 p) {
-  if (fxNose > 0.001 && fxFaceCount > 0.5) {
+  if (fxFaceCount > 0.5) {
     for (int i = 0; i < 2; i++) {
       if (float(i) < fxFaceCount) {
-        highp vec2 c = fxNoses[i];
+        highp vec2 face = fxFaces[i].xy;
         highp vec2 hs = fxFaces[i].zw;
-        highp vec2 q = (p - c) / max(hs * vec2(0.60, 0.85), vec2(1e-4));
-        highp float e = dot(q, q);
-        if (e < 1.0) {
-          highp float f = 1.0 - e;
-          highp float squeeze = 1.0 - fxNose * 0.38 * f * f;
-          p.x = c.x + (p.x - c.x) / squeeze;
+        if (fxNose > 0.001) {
+          highp vec2 c = fxNoses[i];
+          highp vec2 q = (p - c) / max(hs * vec2(0.60, 0.85), vec2(1e-4));
+          highp float e = dot(q, q);
+          if (e < 1.0) {
+            highp float f = 1.0 - e;
+            highp float squeeze = 1.0 - fxNose * 0.30 * f * f;
+            p.x = c.x + (p.x - c.x) / squeeze;
+          }
+        }
+
+        // Eye centers are conservatively estimated from face geometry. The effect
+        // is localized and defaults to zero because Camera1 does not expose dense landmarks.
+        if (fxEyes > 0.001) {
+          for (int eye = 0; eye < 2; eye++) {
+            highp float side = eye == 0 ? -1.0 : 1.0;
+            highp vec2 eyeCenter = face + vec2(side * hs.x * 0.27, -hs.y * 0.20);
+            highp vec2 eyeQ = (p - eyeCenter) / max(hs * vec2(0.19, 0.13), vec2(1e-4));
+            highp float eyeD = dot(eyeQ, eyeQ);
+            if (eyeD < 1.0) {
+              highp float eyeMask = (1.0 - smoothstep(0.42, 1.0, eyeD));
+              p = eyeCenter + (p - eyeCenter) * (1.0 - fxEyes * 0.16 * eyeMask);
+            }
+          }
+        }
+
+        // Slim only the lower half of the detected face, fading out at cheeks
+        // and chin to avoid a visible pinch seam at the face rectangle boundary.
+        if (fxJaw > 0.001) {
+          highp float y = (p.y - (face.y + hs.y * 0.05)) / max(hs.y * 0.95, 1e-4);
+          highp float vertical = smoothstep(0.05, 0.34, y) * (1.0 - smoothstep(0.88, 1.10, y));
+          highp float lateral = 1.0 - smoothstep(hs.x * 0.50, hs.x * 0.98, abs(p.x - face.x));
+          highp float amount = fxJaw * 0.12 * vertical * lateral;
+          p.x = face.x + (p.x - face.x) / max(0.82, 1.0 - amount);
         }
       }
     }
@@ -349,7 +379,7 @@ mediump vec3 drgramCartoon(mediump vec3 c) {
 }
 
 vec4 beautifySample(vec4 base) {
-  if (beautify <= 0.001 && fxNose <= 0.001 && fxTeeth <= 0.001 && fxFx <= 0.001)
+  if (beautify <= 0.001 && fxNose <= 0.001 && fxTeeth <= 0.001 && fxEyes <= 0.001 && fxJaw <= 0.001 && fxFx <= 0.001)
     return base;
   highp vec2 p = drgramWarp(uv);
   mediump vec4 C;
