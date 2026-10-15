@@ -261,7 +261,7 @@ public class DrGramPhotoBeautify {
             probe.setPixels(sample, 0, probeW, 0, 0, probeW, probeH);
             detector = new com.google.android.gms.vision.face.FaceDetector.Builder(ApplicationLoader.applicationContext)
                     .setLandmarkType(com.google.android.gms.vision.face.FaceDetector.ALL_LANDMARKS)
-                    .setMode(com.google.android.gms.vision.face.FaceDetector.ACCURATE)
+                    .setMode(com.google.android.gms.vision.face.FaceDetector.ACCURATE_MODE)
                     .setProminentFaceOnly(false)
                     .build();
             if (!detector.isOperational()) {
@@ -300,9 +300,9 @@ public class DrGramPhotoBeautify {
                             rightEyeX = lx; eyeY = Float.isNaN(eyeY) ? ly : (eyeY + ly) * 0.5f; break;
                         case com.google.android.gms.vision.face.Landmark.NOSE_BASE:
                             noseLandmarkX = lx; noseLandmarkY = ly; break;
-                        case com.google.android.gms.vision.face.Landmark.MOUTH_LEFT:
+                        case com.google.android.gms.vision.face.Landmark.LEFT_MOUTH:
                             mouthLeftX = lx; mouthLandmarkY = Float.isNaN(mouthLandmarkY) ? ly : (mouthLandmarkY + ly) * 0.5f; break;
-                        case com.google.android.gms.vision.face.Landmark.MOUTH_RIGHT:
+                        case com.google.android.gms.vision.face.Landmark.RIGHT_MOUTH:
                             mouthRightX = lx; mouthLandmarkY = Float.isNaN(mouthLandmarkY) ? ly : (mouthLandmarkY + ly) * 0.5f; break;
                         case com.google.android.gms.vision.face.Landmark.BOTTOM_MOUTH:
                             if (Float.isNaN(mouthLandmarkY)) mouthLandmarkY = ly;

@@ -2521,7 +2521,7 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
         private int blurHandle;
         private int beautifyHandle; // DrGram Fix 40
         // DrGram Fix 41: beauty suite + camera FX uniforms (recorder)
-        private int fxNoseHandle, fxTeethHandle, fxFxHandle, fxFaceCountHandle, fxFacesHandle, fxNosesHandle, fxMouthsHandle;
+        private int fxNoseHandle, fxTeethHandle, fxEyesHandle, fxJawHandle, fxFxHandle, fxFaceCountHandle, fxFacesHandle, fxNosesHandle, fxMouthsHandle;
         private int zeroTimeStamps;
         private Integer lastCameraId = 0;
 
@@ -2900,7 +2900,7 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
                 GLES20.glUniform1f(blurHandle, 0);
                 GLES20.glUniform1f(beautifyHandle, org.telegram.messenger.DrGramMedia.beautifyUniform()); // DrGram Fix 40
                 drgramUploadBeauty(i == 0 ? cameraSession[i] : null, // DrGram Fix 41
-                        fxNoseHandle, fxTeethHandle, fxFxHandle, fxFaceCountHandle, fxFacesHandle, fxNosesHandle, fxMouthsHandle);
+                        fxNoseHandle, fxTeethHandle, fxEyesHandle, fxJawHandle, fxFxHandle, fxFaceCountHandle, fxFacesHandle, fxNosesHandle, fxMouthsHandle);
                 Size size = previewSize[i];
                 if (size != null && cameraSession[i] != null) {
                     int angle = cameraSession[i].getWorldAngle();
