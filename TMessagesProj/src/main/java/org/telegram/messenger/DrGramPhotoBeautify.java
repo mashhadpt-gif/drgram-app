@@ -32,6 +32,8 @@ public class DrGramPhotoBeautify {
     private static final class FaceBox {
         float cx, cy, halfW, halfH; // pixels
         float noseX, noseY, mouthX, mouthY;
+        float noseRadiusX, noseRadiusY, mouthHalfW, mouthHalfH;
+        boolean hasPreciseLandmarks;
     }
 
     /**
@@ -113,6 +115,8 @@ public class DrGramPhotoBeautify {
                 b.halfW = hw * W; b.halfH = hh * H;
                 b.noseX = b.cx;                 b.noseY = b.cy + b.halfH * 0.08f;
                 b.mouthX = b.cx;                b.mouthY = b.cy + b.halfH * 0.55f;
+                b.noseRadiusX = b.halfW * 0.18f; b.noseRadiusY = b.halfH * 0.16f;
+                b.mouthHalfW = b.halfW * 0.28f; b.mouthHalfH = b.halfH * 0.09f;
                 list.add(b);
                 if (list.size() >= 2) {
                     break;
@@ -124,47 +128,149 @@ public class DrGramPhotoBeautify {
         return list;
     }
 
-    /** android.media.FaceDetector fallback (RGB_565, downscaled probe). */
+    /**
+     * Accurate landmark detector using Google Mobile Vision (already included by
+     * the app). Detection runs on a downscaled copy to keep camera memory bounded.
+     * Nose and mouth masks are derived from landmarks rather than face-box guesses.
+     */
     private static ArrayList<FaceBox> detectFacesFallback(int[] px, int W, int H) {
         ArrayList<FaceBox> list = new ArrayList<>();
+        Bitmap probe = null;
+        com.google.android.gms.vision.face.FaceDetector detector = null;
         try {
-            int probeW = 480;
-            int probeH = Math.max(1, Math.round(H * (probeW / (float) W)));
-            int[] probe = new int[probeW * probeH];
+            final int maxSide = 640;
+            float scale = Math.min(1f, maxSide / (float) Math.max(W, H));
+            int probeW = Math.max(160, Math.round(W * scale));
+            int probeH = Math.max(160, Math.round(H * scale));
+            int[] sample = new int[probeW * probeH];
             for (int y = 0; y < probeH; y++) {
                 int srcY = Math.min(H - 1, (int) ((long) y * H / probeH));
                 for (int x = 0; x < probeW; x++) {
                     int srcX = Math.min(W - 1, (int) ((long) x * W / probeW));
-                    int c = px[srcY * W + srcX];
-                    int r = (c >> 16) & 0xFF, g = (c >> 8) & 0xFF, b = c & 0xFF;
-                    probe[y * probeW + x] = 0xFF000000 | ((r & 0xF8) << 16) | ((g & 0xFC) << 8) | (b & 0xF8);
+                    sample[y * probeW + x] = px[srcY * W + srcX] | 0xFF000000;
                 }
             }
-            Bitmap bmp = Bitmap.createBitmap(probeW, probeH, Bitmap.Config.RGB_565);
-            bmp.setPixels(probe, 0, probeW, 0, 0, probeW, probeH);
-            android.media.FaceDetector detector = new android.media.FaceDetector(probeW, probeH, 2);
-            android.media.FaceDetector.Face[] found = new android.media.FaceDetector.Face[2];
-            int n = detector.findFaces(bmp, found);
-            bmp.recycle();
-            for (int i = 0; i < n; i++) {
-                android.media.FaceDetector.Face f = found[i];
-                if (f == null || f.confidence() < 0.4f) {
-                    continue;
-                }
-                PointF mid = new PointF();
-                f.getMidPoint(mid);
-                float d = f.eyesDistance();
+            probe = Bitmap.createBitmap(probeW, probeH, Bitmap.Config.ARGB_8888);
+            probe.setPixels(sample, 0, probeW, 0, 0, probeW, probeH);
+            detector = new com.google.android.gms.vision.face.FaceDetector.Builder(ApplicationLoader.applicationContext)
+                    .setLandmarkType(com.google.android.gms.vision.face.FaceDetector.ALL_LANDMARKS)
+                    .setMode(com.google.android.gms.vision.face.FaceDetector.ACCURATE)
+                    .setProminentFaceOnly(false)
+                    .build();
+            if (!detector.isOperational()) {
+                return detectLegacyFaces(px, W, H);
+            }
+            android.util.SparseArray<com.google.android.gms.vision.face.Face> found =
+                    detector.detect(new com.google.android.gms.vision.Frame.Builder().setBitmap(probe).build());
+            for (int i = 0; i < found.size() && list.size() < 5; i++) {
+                com.google.android.gms.vision.face.Face face = found.valueAt(i);
+                if (face == null || face.getWidth() < 18 || face.getHeight() < 18) continue;
                 FaceBox b = new FaceBox();
-                b.cx = mid.x / probeW * W;
-                b.cy = (mid.y + d * 0.55f) / probeH * H;
-                b.halfW = d * 1.15f / probeW * W;
-                b.halfH = d * 1.55f / probeH * H;
-                b.noseX = b.cx;               b.noseY = b.cy + b.halfH * 0.10f;
-                b.mouthX = b.cx;              b.mouthY = b.cy + b.halfH * 0.55f;
+                float invScaleX = W / (float) probeW, invScaleY = H / (float) probeH;
+                b.cx = (face.getPosition().x + face.getWidth() * 0.5f) * invScaleX;
+                b.cy = (face.getPosition().y + face.getHeight() * 0.5f) * invScaleY;
+                b.halfW = face.getWidth() * 0.5f * invScaleX;
+                b.halfH = face.getHeight() * 0.5f * invScaleY;
+                b.noseX = b.cx;
+                b.noseY = b.cy + b.halfH * 0.08f;
+                b.mouthX = b.cx;
+                b.mouthY = b.cy + b.halfH * 0.48f;
+                b.noseRadiusX = Math.max(2f, b.halfW * 0.15f);
+                b.noseRadiusY = Math.max(2f, b.halfH * 0.13f);
+                b.mouthHalfW = Math.max(2f, b.halfW * 0.25f);
+                b.mouthHalfH = Math.max(2f, b.halfH * 0.07f);
+
+                float leftEyeX = Float.NaN, rightEyeX = Float.NaN, eyeY = Float.NaN;
+                float noseLandmarkX = Float.NaN, noseLandmarkY = Float.NaN;
+                float mouthLeftX = Float.NaN, mouthRightX = Float.NaN, mouthLandmarkY = Float.NaN;
+                for (com.google.android.gms.vision.face.Landmark landmark : face.getLandmarks()) {
+                    android.graphics.PointF p = landmark.getPosition();
+                    float lx = p.x * invScaleX, ly = p.y * invScaleY;
+                    switch (landmark.getType()) {
+                        case com.google.android.gms.vision.face.Landmark.LEFT_EYE:
+                            leftEyeX = lx; eyeY = Float.isNaN(eyeY) ? ly : (eyeY + ly) * 0.5f; break;
+                        case com.google.android.gms.vision.face.Landmark.RIGHT_EYE:
+                            rightEyeX = lx; eyeY = Float.isNaN(eyeY) ? ly : (eyeY + ly) * 0.5f; break;
+                        case com.google.android.gms.vision.face.Landmark.NOSE_BASE:
+                            noseLandmarkX = lx; noseLandmarkY = ly; break;
+                        case com.google.android.gms.vision.face.Landmark.MOUTH_LEFT:
+                            mouthLeftX = lx; mouthLandmarkY = Float.isNaN(mouthLandmarkY) ? ly : (mouthLandmarkY + ly) * 0.5f; break;
+                        case com.google.android.gms.vision.face.Landmark.MOUTH_RIGHT:
+                            mouthRightX = lx; mouthLandmarkY = Float.isNaN(mouthLandmarkY) ? ly : (mouthLandmarkY + ly) * 0.5f; break;
+                        case com.google.android.gms.vision.face.Landmark.BOTTOM_MOUTH:
+                            if (Float.isNaN(mouthLandmarkY)) mouthLandmarkY = ly;
+                            else mouthLandmarkY = (mouthLandmarkY + ly) * 0.5f;
+                            break;
+                    }
+                }
+                if (!Float.isNaN(noseLandmarkX) && !Float.isNaN(noseLandmarkY)) {
+                    b.noseX = noseLandmarkX; b.noseY = noseLandmarkY;
+                    if (!Float.isNaN(leftEyeX) && !Float.isNaN(rightEyeX)) {
+                        float eyeDistance = Math.abs(rightEyeX - leftEyeX);
+                        b.noseRadiusX = Math.max(2f, eyeDistance * 0.16f);
+                        b.noseRadiusY = Math.max(2f, eyeDistance * 0.15f);
+                    }
+                    b.hasPreciseLandmarks = true;
+                }
+                if (!Float.isNaN(mouthLeftX) && !Float.isNaN(mouthRightX)) {
+                    b.mouthX = (mouthLeftX + mouthRightX) * 0.5f;
+                    b.mouthHalfW = Math.max(2f, Math.abs(mouthRightX - mouthLeftX) * 0.58f);
+                    b.mouthHalfH = Math.max(2f, b.halfH * 0.055f);
+                    b.mouthY = Float.isNaN(mouthLandmarkY) ? b.mouthY : mouthLandmarkY;
+                    b.hasPreciseLandmarks = true;
+                }
                 list.add(b);
             }
         } catch (Throwable t) {
             FileLog.e(t);
+        } finally {
+            if (detector != null) {
+                try { detector.release(); } catch (Throwable ignore) {}
+            }
+            if (probe != null && !probe.isRecycled()) probe.recycle();
+        }
+        return list.isEmpty() ? detectLegacyFaces(px, W, H) : list;
+    }
+
+    /** Last-resort detector for devices where Google Mobile Vision is unavailable. */
+    private static ArrayList<FaceBox> detectLegacyFaces(int[] px, int W, int H) {
+        ArrayList<FaceBox> list = new ArrayList<>();
+        Bitmap bmp = null;
+        try {
+            int probeW = 320;
+            int probeH = Math.max(1, Math.round(H * (probeW / (float) W)));
+            int[] probe = new int[probeW * probeH];
+            for (int y = 0; y < probeH; y++) {
+                int sy = Math.min(H - 1, (int) ((long) y * H / probeH));
+                for (int x = 0; x < probeW; x++) {
+                    int c = px[sy * W + Math.min(W - 1, (int) ((long) x * W / probeW))];
+                    int rr = (c >> 16) & 255, gg = (c >> 8) & 255, bb = c & 255;
+                    probe[y * probeW + x] = 0xFF000000 | ((rr & 0xF8) << 16) | ((gg & 0xFC) << 8) | (bb & 0xF8);
+                }
+            }
+            bmp = Bitmap.createBitmap(probeW, probeH, Bitmap.Config.RGB_565);
+            bmp.setPixels(probe, 0, probeW, 0, 0, probeW, probeH);
+            android.media.FaceDetector legacy = new android.media.FaceDetector(probeW, probeH, 2);
+            android.media.FaceDetector.Face[] found = new android.media.FaceDetector.Face[2];
+            int n = legacy.findFaces(bmp, found);
+            for (int i = 0; i < n; i++) {
+                android.media.FaceDetector.Face face = found[i];
+                if (face == null || face.confidence() < 0.4f) continue;
+                PointF mid = new PointF(); face.getMidPoint(mid);
+                float d = face.eyesDistance();
+                FaceBox b = new FaceBox();
+                b.cx = mid.x / probeW * W; b.cy = (mid.y + d * 0.55f) / probeH * H;
+                b.halfW = d * 1.15f / probeW * W; b.halfH = d * 1.55f / probeH * H;
+                b.noseX = b.cx; b.noseY = b.cy + b.halfH * 0.08f;
+                b.mouthX = b.cx; b.mouthY = b.cy + b.halfH * 0.48f;
+                b.noseRadiusX = b.halfW * 0.15f; b.noseRadiusY = b.halfH * 0.13f;
+                b.mouthHalfW = b.halfW * 0.25f; b.mouthHalfH = b.halfH * 0.07f;
+                list.add(b);
+            }
+        } catch (Throwable t) {
+            FileLog.e(t);
+        } finally {
+            if (bmp != null && !bmp.isRecycled()) bmp.recycle();
         }
         return list;
     }
@@ -288,8 +394,9 @@ public class DrGramPhotoBeautify {
         System.arraycopy(px, 0, src, 0, px.length);
         for (int i = 0; i < faces.size(); i++) {
             FaceBox f = faces.get(i);
-            int rx = Math.max(2, (int) (f.halfW * 0.60f));
-            int ry = Math.max(2, (int) (f.halfH * 0.85f));
+            // Landmark-sized mask: avoid pulling cheeks and the area beside the nose.
+            int rx = Math.max(2, (int) (f.noseRadiusX > 0 ? f.noseRadiusX : f.halfW * 0.15f));
+            int ry = Math.max(2, (int) (f.noseRadiusY > 0 ? f.noseRadiusY : f.halfH * 0.13f));
             int cx = (int) f.noseX, cy = (int) f.noseY;
             float squeeze = 1f - nose * 0.34f;
             for (int dy = -ry; dy <= ry; dy++) {
@@ -317,9 +424,10 @@ public class DrGramPhotoBeautify {
     private static void whitenTeeth(int[] px, int W, int H, ArrayList<FaceBox> faces, float teeth) {
         for (int i = 0; i < faces.size(); i++) {
             FaceBox f = faces.get(i);
-            int rx = Math.max(2, (int) (f.halfW * 0.50f));
-            int ry = Math.max(2, (int) (f.halfH * 0.26f));
-            int cx = (int) (f.mouthX), cy = (int) (f.mouthY - f.halfH * 0.10f);
+            // Restrict whitening to the mouth landmarks; don't brighten skin around the lips.
+            int rx = Math.max(2, (int) (f.mouthHalfW > 0 ? f.mouthHalfW : f.halfW * 0.25f));
+            int ry = Math.max(2, (int) (f.mouthHalfH > 0 ? f.mouthHalfH : f.halfH * 0.07f));
+            int cx = (int) f.mouthX, cy = (int) f.mouthY;
             for (int dy = -ry; dy <= ry; dy++) {
                 int y = cy + dy;
                 if (y < 0 || y >= H) continue;
