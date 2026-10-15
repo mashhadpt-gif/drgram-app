@@ -292,7 +292,7 @@ public class DrGramCallBeautyFX implements org.webrtc.CapturerObserver {
     private void noteError() {
         consecutiveErrors++;
         if (consecutiveErrors > 45) {
-            FileLog.e(TAG, "too many GL failures — beauty disabled for this session");
+            FileLog.e("DrGramCallFX: too many GL failures — beauty disabled for this session");
             release();
         }
     }
@@ -302,8 +302,8 @@ public class DrGramCallBeautyFX implements org.webrtc.CapturerObserver {
             return;
         }
         try {
-            EglBase.Context shared = VideoCapturerDevice.eglBase == null
-                ? null : VideoCapturerDevice.eglBase.getEglBaseContext();
+            EglBase.Context shared = org.telegram.messenger.voip.VideoCapturerDevice.eglBase == null
+                ? null : org.telegram.messenger.voip.VideoCapturerDevice.eglBase.getEglBaseContext();
             egl = EglBase.create(shared, EglBase.CONFIG_PLAIN);
             egl.createDummyPbufferSurface();
             egl.makeCurrent();
