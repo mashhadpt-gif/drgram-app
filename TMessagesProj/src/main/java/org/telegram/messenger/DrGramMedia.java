@@ -208,6 +208,32 @@ public class DrGramMedia {
         prefs().edit().putInt("camera_fx", id).apply();
     }
 
+    // DrGram Fix 45: portrait background blur for photo stories
+    public static boolean storyPortraitBg() {
+        try {
+            return prefs().getBoolean("story_portrait_bg", false);
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    public static void setStoryPortraitBg(boolean value) {
+        prefs().edit().putBoolean("story_portrait_bg", value).apply();
+    }
+
+    // DrGram Fix 45: hands-free story recording (tap shutter to start/stop video)
+    public static boolean storyHandsFree() {
+        try {
+            return prefs().getBoolean("story_hands_free", false);
+        } catch (Throwable t) {
+            return false;
+        }
+    }
+
+    public static void setStoryHandsFree(boolean value) {
+        prefs().edit().putBoolean("story_hands_free", value).apply();
+    }
+
     /** Save the current camera look as the user's single custom preset. */
     public static void saveBeautyPreset() {
         prefs().edit()

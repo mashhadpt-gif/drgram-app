@@ -11417,6 +11417,8 @@
     <string name="DrGramVoiceDeep">Deep</string>
     <string name="DrGramVoiceBee">Bee</string>
     <string name="DrGramVoiceGiant">Giant</string>
+    <string name="DrGramStoryHandsFree">Hands-free story recording (tap to start/stop)</string>
+    <string name="DrGramStoryPortrait">Portrait mode: blur story background</string>
     <string name="DrGramStoryGradient">Animated story background</string>
     <string name="DrGramDrawToggle">Draw &amp; send button</string>
     <string name="DrGramDrawSend">Draw &amp; send</string>

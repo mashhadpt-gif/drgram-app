@@ -897,6 +897,28 @@ public class DrGramToolsActivity extends BaseFragment {
         });
         addSectionRow(storyRow);
 
+        // DrGram Fix 45: hands-free story recording
+        Switch handsFreeSwitch = new Switch(context);
+        handsFreeSwitch.setChecked(DrGramMedia.storyHandsFree(), false);
+        LinearLayout handsFreeRow = makeRow(context, LocaleController.getString(R.string.DrGramStoryHandsFree), handsFreeSwitch);
+        handsFreeRow.setOnClickListener(v -> {
+            boolean newState = !DrGramMedia.storyHandsFree();
+            DrGramMedia.setStoryHandsFree(newState);
+            handsFreeSwitch.setChecked(newState, false);
+        });
+        addSectionRow(handsFreeRow);
+
+        // DrGram Fix 45: portrait background blur for photo stories
+        Switch portraitSwitch = new Switch(context);
+        portraitSwitch.setChecked(DrGramMedia.storyPortraitBg(), false);
+        LinearLayout portraitRow = makeRow(context, LocaleController.getString(R.string.DrGramStoryPortrait), portraitSwitch);
+        portraitRow.setOnClickListener(v -> {
+            boolean newState = !DrGramMedia.storyPortraitBg();
+            DrGramMedia.setStoryPortraitBg(newState);
+            portraitSwitch.setChecked(newState, false);
+        });
+        addSectionRow(portraitRow);
+
         drawSendSwitch = new Switch(context);
         drawSendSwitch.setChecked(DrGramMedia.isDrawSendEnabled(), false);
         LinearLayout drawRow = makeRow(context, LocaleController.getString(R.string.DrGramDrawToggle), drawSendSwitch);

@@ -792,7 +792,21 @@ public class RecordControl extends View implements FlashViews.Invertable {
                 if (hasCheck()) {
                     delegate.onCheckClick();
                 } else if (!startModeIsVideo && !recording && !longpressRecording) {
-                    delegate.onPhotoShoot();
+                    if (org.telegram.messenger.DrGramMedia.storyHandsFree() && delegate.canRecordAudio()) {
+                        // DrGram Fix 45: hands-free — a single tap starts video,
+                        // the next tap ends it. No holding required.
+                        lastDuration = 0;
+                        recordingStart = System.currentTimeMillis();
+                        showLock = false;
+                        delegate.onVideoRecordStart(false, () -> {
+                            recordingStart = System.currentTimeMillis();
+                            lastDuration = 0;
+                            recording = true;
+                            delegate.onVideoDuration(lastDuration);
+                        });
+                    } else {
+                        delegate.onPhotoShoot();
+                    }
                 } else if (!recording) {
                     if (delegate.canRecordAudio()) {
                         lastDuration = 0;

@@ -259,6 +259,16 @@ public class DrGramPhotoBeautify {
             }
             probe = Bitmap.createBitmap(probeW, probeH, Bitmap.Config.ARGB_8888);
             probe.setPixels(sample, 0, probeW, 0, 0, probeW, probeH);
+
+            // DrGram Fix 45: bundled ML Kit first — accurate landmarks, offline,
+            // no Play-Services model download. Falls through to GMS Vision and
+            // the legacy detector when it finds nothing or fails.
+            ArrayList<FaceBox> mlkit = detectMlKitFaces(probe, W, H);
+            if (!mlkit.isEmpty()) {
+                if (probe != null && !probe.isRecycled()) probe.recycle();
+                return mlkit;
+            }
+
             detector = new com.google.android.gms.vision.face.FaceDetector.Builder(ApplicationLoader.applicationContext)
                     .setLandmarkType(com.google.android.gms.vision.face.FaceDetector.ALL_LANDMARKS)
                     .setMode(com.google.android.gms.vision.face.FaceDetector.ACCURATE_MODE)
@@ -337,6 +347,50 @@ public class DrGramPhotoBeautify {
             if (probe != null && !probe.isRecycled()) probe.recycle();
         }
         return list.isEmpty() ? detectLegacyFaces(px, W, H) : list;
+    }
+
+    /** DrGram Fix 45: bundled ML Kit detector — accurate face rects with real nose/eye/mouth landmarks, fully offline. */
+    private static ArrayList<FaceBox> detectMlKitFaces(Bitmap probe, int W, int H) {
+        ArrayList<FaceBox> list = new ArrayList<>();
+        try {
+            ArrayList<DrGramFaceEngine.FaceResult> found = DrGramFaceEngine.detectBlocking(probe, 2500);
+            if (found.isEmpty()) {
+                return list;
+            }
+            float invScaleX = W / (float) probe.getWidth();
+            float invScaleY = H / (float) probe.getHeight();
+            for (int i = 0; i < found.size() && list.size() < 5; i++) {
+                DrGramFaceEngine.FaceResult f = found.get(i);
+                if (f == null) continue;
+                FaceBox b = new FaceBox();
+                b.cx = f.cx * invScaleX;
+                b.cy = f.cy * invScaleY;
+                b.halfW = Math.max(4f, f.halfW * invScaleX);
+                b.halfH = Math.max(4f, f.halfH * invScaleY);
+                b.noseX = Float.isNaN(f.noseX) ? b.cx : f.noseX * invScaleX;
+                b.noseY = Float.isNaN(f.noseY) ? b.cy + b.halfH * 0.08f : f.noseY * invScaleY;
+                b.mouthX = Float.isNaN(f.mouthX) ? b.cx : f.mouthX * invScaleX;
+                b.mouthY = Float.isNaN(f.mouthY) ? b.cy + b.halfH * 0.48f : f.mouthY * invScaleY;
+                if (!Float.isNaN(f.leftEyeX) && !Float.isNaN(f.rightEyeX)) {
+                    float eyeDistance = Math.abs(f.rightEyeX - f.leftEyeX) * invScaleX;
+                    b.noseRadiusX = Math.max(2f, eyeDistance * 0.16f);
+                    b.noseRadiusY = Math.max(2f, eyeDistance * 0.15f);
+                    b.hasPreciseLandmarks = true;
+                } else {
+                    b.noseRadiusX = Math.max(2f, b.halfW * 0.15f);
+                    b.noseRadiusY = Math.max(2f, b.halfH * 0.13f);
+                }
+                b.mouthHalfW = Math.max(2f, b.halfW * 0.25f);
+                b.mouthHalfH = Math.max(2f, b.halfH * (Float.isNaN(f.mouthX) ? 0.07f : 0.055f));
+                if (!Float.isNaN(f.mouthX)) {
+                    b.hasPreciseLandmarks = true;
+                }
+                list.add(b);
+            }
+        } catch (Throwable t) {
+            FileLog.e(t);
+        }
+        return list;
     }
 
     /** Last-resort detector for devices where Google Mobile Vision is unavailable. */
@@ -705,6 +759,130 @@ public class DrGramPhotoBeautify {
 
     private static int clamp255(int value) {
         return Math.max(0, Math.min(255, value));
+    }
+
+    //endregion
+
+    //region portrait background blur (Fix 45)
+
+    /**
+     * DrGram Fix 45: portrait mode for photo stories — everything that is not
+     * the subject gets a creamy blur while the subject (hair edges included,
+     * via the segmentation mask's soft alpha) stays sharp. Never blurs blind:
+     * when the segmentation model is unavailable the photo is returned intact.
+     */
+    public static void applyPortraitBackgroundBlur(Bitmap bitmap, float strength) {
+        if (bitmap == null || bitmap.isRecycled() || bitmap.getConfig() == null || strength <= 0.01f) {
+            return;
+        }
+        Bitmap mask = null;
+        try {
+            final int W = bitmap.getWidth(), H = bitmap.getHeight();
+            if (W < 16 || H < 16 || (long) W * H > 12_000_000) {
+                return;
+            }
+            mask = DrGramFaceEngine.personMaskBlocking(bitmap, 4000);
+            if (mask == null) {
+                return;
+            }
+            if (mask.getWidth() != W || mask.getHeight() != H) {
+                Bitmap scaled = Bitmap.createScaledBitmap(mask, W, H, true);
+                if (scaled != null && scaled != mask) {
+                    mask.recycle();
+                    mask = scaled;
+                }
+            }
+            if (mask.getWidth() != W || mask.getHeight() != H) {
+                return;
+            }
+
+            int[] px = new int[W * H];
+            bitmap.getPixels(px, 0, W, 0, 0, W, H);
+            int[] mp = new int[W * H];
+            mask.getPixels(mp, 0, W, 0, 0, W, H);
+
+            // background source: strong downscale + two box-blur passes + upscale
+            int bw = Math.max(24, W / 14), bh = Math.max(24, H / 14);
+            Bitmap small = Bitmap.createScaledBitmap(bitmap, bw, bh, true);
+            int[] sp = new int[bw * bh];
+            small.getPixels(sp, 0, bw, 0, 0, bw, bh);
+            int radius = Math.max(2, Math.round(2f + strength * 3f));
+            boxBlur(sp, bw, bh, radius);
+            boxBlur(sp, bw, bh, radius);
+            small.setPixels(sp, 0, bw, 0, 0, bw, bh);
+            Bitmap blurred = Bitmap.createScaledBitmap(small, W, H, true);
+            if (blurred == null) {
+                small.recycle();
+                return;
+            }
+            int[] bg = new int[W * H];
+            blurred.getPixels(bg, 0, W, 0, 0, W, H);
+            small.recycle();
+            blurred.recycle();
+
+            for (int i = 0; i < px.length; i++) {
+                float a = (mp[i] >>> 24) / 255f;
+                // soft step keeps hair / fuzzy edges natural instead of a hard cutout
+                float person = smoothstep(0.30f, 0.62f, a);
+                if (person >= 0.999f) continue;
+                int fg = px[i], bgc = bg[i];
+                int ar = Math.round(((fg >> 16) & 0xFF) * person + ((bgc >> 16) & 0xFF) * (1f - person));
+                int ag = Math.round(((fg >> 8) & 0xFF) * person + ((bgc >> 8) & 0xFF) * (1f - person));
+                int ab = Math.round((fg & 0xFF) * person + (bgc & 0xFF) * (1f - person));
+                px[i] = 0xFF000000 | (ar << 16) | (ag << 8) | ab;
+            }
+            bitmap.setPixels(px, 0, W, 0, 0, W, H);
+        } catch (Throwable t) {
+            FileLog.e(t);
+        } finally {
+            if (mask != null && !mask.isRecycled()) {
+                mask.recycle();
+            }
+        }
+    }
+
+    private static void boxBlur(int[] px, int w, int h, int radius) {
+        if (px == null || w <= 0 || h <= 0 || radius <= 0) return;
+        int[] tmp = new int[px.length];
+        int div = radius * 2 + 1;
+        for (int y = 0; y < h; y++) {
+            int row = y * w;
+            int sr = 0, sg = 0, sb = 0;
+            for (int i = -radius; i <= radius; i++) {
+                int c = px[row + Math.max(0, Math.min(w - 1, i))];
+                sr += (c >> 16) & 0xFF; sg += (c >> 8) & 0xFF; sb += c & 0xFF;
+            }
+            for (int x = 0; x < w; x++) {
+                tmp[row + x] = 0xFF000000 | ((sr / div) << 16) | ((sg / div) << 8) | (sb / div);
+                int addI = Math.min(w - 1, x + radius + 1);
+                int remI = Math.max(0, x - radius);
+                int ca = px[row + addI], cr = px[row + remI];
+                sr += ((ca >> 16) & 0xFF) - ((cr >> 16) & 0xFF);
+                sg += ((ca >> 8) & 0xFF) - ((cr >> 8) & 0xFF);
+                sb += (ca & 0xFF) - (cr & 0xFF);
+            }
+        }
+        for (int x = 0; x < w; x++) {
+            int sr = 0, sg = 0, sb = 0;
+            for (int i = -radius; i <= radius; i++) {
+                int c = tmp[Math.max(0, Math.min(h - 1, i)) * w + x];
+                sr += (c >> 16) & 0xFF; sg += (c >> 8) & 0xFF; sb += c & 0xFF;
+            }
+            for (int y = 0; y < h; y++) {
+                px[y * w + x] = 0xFF000000 | ((sr / div) << 16) | ((sg / div) << 8) | (sb / div);
+                int addI = Math.min(h - 1, y + radius + 1);
+                int remI = Math.max(0, y - radius);
+                int ca = tmp[addI * w + x], cr = tmp[remI * w + x];
+                sr += ((ca >> 16) & 0xFF) - ((cr >> 16) & 0xFF);
+                sg += ((ca >> 8) & 0xFF) - ((cr >> 8) & 0xFF);
+                sb += (ca & 0xFF) - (cr & 0xFF);
+            }
+        }
+    }
+
+    private static float smoothstep(float e0, float e1, float x) {
+        float t = clamp01((x - e0) / (e1 - e0));
+        return t * t * (3f - 2f * t);
     }
 
     //endregion

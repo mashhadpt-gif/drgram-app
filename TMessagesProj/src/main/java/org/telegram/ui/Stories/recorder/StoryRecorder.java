@@ -4084,6 +4084,30 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
         beautyLp.rightMargin = AndroidUtilities.dp(8);
         row.addView(beautyChip, beautyLp);
 
+        // DrGram Fix 45: portrait background blur chip — subject sharp, background creamy
+        TextView portraitChip = new TextView(context);
+        portraitChip.setText("\uD83E\uDDD1 پرتره");
+        portraitChip.setTextSize(13);
+        portraitChip.setTypeface(AndroidUtilities.bold());
+        portraitChip.setPadding(AndroidUtilities.dp(14), 0, AndroidUtilities.dp(14), 0);
+        portraitChip.setGravity(Gravity.CENTER);
+        portraitChip.setTextColor(0xFFFFFFFF);
+        GradientDrawable portraitBg = new GradientDrawable();
+        portraitBg.setCornerRadius(AndroidUtilities.dp(18));
+        portraitBg.setColor(org.telegram.messenger.DrGramMedia.storyPortraitBg() ? 0xCC2F9E6E : 0x66333333);
+        portraitChip.setBackground(portraitBg);
+        portraitChip.setOnClickListener(v -> {
+            boolean on = !org.telegram.messenger.DrGramMedia.storyPortraitBg();
+            org.telegram.messenger.DrGramMedia.setStoryPortraitBg(on);
+            portraitBg.setColor(on ? 0xCC2F9E6E : 0x66333333);
+            portraitChip.invalidate();
+            BulletinFactory.of(captionContainer, resourcesProvider).createSimpleBulletin(R.raw.chats_infotip,
+                on ? "پس‌زمینه محو می‌شود؛ سوژه شارپ می‌ماند" : "حالت پرتره خاموش شد").show();
+        });
+        LinearLayout.LayoutParams portraitLp = new LinearLayout.LayoutParams(LayoutHelper.WRAP_CONTENT, AndroidUtilities.dp(32));
+        portraitLp.rightMargin = AndroidUtilities.dp(8);
+        row.addView(portraitChip, portraitLp);
+
         int current = org.telegram.messenger.DrGramMedia.cameraFx();
         for (int k = 0; k < FX_IDS.length; k++) {
             final int fxId = FX_IDS[k];
@@ -4220,6 +4244,9 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
                 bitmap = BitmapFactory.decodeFile(photoFile.getAbsolutePath(), options);
                 if (bitmap == null) return;
                 org.telegram.messenger.DrGramPhotoBeautify.process(bitmap, null, strength, nose, teeth, fx, eyes, jaw);
+                if (org.telegram.messenger.DrGramMedia.storyPortraitBg()) {
+                    org.telegram.messenger.DrGramPhotoBeautify.applyPortraitBackgroundBlur(bitmap, 1f); // DrGram Fix 45
+                }
                 try (FileOutputStream out = new FileOutputStream(photoFile, false)) {
                     if (!bitmap.compress(Bitmap.CompressFormat.JPEG, 98, out)) {
                         FileLog.e("DrGram photo effects: JPEG compression failed");

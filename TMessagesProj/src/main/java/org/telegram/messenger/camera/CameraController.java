@@ -439,6 +439,14 @@ public class CameraController implements MediaRecorder.OnInfoListener {
                     boolean drgramBeautified = false; // DrGram Fix 41
                     try {
                         orientation = getOrientation(data);
+                        // DrGram Fix 45: portrait background blur works independently of the beauty master switch
+                        if (bitmap != null && org.telegram.messenger.DrGramMedia.storyPortraitBg()) {
+                            try {
+                                org.telegram.messenger.DrGramPhotoBeautify.applyPortraitBackgroundBlur(bitmap, 1f);
+                            } catch (Throwable e) {
+                                FileLog.e(e);
+                            }
+                        }
                         // DrGram Fix 41: photo beautify (skin / nose / teeth)
                         if (bitmap != null && org.telegram.messenger.DrGramMedia.cameraBeautyActive()) {
                             try {

@@ -431,6 +431,8 @@
     <string name="DrGramVoiceDeep">بم</string>
     <string name="DrGramVoiceBee">زنبوری</string>
     <string name="DrGramVoiceGiant">غول‌پیکر</string>
+    <string name="DrGramStoryHandsFree">ضبط استوری دست‌آزاد (با یک لمس شروع/پایان)</string>
+    <string name="DrGramStoryPortrait">حالت پرتره: محوکردن پس‌زمینه استوری</string>
     <string name="DrGramStoryGradient">پس‌زمینه متحرک استوری</string>
     <string name="DrGramDrawToggle">دکمه رسم و ارسال</string>
     <string name="DrGramDrawSend">رسم و ارسال</string>
