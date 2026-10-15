@@ -103,16 +103,12 @@ public class DrGramPhotoBeautify {
             bitmap.getPixels(px, 0, W, 0, 0, W, H);
 
             ArrayList<FaceBox> faces = collectFaces(cameraFaces, W, H);
-            boolean hwPrecise = false;
-            for (int i = 0; i < faces.size(); i++) {
-                if (faces.get(i).hasPreciseLandmarks) { hwPrecise = true; break; }
-            }
             if (faces.isEmpty()) {
                 faces = detectFacesFallback(px, W, H);
-            } else if (!hwPrecise) {
-                // DrGram Fix 48: hardware returned boxes without landmarks —
-                // try to upgrade them to the mesh detector's real organ
-                // geometry before falling back to ratios.
+            } else {
+                // DrGram Fix 50: always offer the mesh upgrade — hardware
+                // boxes/landmarks stay coarse even when "precise"; the
+                // 478-point mesh replaces them whenever it can see the face.
                 ArrayList<FaceBox> upgraded = detectFacesFallback(px, W, H);
                 if (!upgraded.isEmpty()) {
                     faces = upgraded;
@@ -543,11 +539,17 @@ public class DrGramPhotoBeautify {
         return list;
     }
 
-    /** DrGram Fix 48: dense 468-point mesh — real organ polygons scaled to the full-res frame. */
+    /** DrGram Fix 48/50: dense face mesh — real organ polygons scaled to the full-res frame. */
     private static ArrayList<FaceBox> detectMeshFaces(Bitmap probe, int W, int H) {
         ArrayList<FaceBox> list = new ArrayList<>();
         try {
-            ArrayList<DrGramFaceEngine.MeshResult> found = DrGramFaceEngine.meshDetectBlocking(probe, 2500);
+            // DrGram Fix 50: MediaPipe 478-point landmarker first — iris-grade
+            // eye centres and a stable oval centre; ML Kit mesh stays as the
+            // offline fallback when the tracker is unavailable.
+            ArrayList<DrGramFaceEngine.MeshResult> found = DrGramFaceMeshTracker.trackMesh(probe);
+            if (found == null || found.isEmpty()) {
+                found = DrGramFaceEngine.meshDetectBlocking(probe, 2500);
+            }
             if (found.isEmpty()) {
                 return list;
             }

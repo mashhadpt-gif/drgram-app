@@ -82,6 +82,10 @@ dependencies {
     implementation 'com.google.mlkit:face-detection:16.1.6'
     implementation 'com.google.mlkit:face-mesh-detection:16.0.0-beta3'
     implementation 'com.google.android.gms:play-services-mlkit-image-labeling:16.0.8'
+    // DrGram Fix 50: MediaPipe Face Landmarker — 478-point dense face mesh
+    // (468 landmarks + 10 iris) with VIDEO-mode temporal tracking. The same
+    // dense-mesh + tracking architecture Instagram-class face filters use.
+    implementation 'com.google.mediapipe:tasks-vision:0.10.21'
 
     implementation "androidx.credentials:credentials:1.6.0-alpha04"
     implementation "androidx.credentials:credentials-play-services-auth:1.6.0-alpha04"

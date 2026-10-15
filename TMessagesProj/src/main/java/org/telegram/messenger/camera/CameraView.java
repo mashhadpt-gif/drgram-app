@@ -2298,12 +2298,13 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
     }
 
     /**
-     * DrGram Fix 41/46: uploads the beauty-suite uniforms for the current frame.
-     * Face rectangles come from Camera1 face detection (sensor space
-     * -1000..1000) and are normalised to the shader's uv space. When hardware
-     * detection is unavailable or went quiet, the bundled ML Kit software
-     * detector (CameraSession) takes over. Everything is static so both the
-     * preview program and the VideoRecorder program share the same mapping.
+     * DrGram Fix 41/46/50: uploads the beauty-suite uniforms for the current frame.
+     * Feed priority (Fix 50): fresh MediaPipe mesh result first (temporal
+     * 478-point tracking — stable centre, iris-grade eyes), then Camera1
+     * hardware face rectangles (sensor space -1000..1000, normalised to the
+     * shader's uv space), then the bundled ML Kit software detector. All
+     * static so both the preview program and the VideoRecorder program share
+     * the same mapping.
      */
     private static void drgramUploadBeauty(CameraSessionWrapper session, DrGramBeautyHandles h) {
         GLES20.glUniform1f(h.nose, org.telegram.messenger.DrGramMedia.beautifyNoseUniform());
@@ -2333,7 +2334,27 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
         float[] eyeRData = new float[4];
         int count = 0;
         boolean preciseEyes = false;
-        if (faces != null) {
+        // DrGram Fix 50: a fresh MediaPipe mesh result LEADS the feed — the
+        // 478-point temporal mesh (iris-grade anchors, glide-stable centre)
+        // is strictly better than the coarse hardware boxes that caused the
+        // "face centre keeps changing" complaint. Hardware detection remains
+        // the fallback whenever the mesh can't see a face.
+        boolean softwarePreferred = false;
+        try {
+            softwarePreferred = session != null && session.camera1Session != null
+                    && session.camera1Session.drgramSoftwarePreferred();
+        } catch (Throwable ignore) {
+        }
+        if (softwarePreferred) {
+            try {
+                if (session.camera1Session.drgramSoftFacesFresh(faceData, noseData, mouthData, eyeLData, eyeRData)) {
+                    count = Math.max(1, Math.min(2, session.camera1Session.drgramSoftCount));
+                    preciseEyes = true;
+                }
+            } catch (Throwable ignore) {
+            }
+        }
+        if (count == 0 && faces != null) {
             for (int i = 0; i < faces.length && count < 2; i++) {
                 android.hardware.Camera.Face f = faces[i];
                 if (f == null || f.rect == null) {

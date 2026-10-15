@@ -84,6 +84,9 @@ public class CameraSession {
     public volatile long drgramSoftAt;
     private volatile long drgramSoftLastArmAt;
     private volatile boolean drgramSoftBusy;
+    // DrGram Fix 50: true when the last software result came from the MediaPipe
+    // mesh tracker (iris-grade anchors) rather than the ML Kit box detector.
+    private volatile boolean drgramSoftMeshPrecise;
     // DrGram Fix 48: tracking state — ROI-guided re-detection, reacquire
     // pacing and an outlier gate against wild landmark jumps.
     private final float[] drgramSoftRoi = new float[4];   // cx, cy, halfW, halfH (normalized)
@@ -101,8 +104,8 @@ public class CameraSession {
                 return t;
             });
 
-    private static final long DRGRAM_SOFT_MIN_INTERVAL_MS = 450;   // while tracking
-    private static final long DRGRAM_SOFT_REACQUIRE_MS = 280;      // DrGram Fix 48: faster when lost
+    private static final long DRGRAM_SOFT_MIN_INTERVAL_MS = 150;   // while tracking (Fix 50: mesh tracker is fast)
+    private static final long DRGRAM_SOFT_REACQUIRE_MS = 200;      // Fix 50: fast reacquire
     private static final long DRGRAM_SOFT_RESULT_TTL_MS = 2600;
     private static final long DRGRAM_HW_STALE_MS = 1200;
     private static final long DRGRAM_SOFT_ROI_TTL_MS = 1600;       // Fix 48: ROI freshness
@@ -110,9 +113,14 @@ public class CameraSession {
 
     /**
      * Called once per rendered frame from the GL thread. Arms a one-shot
-     * preview callback when the live beauty needs face anchors but hardware
-     * detection is unavailable or went quiet, then re-arms itself until faces
-     * come back or the user turns the face effects off.
+     * preview callback when the live beauty needs face anchors, then re-arms
+     * itself until faces come back or the user turns the face effects off.
+     *
+     * DrGram Fix 50: the MediaPipe mesh tracker runs REGARDLESS of hardware
+     * detection — its 478-point temporal result is strictly better than the
+     * coarse hardware boxes (which were the source of the jumping face
+     * centre). Hardware landmarks remain the fallback when the tracker is
+     * unavailable.
      */
     public void drgramSoftwareDetectTick(android.hardware.Camera.Face[] hwFaces) {
         try {
@@ -124,13 +132,6 @@ public class CameraSession {
                 return;
             }
             long now = android.os.SystemClock.elapsedRealtime();
-            boolean hwMissing = hwFaces == null || hwFaces.length == 0;
-            boolean hwStale = hwMissing
-                    && now - sessionStartedAt() >= DRGRAM_HW_STALE_MS
-                    && now - drgramHwFaceSeenAt >= DRGRAM_HW_STALE_MS;
-            if (!hwStale) {
-                return;
-            }
             if (drgramSoftBusy
                     || now - drgramSoftLastArmAt < (drgramSoftHadFaces
                             ? DRGRAM_SOFT_MIN_INTERVAL_MS : DRGRAM_SOFT_REACQUIRE_MS)) {
@@ -209,49 +210,90 @@ public class CameraSession {
                     scaleX = probe == null ? 1f : 1f / probe.getWidth();
                     scaleY = probe == null ? 1f : 1f / probe.getHeight();
                 }
-                ArrayList<org.telegram.messenger.DrGramFaceEngine.FaceResult> found =
-                        probe == null ? null : org.telegram.messenger.DrGramFaceEngine.detectBlocking(probe, 1500);
-                if (found == null || found.isEmpty()) {
+                float[] f = new float[8], n = new float[4], m = new float[4], el = new float[4], er = new float[4];
+                int cnt = 0;
+                boolean meshPrecise = false;
+
+                // DrGram Fix 50: MediaPipe 478-point mesh tracking first —
+                // temporal tracking keeps the face centre stable and iris
+                // points give exact eye anchors. null = engine unavailable.
+                if (probe != null) {
+                    org.telegram.messenger.DrGramFaceMeshTracker.TrackResult tr =
+                            org.telegram.messenger.DrGramFaceMeshTracker.track(probe, now);
+                    if (tr != null && tr.count > 0) {
+                        // probe-normalized -> frame-normalized factors.
+                        float mapNX = probe.getWidth() * scaleX;
+                        float mapNY = probe.getHeight() * scaleY;
+                        for (int i = 0; i < tr.count && cnt < 2; i++) {
+                            f[cnt * 4] = originX + tr.faceData[cnt * 4] * mapNX;
+                            f[cnt * 4 + 1] = originY + tr.faceData[cnt * 4 + 1] * mapNY;
+                            f[cnt * 4 + 2] = tr.faceData[cnt * 4 + 2] * mapNX;
+                            f[cnt * 4 + 3] = tr.faceData[cnt * 4 + 3] * mapNY;
+                            n[cnt * 2] = originX + tr.noseData[cnt * 2] * mapNX;
+                            n[cnt * 2 + 1] = originY + tr.noseData[cnt * 2 + 1] * mapNY;
+                            m[cnt * 2] = originX + tr.mouthData[cnt * 2] * mapNX;
+                            m[cnt * 2 + 1] = originY + tr.mouthData[cnt * 2 + 1] * mapNY;
+                            el[cnt * 2] = originX + tr.eyeLData[cnt * 2] * mapNX;
+                            el[cnt * 2 + 1] = originY + tr.eyeLData[cnt * 2 + 1] * mapNY;
+                            er[cnt * 2] = originX + tr.eyeRData[cnt * 2] * mapNX;
+                            er[cnt * 2 + 1] = originY + tr.eyeRData[cnt * 2 + 1] * mapNY;
+                            cnt++;
+                        }
+                        meshPrecise = cnt > 0;
+                    }
+                }
+
+                if (cnt == 0) {
+                    // DrGram Fix 45/46: bundled ML Kit fallback — accurate face
+                    // rects with real nose/eye/mouth landmarks, fully offline.
+                    ArrayList<org.telegram.messenger.DrGramFaceEngine.FaceResult> found =
+                            probe == null ? null : org.telegram.messenger.DrGramFaceEngine.detectBlocking(probe, 1500);
+                    if (found != null && !found.isEmpty()) {
+                        // DrGram Fix 48: stable left-to-right ordering so two-face
+                        // slots can't flip between frames.
+                        java.util.Collections.sort(found, (a, b) -> Float.compare(a.cx, b.cx));
+                        for (int i = 0; i < found.size() && cnt < 2; i++) {
+                            org.telegram.messenger.DrGramFaceEngine.FaceResult r = found.get(i);
+                            if (r == null) continue;
+                            f[cnt * 4] = originX + r.cx * scaleX;
+                            f[cnt * 4 + 1] = originY + r.cy * scaleY;
+                            f[cnt * 4 + 2] = r.halfW * scaleX;
+                            f[cnt * 4 + 3] = r.halfH * scaleY;
+                            n[cnt * 2] = originX + (Float.isNaN(r.noseX) ? r.cx : r.noseX) * scaleX;
+                            n[cnt * 2 + 1] = originY + (Float.isNaN(r.noseY) ? r.cy : r.noseY) * scaleY;
+                            m[cnt * 2] = originX + (Float.isNaN(r.mouthX) ? r.cx : r.mouthX) * scaleX;
+                            m[cnt * 2 + 1] = originY + (Float.isNaN(r.mouthY) ? (r.cy + r.halfH * 0.5f) : r.mouthY) * scaleY;
+                            if (!Float.isNaN(r.leftEyeX)) {
+                                el[cnt * 2] = originX + r.leftEyeX * scaleX;
+                                el[cnt * 2 + 1] = originY + r.leftEyeY * scaleY;
+                            } else {
+                                el[cnt * 2] = originX + (r.cx - r.halfW * 0.27f) * scaleX;
+                                el[cnt * 2 + 1] = originY + (r.cy - r.halfH * 0.20f) * scaleY;
+                            }
+                            if (!Float.isNaN(r.rightEyeX)) {
+                                er[cnt * 2] = originX + r.rightEyeX * scaleX;
+                                er[cnt * 2 + 1] = originY + r.rightEyeY * scaleY;
+                            } else {
+                                er[cnt * 2] = originX + (r.cx + r.halfW * 0.27f) * scaleX;
+                                er[cnt * 2 + 1] = originY + (r.cy - r.halfH * 0.20f) * scaleY;
+                            }
+                            cnt++;
+                        }
+                        meshPrecise = false;
+                    }
+                }
+
+                if (cnt == 0) {
                     drgramSoftCount = 0;
                     drgramSoftHadFaces = false;
                     drgramSoftHasLastCenter = false;
+                    drgramSoftMeshPrecise = false;
                 } else {
-                    // DrGram Fix 48: stable left-to-right ordering so two-face
-                    // slots can't flip between frames.
-                    java.util.Collections.sort(found, (a, b) -> Float.compare(a.cx, b.cx));
-                    float[] f = new float[8], n = new float[4], m = new float[4], el = new float[4], er = new float[4];
-                    int cnt = 0;
-                    for (int i = 0; i < found.size() && cnt < 2; i++) {
-                        org.telegram.messenger.DrGramFaceEngine.FaceResult r = found.get(i);
-                        if (r == null) continue;
-                        f[cnt * 4] = originX + r.cx * scaleX;
-                        f[cnt * 4 + 1] = originY + r.cy * scaleY;
-                        f[cnt * 4 + 2] = r.halfW * scaleX;
-                        f[cnt * 4 + 3] = r.halfH * scaleY;
-                        n[cnt * 2] = originX + (Float.isNaN(r.noseX) ? r.cx : r.noseX) * scaleX;
-                        n[cnt * 2 + 1] = originY + (Float.isNaN(r.noseY) ? r.cy : r.noseY) * scaleY;
-                        m[cnt * 2] = originX + (Float.isNaN(r.mouthX) ? r.cx : r.mouthX) * scaleX;
-                        m[cnt * 2 + 1] = originY + (Float.isNaN(r.mouthY) ? (r.cy + r.halfH * 0.5f) : r.mouthY) * scaleY;
-                        if (!Float.isNaN(r.leftEyeX)) {
-                            el[cnt * 2] = originX + r.leftEyeX * scaleX;
-                            el[cnt * 2 + 1] = originY + r.leftEyeY * scaleY;
-                        } else {
-                            el[cnt * 2] = originX + (r.cx - r.halfW * 0.27f) * scaleX;
-                            el[cnt * 2 + 1] = originY + (r.cy - r.halfH * 0.20f) * scaleY;
-                        }
-                        if (!Float.isNaN(r.rightEyeX)) {
-                            er[cnt * 2] = originX + r.rightEyeX * scaleX;
-                            er[cnt * 2 + 1] = originY + r.rightEyeY * scaleY;
-                        } else {
-                            er[cnt * 2] = originX + (r.cx + r.halfW * 0.27f) * scaleX;
-                            er[cnt * 2 + 1] = originY + (r.cy - r.halfH * 0.20f) * scaleY;
-                        }
-                        cnt++;
-                    }
                     // DrGram Fix 48: outlier gate — a single-face result that
                     // teleports while the previous one is still fresh is almost
                     // always a detector hiccup; keep the old anchors for up to
-                    // 3 consecutive skips, then accept reality.
+                    // 3 consecutive skips, then accept reality. (The mesh
+                    // tracker already smooths, so this stays as a last resort.)
                     if (cnt == 1 && drgramSoftCount == 1 && drgramSoftHasLastCenter
                             && now - drgramSoftAt < DRGRAM_SOFT_OUTLIER_MS
                             && drgramSoftSkipStreak < 3) {
@@ -283,6 +325,7 @@ public class CameraSession {
                     drgramSoftCount = cnt;
                     drgramSoftAt = now;
                     drgramSoftHadFaces = cnt > 0;
+                    drgramSoftMeshPrecise = meshPrecise;
                 }
             } catch (Throwable t) {
                 FileLog.e(t);
@@ -382,6 +425,17 @@ public class CameraSession {
         System.arraycopy(drgramSoftEyeLData, 0, eyeLOut, 0, eyeLOut.length);
         System.arraycopy(drgramSoftEyeRData, 0, eyeROut, 0, eyeROut.length);
         return true;
+    }
+
+    /**
+     * DrGram Fix 50: true when a fresh, mesh-precise (MediaPipe) software
+     * result should LEAD the shader feed instead of the coarse hardware
+     * boxes. Hardware detection keeps the quality it always had; the mesh
+     * simply raises the ceiling whenever it can see a face.
+     */
+    public boolean drgramSoftwarePreferred() {
+        return drgramSoftMeshPrecise && drgramSoftCount > 0
+                && (android.os.SystemClock.elapsedRealtime() - drgramSoftAt) < 400;
     }
 
     // ================= end Fix 46 software face detection =================
