@@ -11799,4 +11799,12 @@
     <string name="DrGramFxPixel">Pixel</string>
     <string name="DrGramFxMirror">Mirror</string>
     <string name="DrGramFxCartoon">Cartoon</string>
+    <string name="DrGramFxSoftGlow">Soft Glow</string>
+    <string name="DrGramFxRose">Rose</string>
+    <string name="DrGramFxHoney">Honey</string>
+    <string name="DrGramFxClean">Clean</string>
+    <string name="DrGramFxLatte">Latte</string>
+    <string name="DrGramFxOcean">Ocean</string>
+    <string name="DrGramFxPeach">Peach</string>
+    <string name="DrGramFxGlam">Glam</string>
 </resources>
