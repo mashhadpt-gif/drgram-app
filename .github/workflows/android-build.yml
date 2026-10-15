@@ -1,0 +1,65 @@
+name: DrGram Android Build
+
+on:
+  push:
+    branches:
+      - drgram-new-version-2026
+  pull_request:
+    branches:
+      - drgram-new-version-2026
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-build-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-universal-apk:
+    name: Build DrGram 5.11 universal APK
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    env:
+      APP_ABIS: armeabi-v7a,arm64-v8a,x86,x86_64
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install Android build tools
+        run: |
+          sdkmanager --install "platforms;android-36" "build-tools;36.0.0" "ndk;27.2.12479018" "cmake;3.22.1"
+          yes | sdkmanager --licenses >/dev/null
+
+      - name: Verify requested version
+        shell: bash
+        run: |
+          grep -q '^APP_VERSION_CODE=52$' gradle.properties
+          grep -q '^APP_VERSION_NAME=5.11$' gradle.properties
+
+      - name: Build universal APK
+        run: ./gradlew --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx5g -XX:MaxMetaspaceSize=1g" -PAPP_ABIS="$APP_ABIS" :TMessagesProj_App:assembleAfatRelease
+
+      - name: Verify APK output
+        shell: bash
+        run: |
+          test -f TMessagesProj_App/build/outputs/apk/afat/release/app.apk
+          ls -lh TMessagesProj_App/build/outputs/apk/afat/release/app.apk
+
+      - name: Upload DrGram 5.11 APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: DrGram-5.11-universal-APK
+          path: TMessagesProj_App/build/outputs/apk/afat/release/app.apk
+          if-no-files-found: error
+          retention-days: 14
