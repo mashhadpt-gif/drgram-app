@@ -40,10 +40,16 @@ public class DrGramPhotoBeautify {
      * fall back to blurring the entire frame.
      */
     public static Bitmap process(Bitmap bitmap, Camera.Face[] cameraFaces, float strength, float nose, float teeth) {
+        return process(bitmap, cameraFaces, strength, nose, teeth, 0);
+    }
+
+    /** Applies face beauty (when detectable) and a whole-frame FX to a still photo. */
+    public static Bitmap process(Bitmap bitmap, Camera.Face[] cameraFaces, float strength, float nose, float teeth, int fxId) {
         if (bitmap == null || bitmap.isRecycled() || bitmap.getConfig() == null) {
             return bitmap;
         }
-        if (strength <= 0.001f && nose <= 0.001f && teeth <= 0.001f) {
+        fxId = Math.max(0, Math.min(12, fxId));
+        if (strength <= 0.001f && nose <= 0.001f && teeth <= 0.001f && fxId == 0) {
             return bitmap;
         }
         try {
@@ -59,15 +65,9 @@ public class DrGramPhotoBeautify {
                 faces = detectFacesFallback(px, W, H);
             }
 
-            // Never apply a whole-frame blur when face detection fails. The
-            // previous fallback softened hair, eyes, clothes and background,
-            // producing a visibly smeared photo. Fail closed instead: keep the
-            // original pixels unless we can localize a face safely.
-            if (faces.isEmpty()) {
-                return bitmap;
-            }
-
-            if (strength > 0.001f) {
+            // If face detection fails, skip face-only retouching but still
+            // apply whole-frame color FX requested by the user.
+            if (!faces.isEmpty() && strength > 0.001f) {
                 smoothSkin(px, W, H, faces, strength);
             }
             if (nose > 0.001f && !faces.isEmpty()) {
@@ -79,6 +79,7 @@ public class DrGramPhotoBeautify {
             if (strength > 0.001f && !faces.isEmpty()) {
                 faceGlow(px, W, H, faces, strength);
             }
+            if (fxId > 0) applyCameraFx(px, W, H, fxId);
 
             bitmap.setPixels(px, 0, W, 0, 0, W, H);
         } catch (Throwable t) {
@@ -371,6 +372,68 @@ public class DrGramPhotoBeautify {
                 }
             }
         }
+    }
+
+
+    /** Still-photo counterpart to the live camera color filters. */
+    private static void applyCameraFx(int[] px, int W, int H, int fxId) {
+        if (fxId == 11) {
+            for (int y=0; y<H; y++) {
+                int l=y*W, r=l+W-1;
+                while (l<r) { int t=px[l]; px[l]=px[r]; px[r]=t; l++; r--; }
+            }
+            return;
+        }
+        if (fxId == 10 || fxId == 12) {
+            int block = fxId == 10 ? Math.max(5, Math.min(24, Math.min(W,H)/90)) : 1;
+            if (fxId == 10) {
+                for (int y=0; y<H; y+=block) for (int x=0; x<W; x+=block) {
+                    int c=px[y*W+x];
+                    for (int yy=y; yy<Math.min(H,y+block); yy++)
+                        for (int xx=x; xx<Math.min(W,x+block); xx++) px[yy*W+xx]=c;
+                }
+            } else {
+                for (int i=0; i<px.length; i++) {
+                    int c=px[i], r=(c>>16)&255, g=(c>>8)&255, b=c&255;
+                    r=Math.min(255,((r+21)/43)*43); g=Math.min(255,((g+21)/43)*43); b=Math.min(255,((b+21)/43)*43);
+                    px[i]=(c&0xFF000000)|(r<<16)|(g<<8)|b;
+                }
+            }
+            return;
+        }
+        int[] source = fxId == 9 ? px.clone() : null;
+        for (int y=0; y<H; y++) for (int x=0; x<W; x++) {
+            int idx=y*W+x, c=source==null?px[idx]:source[idx];
+            int a=(c>>>24)&255, r=(c>>16)&255, g=(c>>8)&255, b=c&255;
+            float lum=0.299f*r+0.587f*g+0.114f*b;
+            switch(fxId) {
+                case 1: r=clamp255((int)(r*1.10f+10)); g=clamp255((int)(g*.98f+2)); b=clamp255((int)(b*.86f-2)); break;
+                case 2: r=clamp255((int)(r*.90f)); b=clamp255((int)(b*1.12f+4)); break;
+                case 3: r=clamp255((int)(r*.82f+38)); g=clamp255((int)(g*.82f+36)); b=clamp255((int)(b*.82f+42)); break;
+                case 4: {
+                    int nr=clamp255((int)(.393f*r+.769f*g+.189f*b));
+                    int ng=clamp255((int)(.349f*r+.686f*g+.168f*b));
+                    int nb=clamp255((int)(.272f*r+.534f*g+.131f*b));
+                    r=(int)(r*.38f+nr*.62f); g=(int)(g*.38f+ng*.62f); b=(int)(b*.38f+nb*.62f);
+                    float nx=(x-W*.5f)/(W*.5f), ny=(y-H*.5f)/(H*.5f), v=Math.max(.60f,1f-.22f*(nx*nx+ny*ny));
+                    r=(int)(r*v); g=(int)(g*v); b=(int)(b*v); break;
+                }
+                case 5: r=clamp255((int)(r*1.08f+8)); g=clamp255((int)(g*.96f)); b=clamp255((int)(b*1.04f+5)); break;
+                case 6: r=g=b=clamp255((int)((lum-128f)*1.35f+128f)); break;
+                case 7: r=clamp255((int)(r*1.04f+10)); g=clamp255((int)(g*1.03f+9)); b=clamp255((int)(b*1.04f+10)); break;
+                case 8: { float avg=(r+g+b)/3f; r=clamp255((int)(avg+(r-avg)*1.65f+4)); g=clamp255((int)(avg+(g-avg)*1.65f+2)); b=clamp255((int)(avg+(b-avg)*1.65f+8)); break; }
+                case 9: {
+                    int cr=source[y*W+Math.max(0,Math.min(W-1,x+3))], cb=source[y*W+Math.max(0,Math.min(W-1,x-3))];
+                    r=(cr>>16)&255; b=cb&255; break;
+                }
+                default: break;
+            }
+            px[idx]=(a<<24)|(clamp255(r)<<16)|(clamp255(g)<<8)|clamp255(b);
+        }
+    }
+
+    private static int clamp255(int value) {
+        return Math.max(0, Math.min(255, value));
     }
 
     //endregion
