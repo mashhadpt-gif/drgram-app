@@ -13,6 +13,7 @@ import android.view.WindowManager;
 
 import org.telegram.messenger.AndroidUtilities;
 import org.telegram.messenger.ApplicationLoader;
+import org.telegram.messenger.DrGramCallBeautyFX;
 import org.telegram.messenger.FileLog;
 import org.webrtc.Camera1Enumerator;
 import org.webrtc.Camera2Enumerator;
@@ -48,6 +49,7 @@ public class VideoCapturerDevice {
 
     private static VideoCapturerDevice[] instance = new VideoCapturerDevice[2];
     private CapturerObserver nativeCapturerObserver;
+    private DrGramCallBeautyFX beautyObserver;
 
     public VideoCapturerDevice(boolean screencast) {
         if (Build.VERSION.SDK_INT < 18) {
@@ -232,7 +234,11 @@ public class VideoCapturerDevice {
                             return;
                         }
                         nativeCapturerObserver = nativeGetJavaVideoCapturerObserver(nativePtr);
-                        videoCapturer.initialize(videoCapturerSurfaceTextureHelper, ApplicationLoader.applicationContext, nativeCapturerObserver);
+                        // DrGram Fix 49: live / video-call beauty — GL processor between
+                        // the capturer and the native source. Pure passthrough while off.
+                        DrGramCallBeautyFX beautyFX = new DrGramCallBeautyFX(nativeCapturerObserver);
+                        beautyObserver = beautyFX;
+                        videoCapturer.initialize(videoCapturerSurfaceTextureHelper, ApplicationLoader.applicationContext, beautyFX);
                         FileLog.d("VideoCapturerDevice init(" + ptr + "): videoCapturer.startCapture CAMERA");
                         videoCapturer.startCapture(CAPTURE_WIDTH, CAPTURE_HEIGHT, CAPTURE_FPS);
                     });
@@ -336,6 +342,12 @@ public class VideoCapturerDevice {
                 }
             }
             handler.post(() -> {
+                if (beautyObserver != null) {
+                    try {
+                        beautyObserver.release();
+                    } catch (Exception ignore) {}
+                    beautyObserver = null;
+                }
                 if (videoCapturer instanceof ScreenCapturerAndroid) {
                     WebRtcAudioRecord audioRecord = WebRtcAudioRecord.Instance;
                     if (audioRecord != null) {

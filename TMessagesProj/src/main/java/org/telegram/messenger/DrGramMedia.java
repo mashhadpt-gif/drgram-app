@@ -429,4 +429,58 @@ public class DrGramMedia {
     }
 
     //endregion
+
+    //region DrGram Fix 49: live & video-call beauty engine
+
+    public static final int CALL_BEAUTY_OFF = 0;
+    public static final int CALL_BEAUTY_LIGHT = 1;
+    public static final int CALL_BEAUTY_STRONG = 2;
+
+    /** Live stream / video call beauty level: 0 = off, 1 = light, 2 = strong. */
+    public static int callBeautyLevel() {
+        try {
+            int v = prefs().getInt("call_beauty_level", CALL_BEAUTY_OFF);
+            if (v < CALL_BEAUTY_OFF) v = CALL_BEAUTY_OFF;
+            if (v > CALL_BEAUTY_STRONG) v = CALL_BEAUTY_STRONG;
+            return v;
+        } catch (Exception e) {
+            return CALL_BEAUTY_OFF;
+        }
+    }
+
+    public static void setCallBeautyLevel(int level) {
+        prefs().edit().putInt("call_beauty_level", level).apply();
+    }
+
+    //endregion
+
+    //region DrGram Fix 49: story quality & camera grid
+
+    /** HD story upload: higher bitrate (6 Mbps) and 1080p photo-to-video conversion. */
+    public static boolean storyHd() {
+        try {
+            return prefs().getBoolean("story_hd", false);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public static void setStoryHd(boolean value) {
+        prefs().edit().putBoolean("story_hd", value).apply();
+    }
+
+    /** 3x3 composition grid over the story camera. */
+    public static boolean storyGrid() {
+        try {
+            return prefs().getBoolean("story_grid", false);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    public static void setStoryGrid(boolean value) {
+        prefs().edit().putBoolean("story_grid", value).apply();
+    }
+
+    //endregion
 }

@@ -919,6 +919,47 @@ public class DrGramToolsActivity extends BaseFragment {
         });
         addSectionRow(portraitRow);
 
+        // DrGram Fix 49: live / video-call beauty level (off -> light -> strong)
+        TextView callBeautyValue = new TextView(context);
+        callBeautyValue.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
+        callBeautyValue.setTextColor(0xFFF5C242);
+        LinearLayout callBeautyRow = makeRow(context, LocaleController.getString(R.string.DrGramCallBeautyTitle), callBeautyValue);
+        Runnable updateCallBeauty = () -> {
+            int lvl = DrGramMedia.callBeautyLevel();
+            callBeautyValue.setText(LocaleController.getString(
+                lvl == DrGramMedia.CALL_BEAUTY_STRONG ? R.string.DrGramCallBeautyStrong
+                : lvl == DrGramMedia.CALL_BEAUTY_LIGHT ? R.string.DrGramCallBeautyLight
+                : R.string.DrGramCallBeautyOff));
+        };
+        updateCallBeauty.run();
+        callBeautyRow.setOnClickListener(v -> {
+            DrGramMedia.setCallBeautyLevel((DrGramMedia.callBeautyLevel() + 1) % (DrGramMedia.CALL_BEAUTY_STRONG + 1));
+            updateCallBeauty.run();
+        });
+        addSectionRow(callBeautyRow);
+
+        // DrGram Fix 49: HD stories — 1080p photo stories + 6 Mbps video ceiling
+        Switch storyHdSwitch = new Switch(context);
+        storyHdSwitch.setChecked(DrGramMedia.storyHd(), false);
+        LinearLayout storyHdRow = makeRow(context, LocaleController.getString(R.string.DrGramStoryHd), storyHdSwitch);
+        storyHdRow.setOnClickListener(v -> {
+            boolean newState = !DrGramMedia.storyHd();
+            DrGramMedia.setStoryHd(newState);
+            storyHdSwitch.setChecked(newState, false);
+        });
+        addSectionRow(storyHdRow);
+
+        // DrGram Fix 49: story camera composition grid
+        Switch storyGridSwitch = new Switch(context);
+        storyGridSwitch.setChecked(DrGramMedia.storyGrid(), false);
+        LinearLayout storyGridRow = makeRow(context, LocaleController.getString(R.string.DrGramStoryGrid), storyGridSwitch);
+        storyGridRow.setOnClickListener(v -> {
+            boolean newState = !DrGramMedia.storyGrid();
+            DrGramMedia.setStoryGrid(newState);
+            storyGridSwitch.setChecked(newState, false);
+        });
+        addSectionRow(storyGridRow);
+
         drawSendSwitch = new Switch(context);
         drawSendSwitch.setChecked(DrGramMedia.isDrawSendEnabled(), false);
         LinearLayout drawRow = makeRow(context, LocaleController.getString(R.string.DrGramDrawToggle), drawSendSwitch);

@@ -2175,6 +2175,29 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
             updateActionBarButtons(true);
         });
         previewContainer.addView(collageLayoutView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.FILL));
+
+        // DrGram Fix 49: 3x3 composition grid over the story camera
+        gridOverlay = new View(context) {
+            private final android.graphics.Paint gridPaint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+
+            @Override
+            protected void onDraw(android.graphics.Canvas canvas) {
+                gridPaint.setColor(0x4DFFFFFF);
+                gridPaint.setStrokeWidth(AndroidUtilities.dp(1));
+                int w = getWidth();
+                int h = getHeight();
+                for (int i = 1; i <= 2; i++) {
+                    float x = w * i / 3f;
+                    float y = h * i / 3f;
+                    canvas.drawLine(x, 0, x, h, gridPaint);
+                    canvas.drawLine(0, y, w, y, gridPaint);
+                }
+            }
+        };
+        gridOverlay.setClickable(false);
+        gridOverlay.setFocusable(false);
+        gridOverlay.setVisibility(org.telegram.messenger.DrGramMedia.storyGrid() ? View.VISIBLE : View.GONE);
+        previewContainer.addView(gridOverlay, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.FILL));
         collageLayoutView.setOnClickListener(v -> {
             if (noCameraPermission) {
                 requestCameraPermission(true);
@@ -3390,11 +3413,12 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
 
                             if (call != null) {
                                 if (LivePlayer.recording != null) {
+                                    // DrGram Fix 49: read the call id BEFORE the
+                                    // recording is destroyed and nulled (NPE fix)
+                                    long previousCallId = LivePlayer.recording.getCallId();
                                     LivePlayer.recording.destroy();
-                                    if (LivePlayer.recording != null) {
-                                        LivePlayer.recording = null;
-                                        NotificationCenter.getInstance(currentAccount).postNotificationName(NotificationCenter.liveStoryUpdated, LivePlayer.recording.getCallId());
-                                    }
+                                    LivePlayer.recording = null;
+                                    NotificationCenter.getInstance(currentAccount).postNotificationName(NotificationCenter.liveStoryUpdated, previousCallId);
                                 }
 
                                 final TL_stories.StoryItem finalStoryItem = storyItem;
@@ -3838,6 +3862,7 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
     };
 
     private android.widget.HorizontalScrollView fxStrip;
+    private android.view.View gridOverlay;
     private final java.util.ArrayList<TextView> fxChips = new java.util.ArrayList<>();
 
     /**
@@ -4152,6 +4177,33 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
         portraitLp.rightMargin = AndroidUtilities.dp(8);
         row.addView(portraitChip, portraitLp);
 
+        // DrGram Fix 49: composition grid chip — rule-of-thirds overlay on the camera
+        TextView gridChip = new TextView(context);
+        gridChip.setText("\u25A4 \u06AF\u0631\u06CC\u062F");
+        gridChip.setTextSize(13);
+        gridChip.setTypeface(AndroidUtilities.bold());
+        gridChip.setPadding(AndroidUtilities.dp(14), 0, AndroidUtilities.dp(14), 0);
+        gridChip.setGravity(Gravity.CENTER);
+        gridChip.setTextColor(0xFFFFFFFF);
+        GradientDrawable gridBg = new GradientDrawable();
+        gridBg.setCornerRadius(AndroidUtilities.dp(18));
+        gridBg.setColor(org.telegram.messenger.DrGramMedia.storyGrid() ? 0xCC2F9E6E : 0x66333333);
+        gridChip.setBackground(gridBg);
+        gridChip.setOnClickListener(v -> {
+            boolean on = !org.telegram.messenger.DrGramMedia.storyGrid();
+            org.telegram.messenger.DrGramMedia.setStoryGrid(on);
+            gridBg.setColor(on ? 0xCC2F9E6E : 0x66333333);
+            gridChip.invalidate();
+            if (gridOverlay != null) {
+                gridOverlay.setVisibility(on && currentPage == PAGE_CAMERA ? View.VISIBLE : View.GONE);
+            }
+            BulletinFactory.of(captionContainer, resourcesProvider).createSimpleBulletin(R.raw.chats_infotip,
+                on ? "\u0634\u0628\u06a9\u0647 \u0686\u0647\u0631\u0647\u200c\u0628\u0646\u062f\u06cc \u0631\u0648\u0634\u0646 \u0634\u062f" : "\u0634\u0628\u06a9\u0647 \u0686\u0647\u0631\u0647\u200c\u0628\u0646\u062f\u06cc \u062e\u0627\u0645\u0648\u0634 \u0634\u062f").show();
+        });
+        LinearLayout.LayoutParams gridLp = new LinearLayout.LayoutParams(LayoutHelper.WRAP_CONTENT, AndroidUtilities.dp(32));
+        gridLp.rightMargin = AndroidUtilities.dp(8);
+        row.addView(gridChip, gridLp);
+
         int current = org.telegram.messenger.DrGramMedia.cameraFx();
         for (int k = 0; k < FX_IDS.length; k++) {
             final int fxId = FX_IDS[k];
@@ -4214,6 +4266,10 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
         }).start();
         if (show) {
             fxStrip.setVisibility(View.VISIBLE);
+        }
+        // DrGram Fix 49: keep the composition grid in sync with the camera page
+        if (gridOverlay != null) {
+            gridOverlay.setVisibility(show && org.telegram.messenger.DrGramMedia.storyGrid() ? View.VISIBLE : View.GONE);
         }
     }
 

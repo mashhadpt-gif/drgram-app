@@ -433,6 +433,12 @@
     <string name="DrGramVoiceGiant">غول‌پیکر</string>
     <string name="DrGramStoryHandsFree">ضبط استوری دست‌آزاد (با یک لمس شروع/پایان)</string>
     <string name="DrGramStoryPortrait">حالت پرتره: محوکردن پس‌زمینه استوری</string>
+    <string name="DrGramCallBeautyTitle">زیبایی در لایو و تماس تصویری</string>
+    <string name="DrGramCallBeautyOff">خاموش</string>
+    <string name="DrGramCallBeautyLight">ملایم</string>
+    <string name="DrGramCallBeautyStrong">قوی</string>
+    <string name="DrGramStoryHd">استوری HD (۱۰۸۰p، ۶ مگابیت)</string>
+    <string name="DrGramStoryGrid">شبکه چهره‌بندی دوربین استوری</string>
     <string name="DrGramStoryGradient">پس‌زمینه متحرک استوری</string>
     <string name="DrGramDrawToggle">دکمه رسم و ارسال</string>
     <string name="DrGramDrawSend">رسم و ارسال</string>

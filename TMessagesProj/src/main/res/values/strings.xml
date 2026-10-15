@@ -11419,6 +11419,12 @@
     <string name="DrGramVoiceGiant">Giant</string>
     <string name="DrGramStoryHandsFree">Hands-free story recording (tap to start/stop)</string>
     <string name="DrGramStoryPortrait">Portrait mode: blur story background</string>
+    <string name="DrGramCallBeautyTitle">Beauty in live &amp; video calls</string>
+    <string name="DrGramCallBeautyOff">Off</string>
+    <string name="DrGramCallBeautyLight">Light</string>
+    <string name="DrGramCallBeautyStrong">Strong</string>
+    <string name="DrGramStoryHd">HD stories (1080p, 6 Mbps)</string>
+    <string name="DrGramStoryGrid">Composition grid in story camera</string>
     <string name="DrGramStoryGradient">Animated story background</string>
     <string name="DrGramDrawToggle">Draw &amp; send button</string>
     <string name="DrGramDrawSend">Draw &amp; send</string>
