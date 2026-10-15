@@ -33,6 +33,7 @@ public class DrGramPhotoBeautify {
         float cx, cy, halfW, halfH; // pixels
         float noseX, noseY, mouthX, mouthY;
         float noseRadiusX, noseRadiusY, mouthHalfW, mouthHalfH;
+        float eyeLX, eyeLY, eyeRX, eyeRY; // DrGram Fix 47: eye anchors for under-eye work
         boolean hasPreciseLandmarks;
     }
 
@@ -60,6 +61,15 @@ public class DrGramPhotoBeautify {
      * (blush / lip tint / skin brightening), all 0..1, zero = off.
      */
     public static Bitmap process(Bitmap bitmap, Camera.Face[] cameraFaces, float strength, float nose, float teeth, int fxId, float eyes, float jaw, float blush, float lips, float bright) {
+        return process(bitmap, cameraFaces, strength, nose, teeth, fxId, eyes, jaw, blush, lips, bright, 0f, 0f);
+    }
+
+    /**
+     * DrGram Fix 47: complete pipeline — adds under-eye brightening (dark
+     * circles) and mid-face cheek slimming on top of the Fix 46 suite.
+     * All intensities 0..1, zero = off.
+     */
+    public static Bitmap process(Bitmap bitmap, Camera.Face[] cameraFaces, float strength, float nose, float teeth, int fxId, float eyes, float jaw, float blush, float lips, float bright, float dark, float slim) {
         if (bitmap == null || bitmap.isRecycled() || bitmap.getConfig() == null) {
             return bitmap;
         }
@@ -69,8 +79,10 @@ public class DrGramPhotoBeautify {
         blush = clamp01(blush);
         lips = clamp01(lips);
         bright = clamp01(bright);
+        dark = clamp01(dark);
+        slim = clamp01(slim);
         if (strength <= 0.001f && nose <= 0.001f && teeth <= 0.001f && eyes <= 0.001f && jaw <= 0.001f
-                && blush <= 0.001f && lips <= 0.001f && bright <= 0.001f && fxId == 0) {
+                && blush <= 0.001f && lips <= 0.001f && bright <= 0.001f && dark <= 0.001f && slim <= 0.001f && fxId == 0) {
             return bitmap;
         }
         try {
@@ -87,9 +99,9 @@ public class DrGramPhotoBeautify {
             }
 
             // Geometry edits use a source copy so sampling never feeds on already warped pixels.
-            if (!faces.isEmpty() && (eyes > 0.001f || jaw > 0.001f) && (long) W * H <= 8_000_000L) {
+            if (!faces.isEmpty() && (eyes > 0.001f || jaw > 0.001f || slim > 0.001f) && (long) W * H <= 8_000_000L) {
                 // Keep the extra source copy bounded on high-resolution phones.
-                warpFaceShape(px, W, H, faces, eyes, jaw);
+                warpFaceShape(px, W, H, faces, eyes, jaw, slim); // DrGram Fix 47: slim
             }
 
             // If face detection fails, skip face-only retouching but still
@@ -105,6 +117,9 @@ public class DrGramPhotoBeautify {
             }
             if (bright > 0.001f && !faces.isEmpty()) {
                 brightenSkin(px, W, H, faces, bright); // DrGram Fix 46
+            }
+            if (dark > 0.001f && !faces.isEmpty()) {
+                brightenUnderEyes(px, W, H, faces, dark); // DrGram Fix 47
             }
             if (strength > 0.001f && !faces.isEmpty()) {
                 faceGlow(px, W, H, faces, strength);
@@ -124,7 +139,8 @@ public class DrGramPhotoBeautify {
         return bitmap;
     }
 
-    private static void warpFaceShape(int[] px, int W, int H, ArrayList<FaceBox> faces, float eyes, float jaw) {
+    /** DrGram Fix 47: slim band added; eyes/jaw keep the Fix 46 behaviour. */
+    private static void warpFaceShape(int[] px, int W, int H, ArrayList<FaceBox> faces, float eyes, float jaw, float slim) {
         int[] source = px.clone();
         for (int y = 0; y < H; y++) {
             for (int x = 0; x < W; x++) {
@@ -139,8 +155,8 @@ public class DrGramPhotoBeautify {
 
                     if (eyes > 0.001f) {
                         for (int side = -1; side <= 1; side += 2) {
-                            float ex = face.cx + side * hw * 0.43f;
-                            float ey = face.cy - hh * 0.22f;
+                            float ex = side < 0 ? face.eyeLX : face.eyeRX;
+                            float ey = side < 0 ? face.eyeLY : face.eyeRY;
                             float qx = (sx - ex) / Math.max(1f, hw * 0.24f);
                             float qy = (sy - ey) / Math.max(1f, hh * 0.13f);
                             float d = qx * qx + qy * qy;
@@ -158,6 +174,16 @@ public class DrGramPhotoBeautify {
                         float fall = 1f - smoothBeauty(0.82f, 1.08f, vertical);
                         float lateral = 1f - smoothBeauty(hw * 0.48f, hw * 0.98f, Math.abs(dx));
                         float amount = jaw * 0.10f * rise * fall * lateral;
+                        sx = face.cx + (sx - face.cx) / Math.max(0.84f, 1f - amount);
+                    }
+                    // DrGram Fix 47: cheek slimming — mirrors the shader band:
+                    // mid-face horizontal narrowing that fades before the eye
+                    // line and at the mouth so features stay untouched.
+                    if (slim > 0.001f) {
+                        float ty = (y - face.cy) / Math.max(1f, hh);
+                        float band = smoothBeauty(-0.18f, 0.04f, ty) * (1f - smoothBeauty(0.34f, 0.58f, ty));
+                        float lateral = 1f - smoothBeauty(hw * 0.44f, hw * 0.96f, Math.abs(dx));
+                        float amount = slim * 0.10f * band * lateral;
                         sx = face.cx + (sx - face.cx) / Math.max(0.84f, 1f - amount);
                     }
                 }
@@ -217,6 +243,10 @@ public class DrGramPhotoBeautify {
                 b.mouthX = b.cx;                b.mouthY = b.cy + b.halfH * 0.55f;
                 b.noseRadiusX = b.halfW * 0.18f; b.noseRadiusY = b.halfH * 0.16f;
                 b.mouthHalfW = b.halfW * 0.28f; b.mouthHalfH = b.halfH * 0.09f;
+                // DrGram Fix 47: geometric eye estimate is the default; real
+                // hardware landmarks below replace it when the camera supplies them.
+                b.eyeLX = b.cx - b.halfW * 0.27f; b.eyeLY = b.cy - b.halfH * 0.20f;
+                b.eyeRX = b.cx + b.halfW * 0.27f; b.eyeRY = b.cy - b.halfH * 0.20f;
                 // Use hardware landmarks for the still-photo path too, when provided.
                 try {
                     android.graphics.Point leftEye = f.leftEye;
@@ -231,6 +261,11 @@ public class DrGramPhotoBeautify {
                         b.noseRadiusX = Math.max(2f, eyeDistance * 0.19f);
                         b.noseRadiusY = Math.max(2f, eyeDistance * 0.16f * H / Math.max(1f, W));
                         b.hasPreciseLandmarks = true;
+                        // DrGram Fix 47: real hardware eye anchors.
+                        b.eyeLX = (leftEye.x + 1000f) / 2000f * W;
+                        b.eyeLY = (leftEye.y + 1000f) / 2000f * H;
+                        b.eyeRX = (rightEye.x + 1000f) / 2000f * W;
+                        b.eyeRY = (rightEye.y + 1000f) / 2000f * H;
                     }
                     if (mouth != null) {
                         b.mouthX = (mouth.x + 1000f) / 2000f * W;
@@ -325,7 +360,9 @@ public class DrGramPhotoBeautify {
                 b.noseRadiusY = Math.max(2f, b.halfH * 0.13f);
                 b.mouthHalfW = Math.max(2f, b.halfW * 0.25f);
                 b.mouthHalfH = Math.max(2f, b.halfH * 0.07f);
-
+                // DrGram Fix 47: geometric eye estimate; GMS landmarks replace it below.
+                b.eyeLX = b.cx - b.halfW * 0.27f; b.eyeLY = b.cy - b.halfH * 0.20f;
+                b.eyeRX = b.cx + b.halfW * 0.27f; b.eyeRY = b.cy - b.halfH * 0.20f;
                 float leftEyeX = Float.NaN, rightEyeX = Float.NaN, eyeY = Float.NaN;
                 float noseLandmarkX = Float.NaN, noseLandmarkY = Float.NaN;
                 float mouthLeftX = Float.NaN, mouthRightX = Float.NaN, mouthLandmarkY = Float.NaN;
@@ -365,6 +402,11 @@ public class DrGramPhotoBeautify {
                     b.mouthY = Float.isNaN(mouthLandmarkY) ? b.mouthY : mouthLandmarkY;
                     b.hasPreciseLandmarks = true;
                 }
+                // DrGram Fix 47: real GMS eye landmarks for under-eye work.
+                if (!Float.isNaN(leftEyeX) && !Float.isNaN(rightEyeX) && !Float.isNaN(eyeY)) {
+                    b.eyeLX = leftEyeX; b.eyeLY = eyeY;
+                    b.eyeRX = rightEyeX; b.eyeRY = eyeY;
+                }
                 list.add(b);
             }
         } catch (Throwable t) {
@@ -400,11 +442,19 @@ public class DrGramPhotoBeautify {
                 b.noseY = Float.isNaN(f.noseY) ? b.cy + b.halfH * 0.08f : f.noseY * invScaleY;
                 b.mouthX = Float.isNaN(f.mouthX) ? b.cx : f.mouthX * invScaleX;
                 b.mouthY = Float.isNaN(f.mouthY) ? b.cy + b.halfH * 0.48f : f.mouthY * invScaleY;
+                // DrGram Fix 47: geometric eye estimate; ML Kit landmarks replace it below.
+                b.eyeLX = b.cx - b.halfW * 0.27f; b.eyeLY = b.cy - b.halfH * 0.20f;
+                b.eyeRX = b.cx + b.halfW * 0.27f; b.eyeRY = b.cy - b.halfH * 0.20f;
                 if (!Float.isNaN(f.leftEyeX) && !Float.isNaN(f.rightEyeX)) {
                     float eyeDistance = Math.abs(f.rightEyeX - f.leftEyeX) * invScaleX;
                     b.noseRadiusX = Math.max(2f, eyeDistance * 0.16f);
                     b.noseRadiusY = Math.max(2f, eyeDistance * 0.15f);
                     b.hasPreciseLandmarks = true;
+                    // DrGram Fix 47: real ML Kit eye anchors.
+                    b.eyeLX = f.leftEyeX * invScaleX;
+                    b.eyeLY = f.leftEyeY * invScaleY;
+                    b.eyeRX = f.rightEyeX * invScaleX;
+                    b.eyeRY = f.rightEyeY * invScaleY;
                 } else {
                     b.noseRadiusX = Math.max(2f, b.halfW * 0.15f);
                     b.noseRadiusY = Math.max(2f, b.halfH * 0.13f);
@@ -455,6 +505,8 @@ public class DrGramPhotoBeautify {
                 b.mouthX = b.cx; b.mouthY = b.cy + b.halfH * 0.48f;
                 b.noseRadiusX = b.halfW * 0.15f; b.noseRadiusY = b.halfH * 0.13f;
                 b.mouthHalfW = b.halfW * 0.25f; b.mouthHalfH = b.halfH * 0.07f;
+                b.eyeLX = b.cx - b.halfW * 0.27f; b.eyeLY = b.cy - b.halfH * 0.20f; // DrGram Fix 47
+                b.eyeRX = b.cx + b.halfW * 0.27f; b.eyeRY = b.cy - b.halfH * 0.20f; // DrGram Fix 47
                 list.add(b);
             }
         } catch (Throwable t) {
@@ -808,6 +860,55 @@ public class DrGramPhotoBeautify {
                     int ng = clamp255((int) (g + add * w * 0.985f));
                     int nb = clamp255((int) (b + add * w * 0.94f));
                     px[idx] = 0xFF000000 | (nr << 16) | (ng << 8) | nb;
+                }
+            }
+        }
+    }
+
+    /**
+     * DrGram Fix 47: under-eye (dark circle) brightening for still photos.
+     * Mirrors the shader pass — a soft ellipse under each eye anchor lifts
+     * only the darker pixels toward the surrounding skin tone, so the eye
+     * itself, lashes and highlights stay untouched.
+     */
+    private static void brightenUnderEyes(int[] px, int W, int H, ArrayList<FaceBox> faces, float dark) {
+        for (FaceBox face : faces) {
+            float hw = Math.min(Math.abs(face.halfW), W * 0.24f);
+            float hh = Math.min(Math.abs(face.halfH), H * 0.30f);
+            if (hw < 4f || hh < 4f) continue;
+            float rx = Math.max(2f, hw * 0.17f);
+            float ry = Math.max(2f, hh * 0.075f);
+            float[][] anchors = {
+                    {face.eyeLX, face.eyeLY + hh * 0.085f},
+                    {face.eyeRX, face.eyeRY + hh * 0.085f}
+            };
+            for (float[] a : anchors) {
+                float cx = a[0], cy = a[1];
+                if (Float.isNaN(cx) || Float.isNaN(cy)) continue;
+                int x0 = Math.max(0, (int) (cx - rx)), x1 = Math.min(W - 1, (int) (cx + rx));
+                int y0 = Math.max(0, (int) (cy - ry)), y1 = Math.min(H - 1, (int) (cy + ry));
+                for (int y = y0; y <= y1; y++) {
+                    float dy = (y - cy) / ry;
+                    for (int x = x0; x <= x1; x++) {
+                        float dx = (x - cx) / rx;
+                        float edge = 1f - dx * dx - dy * dy;
+                        if (edge <= 0f) continue;
+                        float falloff = 1f - smoothBeauty(0.55f, 1.35f, (float) Math.sqrt(dx * dx + dy * dy));
+                        if (falloff <= 0f) continue;
+                        int idx = y * W + x, c = px[idx];
+                        float r = ((c >> 16) & 255) / 255f;
+                        float g = ((c >> 8) & 255) / 255f;
+                        float b = (c & 255) / 255f;
+                        float lum = r * 0.299f + g * 0.587f + b * 0.114f;
+                        // Only the darker half-moon: bright pixels stay as they are.
+                        float isDark = 1f - smoothBeauty(0.18f, 0.52f, lum);
+                        if (isDark <= 0f) continue;
+                        float k = dark * falloff * isDark * 0.55f;
+                        int nr = (int) (((c >> 16) & 255) + 255f * 0.075f * k);
+                        int ng = (int) (((c >> 8) & 255) + 255f * 0.066f * k);
+                        int nb = (int) ((c & 255) + 255f * 0.060f * k);
+                        px[idx] = (c & 0xFF000000) | (clamp255(nr) << 16) | (clamp255(ng) << 8) | clamp255(nb);
+                    }
                 }
             }
         }

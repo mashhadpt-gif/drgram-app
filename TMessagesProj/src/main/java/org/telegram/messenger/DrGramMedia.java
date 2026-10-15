@@ -236,6 +236,44 @@ public class DrGramMedia {
         return isBeautifyEnabled() ? beautifyBright() : 0f;
     }
 
+    // DrGram Fix 47: under-eye brightening (dark circles)
+
+    /** Dark-circle brightening intensity 0..1 (default off for a natural look). */
+    public static float beautifyDark() {
+        try {
+            return clampBeauty(prefs().getFloat("camera_beautify_dark", 0f));
+        } catch (Throwable t) {
+            return 0f;
+        }
+    }
+
+    public static void setBeautifyDark(float value) {
+        prefs().edit().putFloat("camera_beautify_dark", clampBeauty(value)).apply();
+    }
+
+    public static float beautifyDarkUniform() {
+        return isBeautifyEnabled() ? beautifyDark() : 0f;
+    }
+
+    // DrGram Fix 47: mid-face (cheek) slimming
+
+    /** Cheek slimming intensity 0..1 (default off for a natural look). */
+    public static float beautifySlim() {
+        try {
+            return clampBeauty(prefs().getFloat("camera_beautify_slim", 0f));
+        } catch (Throwable t) {
+            return 0f;
+        }
+    }
+
+    public static void setBeautifySlim(float value) {
+        prefs().edit().putFloat("camera_beautify_slim", clampBeauty(value)).apply();
+    }
+
+    public static float beautifySlimUniform() {
+        return isBeautifyEnabled() ? beautifySlim() : 0f;
+    }
+
     private static float clampBeauty(float value) {
         if (Float.isNaN(value) || Float.isInfinite(value)) {
             return 0f;
@@ -295,6 +333,8 @@ public class DrGramMedia {
                 .putFloat("preset_blush", beautifyBlush())
                 .putFloat("preset_lips", beautifyLips())
                 .putFloat("preset_bright", beautifyBright())
+                .putFloat("preset_dark", beautifyDark()) // DrGram Fix 47
+                .putFloat("preset_slim", beautifySlim()) // DrGram Fix 47
                 .putInt("preset_fx", cameraFx())
                 .apply();
     }
@@ -314,6 +354,8 @@ public class DrGramMedia {
                 .putFloat("camera_beautify_blush", clampBeauty(prefs().getFloat("preset_blush", 0f)))
                 .putFloat("camera_beautify_lips", clampBeauty(prefs().getFloat("preset_lips", 0f)))
                 .putFloat("camera_beautify_bright", clampBeauty(prefs().getFloat("preset_bright", 0f)))
+                .putFloat("camera_beautify_dark", clampBeauty(prefs().getFloat("preset_dark", 0f))) // DrGram Fix 47
+                .putFloat("camera_beautify_slim", clampBeauty(prefs().getFloat("preset_slim", 0f))) // DrGram Fix 47
                 .putInt("camera_fx", Math.max(0, Math.min(20, prefs().getInt("preset_fx", 0))))
                 .apply();
         return true;
@@ -341,7 +383,8 @@ public class DrGramMedia {
     public static boolean cameraBeautyNeedsFaces() {
         return isBeautifyEnabled() && (beautifyNose() > 0.001f || beautifyTeeth() > 0.001f
                 || beautifyEyes() > 0.001f || beautifyJaw() > 0.001f
-                || beautifyBlush() > 0.001f || beautifyLips() > 0.001f);
+                || beautifyBlush() > 0.001f || beautifyLips() > 0.001f
+                || beautifyDark() > 0.001f || beautifySlim() > 0.001f); // DrGram Fix 47
     }
 
     public static void setStoryGradientEnabled(boolean value) {

@@ -1210,6 +1210,7 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
     private static final class DrGramBeautyHandles {
         int nose, teeth, eyes, jaw, fx, faceCount, faces, noses, mouths;
         int blush, lips, bright, eyesL, eyesR, eyePrecise;
+        int dark, slim; // DrGram Fix 47
 
         void fetch(int program) {
             nose = GLES20.glGetUniformLocation(program, "fxNose");
@@ -1227,6 +1228,8 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
             eyesL = GLES20.glGetUniformLocation(program, "fxEyesL");
             eyesR = GLES20.glGetUniformLocation(program, "fxEyesR");
             eyePrecise = GLES20.glGetUniformLocation(program, "fxEyePrecise");
+            dark = GLES20.glGetUniformLocation(program, "fxDark"); // DrGram Fix 47
+            slim = GLES20.glGetUniformLocation(program, "fxSlim"); // DrGram Fix 47
         }
     }
 
@@ -2311,6 +2314,8 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
         GLES20.glUniform1f(h.blush, org.telegram.messenger.DrGramMedia.beautifyBlushUniform());
         GLES20.glUniform1f(h.lips, org.telegram.messenger.DrGramMedia.beautifyLipsUniform());
         GLES20.glUniform1f(h.bright, org.telegram.messenger.DrGramMedia.beautifyBrightUniform());
+        GLES20.glUniform1f(h.dark, org.telegram.messenger.DrGramMedia.beautifyDarkUniform()); // DrGram Fix 47
+        GLES20.glUniform1f(h.slim, org.telegram.messenger.DrGramMedia.beautifySlimUniform()); // DrGram Fix 47
         android.hardware.Camera.Face[] faces = null;
         try {
             if (session != null && session.camera1Session != null) {

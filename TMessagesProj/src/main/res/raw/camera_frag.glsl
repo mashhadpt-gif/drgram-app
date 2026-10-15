@@ -30,6 +30,9 @@ uniform float fxBright;      // 0..1 skin brightening
 uniform vec2 fxEyesL[2];     // real left-eye anchor (uv) per face (ML Kit)
 uniform vec2 fxEyesR[2];     // real right-eye anchor (uv) per face (ML Kit)
 uniform float fxEyePrecise;  // 1.0 when real eye anchors are valid
+// DrGram Fix 47: under-eye brightening + cheek slimming
+uniform float fxDark;        // 0..1 dark-circle brightening
+uniform float fxSlim;        // 0..1 mid-face (cheek) slimming
 
 float modI(float a,float b) {
   return floor(a-floor((a+0.5)/b)*b+0.5);
@@ -200,6 +203,17 @@ highp vec2 drgramWarp(highp vec2 p) {
           highp float lateral = 1.0 - smoothstep(hs.x * 0.50, hs.x * 0.98, abs(p.x - face.x));
           highp float amount = fxJaw * 0.12 * vertical * lateral;
           p.x = face.x + (p.x - face.x) / max(0.82, 1.0 - amount);
+        }
+
+        // DrGram Fix 47: cheek slimming — narrows the mid-face band between
+        // the eye line and the mouth so the whole oval reads thinner. Fades
+        // before the eye line and at the mouth to keep features untouched.
+        if (fxSlim > 0.001) {
+          highp float band = smoothstep(-0.18, 0.04, (p.y - face.y) / max(hs.y, 1e-4))
+              * (1.0 - smoothstep(0.34, 0.58, (p.y - face.y) / max(hs.y, 1e-4)));
+          highp float lateral = 1.0 - smoothstep(hs.x * 0.44, hs.x * 0.96, abs(p.x - face.x));
+          highp float amount = fxSlim * 0.10 * band * lateral;
+          p.x = face.x + (p.x - face.x) / max(0.84, 1.0 - amount);
         }
       }
     }
@@ -392,7 +406,7 @@ mediump vec3 drgramCartoon(mediump vec3 c) {
 }
 
 vec4 beautifySample(vec4 base) {
-  if (beautify <= 0.001 && fxNose <= 0.001 && fxTeeth <= 0.001 && fxEyes <= 0.001 && fxJaw <= 0.001 && fxFx <= 0.001 && fxBlush <= 0.001 && fxLips <= 0.001 && fxBright <= 0.001)
+  if (beautify <= 0.001 && fxNose <= 0.001 && fxTeeth <= 0.001 && fxEyes <= 0.001 && fxJaw <= 0.001 && fxFx <= 0.001 && fxBlush <= 0.001 && fxLips <= 0.001 && fxBright <= 0.001 && fxDark <= 0.001 && fxSlim <= 0.001)
     return base;
   highp vec2 p = drgramWarp(uv);
   mediump vec4 C;
@@ -417,6 +431,33 @@ vec4 beautifySample(vec4 base) {
     rgb += fxBright * 0.055 * fw * skinMask(rgb);
   }
   rgb = clamp(rgb, 0.0, 1.0);
+  // DrGram Fix 47: dark-circle brightening — lifts the darker half-moon
+  // under each real eye anchor. Gated to darker, skin-tone pixels so the
+  // eye itself, lashes and highlights stay untouched.
+  if (fxDark > 0.001 && fxFaceCount > 0.5) {
+    mediump float undereye = 0.0;
+    for (int i = 0; i < 2; i++) {
+      if (float(i) < fxFaceCount) {
+        mediump vec2 fhs = fxFaces[i].zw;
+        for (int eye = 0; eye < 2; eye++) {
+          mediump vec2 ec = eye == 0 ? fxEyesL[i] : fxEyesR[i];
+          if (fxEyePrecise < 0.5) {
+            mediump float side = eye == 0 ? -1.0 : 1.0;
+            ec = fxFaces[i].xy + vec2(side * fhs.x * 0.27, -fhs.y * 0.20);
+          }
+          mediump vec2 c = ec + vec2(0.0, fhs.y * 0.085);
+          mediump vec2 ehs = vec2(fhs.x * 0.17, fhs.y * 0.075);
+          undereye = max(undereye, ellipseFalloff(p, c, ehs));
+        }
+      }
+    }
+    if (undereye > 0.001) {
+      mediump float lum = dot(rgb, vec3(0.299, 0.587, 0.114));
+      mediump float dark = 1.0 - smoothstep(0.18, 0.52, lum);
+      mediump float amt = clamp(undereye * dark * fxDark, 0.0, 0.55);
+      rgb = mix(rgb, rgb + vec3(0.075, 0.066, 0.060), amt);
+    }
+  }
   // DrGram Fix 46: standalone blush + lip tint, anchored on the detected face.
   if ((fxBlush > 0.001 || fxLips > 0.001) && fxFaceCount > 0.5) {
     mediump float blush = 0.0;

@@ -448,6 +448,10 @@ public class CameraController implements MediaRecorder.OnInfoListener {
                             }
                         }
                         // DrGram Fix 41: photo beautify (skin / nose / teeth)
+                        // DrGram Fix 47: shutter photos now get the FULL suite
+                        // (eyes / jaw / bright / blush / lips / dark-circles /
+                        // slim) so the still photo matches what the preview
+                        // showed, instead of only the three Fix 41 effects.
                         if (bitmap != null && org.telegram.messenger.DrGramMedia.cameraBeautyActive()) {
                             try {
                                 Camera.Face[] faces = session.drgramFaces;
@@ -456,7 +460,15 @@ public class CameraController implements MediaRecorder.OnInfoListener {
                                         faces,
                                         org.telegram.messenger.DrGramMedia.beautifyUniform(),
                                         org.telegram.messenger.DrGramMedia.beautifyNose(),
-                                        org.telegram.messenger.DrGramMedia.beautifyTeeth());
+                                        org.telegram.messenger.DrGramMedia.beautifyTeeth(),
+                                        0,
+                                        org.telegram.messenger.DrGramMedia.beautifyEyesUniform(),
+                                        org.telegram.messenger.DrGramMedia.beautifyJawUniform(),
+                                        org.telegram.messenger.DrGramMedia.beautifyBlushUniform(),
+                                        org.telegram.messenger.DrGramMedia.beautifyLipsUniform(),
+                                        org.telegram.messenger.DrGramMedia.beautifyBrightUniform(),
+                                        org.telegram.messenger.DrGramMedia.beautifyDarkUniform(),
+                                        org.telegram.messenger.DrGramMedia.beautifySlimUniform());
                                 drgramBeautified = true;
                             } catch (Throwable e) {
                                 FileLog.e(e);
