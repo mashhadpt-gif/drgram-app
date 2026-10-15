@@ -75,7 +75,8 @@ public class DrGramPhotoBeautify {
             }
 
             // Geometry edits use a source copy so sampling never feeds on already warped pixels.
-            if (!faces.isEmpty() && (eyes > 0.001f || jaw > 0.001f)) {
+            if (!faces.isEmpty() && (eyes > 0.001f || jaw > 0.001f) && (long) W * H <= 8_000_000L) {
+                // Keep the extra source copy bounded on high-resolution phones.
                 warpFaceShape(px, W, H, faces, eyes, jaw);
             }
 
