@@ -431,9 +431,9 @@ public class DrGramPhotoBeautify {
                     r=(cr>>16)&255; b=cb&255; break;
                 }
                 case 13: // soft glow
-                    r=clamp255((int)(r*0.96f + (float)Math.sqrt(Math.max(0,r))*5.0f + 4));
-                    g=clamp255((int)(g*0.96f + (float)Math.sqrt(Math.max(0,g))*4.5f + 3));
-                    b=clamp255((int)(b*0.96f + (float)Math.sqrt(Math.max(0,b))*4.5f + 3)); break;
+                    r=clamp255((int)(r*0.82f + (float)Math.sqrt(r / 255f)*255f*0.18f + 4));
+                    g=clamp255((int)(g*0.82f + (float)Math.sqrt(g / 255f)*255f*0.18f + 3));
+                    b=clamp255((int)(b*0.82f + (float)Math.sqrt(b / 255f)*255f*0.18f + 3)); break;
                 case 14: // rose
                     r=clamp255((int)(r*1.07f+7)); g=clamp255((int)(g*0.94f)); b=clamp255((int)(b*1.02f+4)); break;
                 case 15: // honey
