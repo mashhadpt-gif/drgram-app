@@ -109,8 +109,8 @@ public final class DrGramFaceMeshTracker {
                             .setModelAssetPath("models/face_landmarker.task")
                             .setDelegate(com.google.mediapipe.tasks.core.Delegate.CPU)
                             .build();
-            com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarkerOptions opts =
-                    com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarkerOptions.builder()
+            com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarker.FaceLandmarkerOptions opts =
+                    com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarker.FaceLandmarkerOptions.builder()
                             .setBaseOptions(base)
                             .setRunningMode(com.google.mediapipe.tasks.vision.core.RunningMode.VIDEO)
                             .setNumFaces(MAX_FACES)
