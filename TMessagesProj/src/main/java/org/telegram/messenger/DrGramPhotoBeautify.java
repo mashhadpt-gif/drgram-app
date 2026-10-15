@@ -48,7 +48,7 @@ public class DrGramPhotoBeautify {
         if (bitmap == null || bitmap.isRecycled() || bitmap.getConfig() == null) {
             return bitmap;
         }
-        fxId = Math.max(0, Math.min(12, fxId));
+        fxId = Math.max(0, Math.min(20, fxId));
         if (strength <= 0.001f && nose <= 0.001f && teeth <= 0.001f && fxId == 0) {
             return bitmap;
         }
@@ -80,6 +80,9 @@ public class DrGramPhotoBeautify {
                 faceGlow(px, W, H, faces, strength);
             }
             if (fxId > 0) applyCameraFx(px, W, H, fxId);
+            if (fxId == 20 && !faces.isEmpty()) {
+                applyGlamMakeup(px, W, H, faces);
+            }
 
             bitmap.setPixels(px, 0, W, 0, 0, W, H);
         } catch (Throwable t) {
@@ -427,9 +430,60 @@ public class DrGramPhotoBeautify {
                     int cr=rowCopy[Math.max(0,Math.min(W-1,x+3))], cb=rowCopy[Math.max(0,Math.min(W-1,x-3))];
                     r=(cr>>16)&255; b=cb&255; break;
                 }
+                case 13: // soft glow
+                    r=clamp255((int)(r*0.96f + (float)Math.sqrt(Math.max(0,r))*5.0f + 4));
+                    g=clamp255((int)(g*0.96f + (float)Math.sqrt(Math.max(0,g))*4.5f + 3));
+                    b=clamp255((int)(b*0.96f + (float)Math.sqrt(Math.max(0,b))*4.5f + 3)); break;
+                case 14: // rose
+                    r=clamp255((int)(r*1.07f+7)); g=clamp255((int)(g*0.94f)); b=clamp255((int)(b*1.02f+4)); break;
+                case 15: // honey
+                    r=clamp255((int)(r*1.10f+5)); g=clamp255((int)(g*1.02f+2)); b=clamp255((int)(b*0.88f)); break;
+                case 16: // clean
+                    r=clamp255((int)((r-128)*1.08f+130)); g=clamp255((int)((g-128)*1.08f+130)); b=clamp255((int)((b-128)*1.08f+131)); break;
+                case 17: // latte
+                    r=clamp255((int)(r*0.90f+17)); g=clamp255((int)(g*0.89f+15)); b=clamp255((int)(b*0.85f+13)); break;
+                case 18: // ocean
+                    r=clamp255((int)(r*0.91f)); g=clamp255((int)(g*1.035f+4)); b=clamp255((int)(b*1.08f+4)); break;
+                case 19: // peach
+                    r=clamp255((int)(r*1.055f+5)); g=clamp255((int)(g*0.98f+2)); b=clamp255((int)(b*0.96f+3)); break;
+                case 20: // glam
+                    r=clamp255((int)((r-128)*1.12f+133)); g=clamp255((int)((g-128)*1.12f+130)); b=clamp255((int)((b-128)*1.12f+132)); break;
                 default: break;
             }
             px[idx]=(a<<24)|(clamp255(r)<<16)|(clamp255(g)<<8)|clamp255(b);
+            }
+        }
+    }
+
+    /** Restrained cheek and lip tint for the Glam preset; only runs inside detected face regions. */
+    private static void applyGlamMakeup(int[] px, int W, int H, ArrayList<FaceBox> faces) {
+        for (FaceBox f : faces) {
+            tintEllipse(px, W, H, f.cx - f.halfW * 0.36f, f.cy + f.halfH * 0.20f,
+                    f.halfW * 0.22f, f.halfH * 0.12f, 0xFFE85D78, 0.20f);
+            tintEllipse(px, W, H, f.cx + f.halfW * 0.36f, f.cy + f.halfH * 0.20f,
+                    f.halfW * 0.22f, f.halfH * 0.12f, 0xFFE85D78, 0.20f);
+            tintEllipse(px, W, H, f.mouthX, f.mouthY - f.halfH * 0.02f,
+                    f.halfW * 0.24f, f.halfH * 0.075f, 0xFFB92A4B, 0.16f);
+        }
+    }
+
+    private static void tintEllipse(int[] px, int W, int H, float cx, float cy, float rx, float ry, int tint, float amount) {
+        if (rx < 1f || ry < 1f) return;
+        int x0 = Math.max(0, (int) (cx - rx)), x1 = Math.min(W - 1, (int) (cx + rx));
+        int y0 = Math.max(0, (int) (cy - ry)), y1 = Math.min(H - 1, (int) (cy + ry));
+        int tr = (tint >> 16) & 255, tg = (tint >> 8) & 255, tb = tint & 255;
+        for (int y = y0; y <= y1; y++) {
+            float dy = (y - cy) / ry;
+            for (int x = x0; x <= x1; x++) {
+                float dx = (x - cx) / rx;
+                float edge = 1f - dx * dx - dy * dy;
+                if (edge <= 0f) continue;
+                int idx = y * W + x, c = px[idx];
+                float k = amount * edge * edge;
+                int rr = (int) (((c >> 16) & 255) * (1f - k) + tr * k);
+                int gg = (int) (((c >> 8) & 255) * (1f - k) + tg * k);
+                int bb = (int) ((c & 255) * (1f - k) + tb * k);
+                px[idx] = (c & 0xFF000000) | (clamp255(rr) << 16) | (clamp255(gg) << 8) | clamp255(bb);
             }
         }
     }
