@@ -4209,15 +4209,17 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
             float strength = enabled ? org.telegram.messenger.DrGramMedia.beautifyStrength() : 0f;
             float nose = enabled ? org.telegram.messenger.DrGramMedia.beautifyNose() : 0f;
             float teeth = enabled ? org.telegram.messenger.DrGramMedia.beautifyTeeth() : 0f;
+            float eyes = enabled ? org.telegram.messenger.DrGramMedia.beautifyEyes() : 0f;
+            float jaw = enabled ? org.telegram.messenger.DrGramMedia.beautifyJaw() : 0f;
             int fx = org.telegram.messenger.DrGramMedia.cameraFx();
-            if (strength <= 0.001f && nose <= 0.001f && teeth <= 0.001f && fx == 0) return;
+            if (strength <= 0.001f && nose <= 0.001f && teeth <= 0.001f && eyes <= 0.001f && jaw <= 0.001f && fx == 0) return;
             Bitmap bitmap = null;
             try {
                 BitmapFactory.Options options = new BitmapFactory.Options();
                 options.inPreferredConfig = Bitmap.Config.ARGB_8888;
                 bitmap = BitmapFactory.decodeFile(photoFile.getAbsolutePath(), options);
                 if (bitmap == null) return;
-                org.telegram.messenger.DrGramPhotoBeautify.process(bitmap, null, strength, nose, teeth, fx);
+                org.telegram.messenger.DrGramPhotoBeautify.process(bitmap, null, strength, nose, teeth, fx, eyes, jaw);
                 try (FileOutputStream out = new FileOutputStream(photoFile, false)) {
                     if (!bitmap.compress(Bitmap.CompressFormat.JPEG, 98, out)) {
                         FileLog.e("DrGram photo effects: JPEG compression failed");
