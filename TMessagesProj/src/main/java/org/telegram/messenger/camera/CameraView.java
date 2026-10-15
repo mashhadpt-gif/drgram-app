@@ -2315,10 +2315,35 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
                 faceData[count * 4 + 1] = cy;
                 faceData[count * 4 + 2] = hw;
                 faceData[count * 4 + 3] = hh;
-                noseData[count * 2] = cx;
-                noseData[count * 2 + 1] = cy + hh * 0.08f;
-                mouthData[count * 2] = cx;
-                mouthData[count * 2 + 1] = cy + hh * 0.55f;
+                // Prefer hardware facial landmarks when the camera supplies them.
+                // Camera.Face landmarks use the same -1000..1000 sensor coordinate space as rect.
+                float noseX = cx;
+                float noseY = cy + hh * 0.08f;
+                float mouthX = cx;
+                float mouthY = cy + hh * 0.55f;
+                try {
+                    android.graphics.Point leftEye = f.leftEye;
+                    android.graphics.Point rightEye = f.rightEye;
+                    android.graphics.Point mouth = f.mouth;
+                    if (leftEye != null && rightEye != null) {
+                        float eyeX = ((leftEye.x + rightEye.x) * 0.5f + 1000f) / 2000f;
+                        float eyeY = ((leftEye.y + rightEye.y) * 0.5f + 1000f) / 2000f;
+                        // Nose base is normally between the eye line and mouth; this is a
+                        // conservative estimate, used only when hardware doesn't expose a nose landmark.
+                        noseX = eyeX;
+                        noseY = eyeY + (cy + hh * 0.55f - eyeY) * 0.58f;
+                    }
+                    if (mouth != null) {
+                        mouthX = (mouth.x + 1000f) / 2000f;
+                        mouthY = (mouth.y + 1000f) / 2000f;
+                    }
+                } catch (Throwable ignore) {
+                    // Some camera implementations omit optional landmarks.
+                }
+                noseData[count * 2] = noseX;
+                noseData[count * 2 + 1] = noseY;
+                mouthData[count * 2] = mouthX;
+                mouthData[count * 2 + 1] = mouthY;
                 count++;
             }
         }
