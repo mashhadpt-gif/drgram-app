@@ -6365,7 +6365,7 @@ public class ChatMessageCell extends BaseCell implements SeekBar.SeekBarDelegate
         // DrGram Fix 45: a detached cell must never carry glass frost into reuse
         // (the Fix 38 entrance blur sets a RenderEffect; if its clear pass was
         // interrupted the frost would stick to the next message bound here)
-        if (android.os.Build.VERSION.SDK_INT >= 31 && getRenderEffect() != null) {
+        if (android.os.Build.VERSION.SDK_INT >= 31) {
             try { setRenderEffect(null); } catch (Throwable ignore) {}
         }
 

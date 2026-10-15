@@ -126,18 +126,22 @@ public class DrGramFaceEngine {
 
     /**
      * Blocking subject segmentation (GMS ML Kit, thin — model may need a one-time
-     * Play Services download; null = unavailable). Returns an ALPHA_8 mask sized to
-     * input where alpha = person/foreground confidence.
+     * Play Services download; null = unavailable). Builds a full-size ALPHA_8 mask
+     * from the per-subject cutout bitmaps, whose soft alpha keeps hair edges natural.
      */
     public static Bitmap personMaskBlocking(Bitmap bitmap, long timeoutMs) {
         if (bitmap == null || bitmap.isRecycled() || bitmap.getConfig() == null) {
             return null;
         }
+        Bitmap mask = null;
         try {
             com.google.mlkit.vision.segmentation.subject.SubjectSegmenter segmenter =
                 com.google.mlkit.vision.segmentation.subject.SubjectSegmentation.getClient(
                     new com.google.mlkit.vision.segmentation.subject.SubjectSegmenterOptions.Builder()
-                        .enableForegroundConfidenceMask()
+                        .enableMultipleSubjects(
+                            new com.google.mlkit.vision.segmentation.subject.SubjectSegmenterOptions.SubjectResultOptions.Builder()
+                                .enableSubjectBitmap()
+                                .build())
                         .build());
             com.google.mlkit.vision.segmentation.subject.SubjectSegmentationResult result =
                 com.google.android.gms.tasks.Tasks.await(
@@ -146,23 +150,21 @@ public class DrGramFaceEngine {
             if (result == null || result.getSubjects().isEmpty()) {
                 return null;
             }
-            com.google.mlkit.vision.segmentation.subject.Subject subject = result.getSubjects().get(0);
-            java.nio.FloatBuffer confidence =
-                com.google.android.gms.tasks.Tasks.await(subject.getForegroundConfidenceMask(), timeoutMs, TimeUnit.MILLISECONDS);
-            if (confidence == null) {
-                return null;
-            }
             final int mw = bitmap.getWidth(), mh = bitmap.getHeight();
-            int[] mp = new int[mw * mh];
-            for (int i = 0; i < mp.length && i < confidence.remaining(); i++) {
-                int a = (int) (confidence.get(i) * 255f);
-                mp[i] = (Math.max(0, Math.min(255, a))) << 24;
+            mask = Bitmap.createBitmap(mw, mh, Bitmap.Config.ALPHA_8);
+            android.graphics.Canvas mc = new android.graphics.Canvas(mask);
+            android.graphics.Paint mp = new android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG);
+            boolean any = false;
+            for (int i = 0; i < result.getSubjects().size(); i++) {
+                com.google.mlkit.vision.segmentation.subject.Subject s = result.getSubjects().get(i);
+                if (s == null || s.getBitmap() == null) continue;
+                mc.drawBitmap(s.getBitmap(), s.getStartX(), s.getStartY(), mp);
+                any = true;
             }
-            Bitmap mask = Bitmap.createBitmap(mw, mh, Bitmap.Config.ALPHA_8);
-            mask.setPixels(mp, 0, mw, 0, 0, mw, mh);
-            return mask;
+            return any ? mask : null;
         } catch (Throwable t) {
             FileLog.e(t);
+            if (mask != null && !mask.isRecycled()) mask.recycle();
             return null;
         }
     }
