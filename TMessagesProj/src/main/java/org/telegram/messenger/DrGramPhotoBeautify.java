@@ -117,6 +117,31 @@ public class DrGramPhotoBeautify {
                 b.mouthX = b.cx;                b.mouthY = b.cy + b.halfH * 0.55f;
                 b.noseRadiusX = b.halfW * 0.18f; b.noseRadiusY = b.halfH * 0.16f;
                 b.mouthHalfW = b.halfW * 0.28f; b.mouthHalfH = b.halfH * 0.09f;
+                // Use hardware landmarks for the still-photo path too, when provided.
+                try {
+                    android.graphics.Point leftEye = f.leftEye;
+                    android.graphics.Point rightEye = f.rightEye;
+                    android.graphics.Point mouth = f.mouth;
+                    if (leftEye != null && rightEye != null) {
+                        float eyeX = ((leftEye.x + rightEye.x) * 0.5f + 1000f) / 2000f * W;
+                        float eyeY = ((leftEye.y + rightEye.y) * 0.5f + 1000f) / 2000f * H;
+                        b.noseX = eyeX;
+                        b.noseY = eyeY + (b.mouthY - eyeY) * 0.58f;
+                        float eyeDistance = (float) Math.hypot(rightEye.x - leftEye.x, rightEye.y - leftEye.y) / 2000f * W;
+                        b.noseRadiusX = Math.max(2f, eyeDistance * 0.19f);
+                        b.noseRadiusY = Math.max(2f, eyeDistance * 0.16f * H / Math.max(1f, W));
+                        b.hasPreciseLandmarks = true;
+                    }
+                    if (mouth != null) {
+                        b.mouthX = (mouth.x + 1000f) / 2000f * W;
+                        b.mouthY = (mouth.y + 1000f) / 2000f * H;
+                        b.mouthHalfW = Math.max(2f, b.halfW * 0.22f);
+                        b.mouthHalfH = Math.max(2f, b.halfH * 0.07f);
+                        b.hasPreciseLandmarks = true;
+                    }
+                } catch (Throwable ignore) {
+                    // Optional camera landmarks are not available on all devices.
+                }
                 list.add(b);
                 if (list.size() >= 2) {
                     break;
