@@ -296,8 +296,48 @@ mediump vec3 drgramColorFx(mediump vec3 c, mediump vec2 p) {
     mediump vec3 shifted = c.zxy;
     c = mix(c, mix(c, shifted, 0.22), 0.8);
     c += 0.03;
+  } else if (fxFx > 12.5 && fxFx < 13.5) {
+    // soft glow
+    c = mix(c, sqrt(max(c, vec3(0.0))), 0.18);
+    c = mix(vec3(lum), c, 1.08);
+    c += vec3(0.018, 0.012, 0.012);
+  } else if (fxFx > 13.5 && fxFx < 14.5) {
+    // rose
+    c *= vec3(1.07, 0.94, 1.02);
+    c.r += 0.035 * (1.0 - lum); c.b += 0.012;
+    c = mix(vec3(lum), c, 0.94);
+  } else if (fxFx > 14.5 && fxFx < 15.5) {
+    // honey
+    c *= vec3(1.10, 1.025, 0.88);
+    c += vec3(0.035, 0.018, -0.008) * (1.0 - lum);
+  } else if (fxFx > 15.5 && fxFx < 16.5) {
+    // clean
+    c = (c - 0.5) * 1.08 + 0.51;
+    c = mix(vec3(lum), c, 1.06);
+    c += vec3(0.012, 0.015, 0.018);
+  } else if (fxFx > 16.5 && fxFx < 17.5) {
+    // latte
+    c = c * 0.88 + vec3(0.055, 0.045, 0.030);
+    c *= vec3(1.035, 1.0, 0.94);
+    c = mix(vec3(lum), c, 0.82);
+  } else if (fxFx > 17.5 && fxFx < 18.5) {
+    // ocean
+    c *= vec3(0.91, 1.035, 1.08);
+    c.g += 0.025 * (1.0 - lum); c.b += 0.02;
+    c = mix(vec3(lum), c, 1.10);
+  } else if (fxFx > 18.5 && fxFx < 19.5) {
+    // peach
+    c = c * 0.92 + vec3(0.045, 0.025, 0.022);
+    c *= vec3(1.055, 0.98, 0.96);
+    c = mix(vec3(lum), c, 0.90);
+  } else if (fxFx > 19.5 && fxFx < 20.5) {
+    // glam
+    c = (c - 0.5) * 1.12 + 0.52;
+    c *= vec3(1.045, 1.01, 1.025);
+    c = mix(vec3(lum), c, 1.12);
+    c += vec3(0.012, 0.008, 0.012);
   }
-  return c;
+  return clamp(c, 0.0, 1.0);
 }
 
 // Fun poster/cartoon finish.
@@ -330,6 +370,23 @@ vec4 beautifySample(vec4 base) {
   rgb += beautify * 0.035 * fw;
   rgb = clamp(rgb, 0.0, 1.0);
   rgb = drgramColorFx(rgb, p);
+  // Glam adds restrained cheek and lip tint only when a face is detected.
+  if (fxFx > 19.5 && fxFx < 20.5 && fxFaceCount > 0.5) {
+    mediump float blush = 0.0;
+    mediump float lips = 0.0;
+    for (int i = 0; i < 2; i++) {
+      if (float(i) < fxFaceCount) {
+        mediump vec2 center = fxFaces[i].xy;
+        mediump vec2 halfSize = fxFaces[i].zw;
+        mediump vec2 cheekSize = max(halfSize * vec2(0.22, 0.12), vec2(0.001));
+        blush = max(blush, ellipseFalloff(p, center + vec2(-halfSize.x * 0.36, halfSize.y * 0.20), cheekSize));
+        blush = max(blush, ellipseFalloff(p, center + vec2( halfSize.x * 0.36, halfSize.y * 0.20), cheekSize));
+        lips = max(lips, ellipseFalloff(p, fxMouths[i] + vec2(0.0, -halfSize.y * 0.02), max(halfSize * vec2(0.24, 0.075), vec2(0.001))));
+      }
+    }
+    rgb = mix(rgb, vec3(0.92, 0.36, 0.43), clamp(blush * 0.22, 0.0, 0.22));
+    rgb = mix(rgb, vec3(0.72, 0.16, 0.28), clamp(lips * 0.18, 0.0, 0.18));
+  }
   rgb = drgramCartoon(rgb);
   return vec4(rgb, C.a);
 }

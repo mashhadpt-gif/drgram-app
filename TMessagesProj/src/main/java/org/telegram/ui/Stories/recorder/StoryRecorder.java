@@ -3826,13 +3826,15 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
 
     // DrGram Fix 41: Instagram-style camera FX strip =========================
 
-    private static final int[] FX_IDS = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12};
+    private static final int[] FX_IDS = {0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20};
     private static final int[] FX_LABELS = {
             R.string.DrGramFxNone, R.string.DrGramFxSunset, R.string.DrGramFxCool,
             R.string.DrGramFxPastel, R.string.DrGramFxVintage, R.string.DrGramFxBlossom,
             R.string.DrGramFxNoir, R.string.DrGramFxDream, R.string.DrGramFxNeon,
             R.string.DrGramFxGlitch, R.string.DrGramFxPixel, R.string.DrGramFxMirror,
-            R.string.DrGramFxCartoon
+            R.string.DrGramFxCartoon, R.string.DrGramFxSoftGlow, R.string.DrGramFxRose,
+            R.string.DrGramFxHoney, R.string.DrGramFxClean, R.string.DrGramFxLatte,
+            R.string.DrGramFxOcean, R.string.DrGramFxPeach, R.string.DrGramFxGlam
     };
 
     private android.widget.HorizontalScrollView fxStrip;
