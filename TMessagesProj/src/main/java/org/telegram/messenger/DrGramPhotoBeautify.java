@@ -312,7 +312,7 @@ public class DrGramPhotoBeautify {
                 com.google.android.gms.vision.face.Face face = found.valueAt(i);
                 if (face == null || face.getWidth() < 18 || face.getHeight() < 18) continue;
                 FaceBox b = new FaceBox();
-                float invScaleX = W / (float) probeW, invScaleY = H / (float) probeH;
+                float invScaleX = W / (float) probe.getWidth(), invScaleY = H / (float) probe.getHeight();
                 b.cx = (face.getPosition().x + face.getWidth() * 0.5f) * invScaleX;
                 b.cy = (face.getPosition().y + face.getHeight() * 0.5f) * invScaleY;
                 b.halfW = face.getWidth() * 0.5f * invScaleX;
