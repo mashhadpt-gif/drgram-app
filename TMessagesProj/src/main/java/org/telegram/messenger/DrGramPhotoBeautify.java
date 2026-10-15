@@ -35,6 +35,15 @@ public class DrGramPhotoBeautify {
         float noseRadiusX, noseRadiusY, mouthHalfW, mouthHalfH;
         float eyeLX, eyeLY, eyeRX, eyeRY; // DrGram Fix 47: eye anchors for under-eye work
         boolean hasPreciseLandmarks;
+        // DrGram Fix 48: dense organ geometry (468-point face mesh), null when absent.
+        float[] lipOuterX, lipOuterY;   // real outer lip polygon
+        float[] lipInnerX, lipInnerY;   // real inner mouth opening
+        float[] ovalX, ovalY;           // face/jaw contour
+        float eyeLrw = Float.NaN, eyeLrh = Float.NaN; // eye ring half extents
+        float eyeRrw = Float.NaN, eyeRrh = Float.NaN;
+        float eyeLlowY = Float.NaN, eyeRlowY = Float.NaN; // lower-lid mean y (under-eye anchor)
+        float roll = Float.NaN;         // face roll (radians) from the eye line
+        boolean hasMesh;
     }
 
     /**
@@ -94,8 +103,20 @@ public class DrGramPhotoBeautify {
             bitmap.getPixels(px, 0, W, 0, 0, W, H);
 
             ArrayList<FaceBox> faces = collectFaces(cameraFaces, W, H);
+            boolean hwPrecise = false;
+            for (int i = 0; i < faces.size(); i++) {
+                if (faces.get(i).hasPreciseLandmarks) { hwPrecise = true; break; }
+            }
             if (faces.isEmpty()) {
                 faces = detectFacesFallback(px, W, H);
+            } else if (!hwPrecise) {
+                // DrGram Fix 48: hardware returned boxes without landmarks —
+                // try to upgrade them to the mesh detector's real organ
+                // geometry before falling back to ratios.
+                ArrayList<FaceBox> upgraded = detectFacesFallback(px, W, H);
+                if (!upgraded.isEmpty()) {
+                    faces = upgraded;
+                }
             }
 
             // Geometry edits use a source copy so sampling never feeds on already warped pixels.
@@ -139,7 +160,8 @@ public class DrGramPhotoBeautify {
         return bitmap;
     }
 
-    /** DrGram Fix 47: slim band added; eyes/jaw keep the Fix 46 behaviour. */
+    /** DrGram Fix 47 slim band; DrGram Fix 48 face-local frame — real eye-ring
+     *  sizes and head-tilt (roll) awareness so warped bands follow the face. */
     private static void warpFaceShape(int[] px, int W, int H, ArrayList<FaceBox> faces, float eyes, float jaw, float slim) {
         int[] source = px.clone();
         for (int y = 0; y < H; y++) {
@@ -153,43 +175,84 @@ public class DrGramPhotoBeautify {
                     float dy = y - face.cy;
                     if (Math.abs(dx) > hw * 1.15f || Math.abs(dy) > hh * 1.20f) continue;
 
+                    // DrGram Fix 48: rotate into the face-local frame so a
+                    // tilted head keeps the bands on the true jaw/cheeks.
+                    float cosR = 1f, sinR = 0f;
+                    if (face.hasMesh && !Float.isNaN(face.roll)) {
+                        cosR = (float) Math.cos(face.roll);
+                        sinR = (float) Math.sin(face.roll);
+                    }
+                    float lx = dx * cosR + dy * sinR;
+                    float ly = -dx * sinR + dy * cosR;
+                    boolean warped = false;
+
                     if (eyes > 0.001f) {
                         for (int side = -1; side <= 1; side += 2) {
                             float ex = side < 0 ? face.eyeLX : face.eyeRX;
                             float ey = side < 0 ? face.eyeLY : face.eyeRY;
-                            float qx = (sx - ex) / Math.max(1f, hw * 0.24f);
-                            float qy = (sy - ey) / Math.max(1f, hh * 0.13f);
+                            // eye centre expressed in the face-local frame
+                            float cdx = ex - face.cx, cdy = ey - face.cy;
+                            float ecx = cdx * cosR + cdy * sinR;
+                            float ecy = -cdx * sinR + cdy * cosR;
+                            float erx = side < 0 ? eyeRingX(face, true, hw) : eyeRingX(face, false, hw);
+                            float ery = side < 0 ? eyeRingY(face, true, hh) : eyeRingY(face, false, hh);
+                            float qx = (lx - ecx) / Math.max(1f, erx);
+                            float qy = (ly - ecy) / Math.max(1f, ery);
                             float d = qx * qx + qy * qy;
                             if (d < 1f) {
                                 float edge = 1f - d;
                                 float amount = eyes * 0.13f * edge * edge;
-                                sx = ex + (sx - ex) * (1f - amount);
-                                sy = ey + (sy - ey) * (1f - amount);
+                                lx = ecx + (lx - ecx) * (1f - amount);
+                                ly = ecy + (ly - ecy) * (1f - amount);
+                                warped = true;
                             }
                         }
                     }
                     if (jaw > 0.001f) {
-                        float vertical = (y - (face.cy + hh * 0.02f)) / Math.max(1f, hh * 0.95f);
+                        float vertical = (ly - hh * 0.02f) / Math.max(1f, hh * 0.95f);
                         float rise = smoothBeauty(0.05f, 0.32f, vertical);
                         float fall = 1f - smoothBeauty(0.82f, 1.08f, vertical);
-                        float lateral = 1f - smoothBeauty(hw * 0.48f, hw * 0.98f, Math.abs(dx));
+                        float lateral = 1f - smoothBeauty(hw * 0.48f, hw * 0.98f, Math.abs(lx));
                         float amount = jaw * 0.10f * rise * fall * lateral;
-                        sx = face.cx + (sx - face.cx) / Math.max(0.84f, 1f - amount);
+                        if (amount > 0.0005f) {
+                            lx /= Math.max(0.84f, 1f - amount);
+                            warped = true;
+                        }
                     }
-                    // DrGram Fix 47: cheek slimming — mirrors the shader band:
-                    // mid-face horizontal narrowing that fades before the eye
-                    // line and at the mouth so features stay untouched.
+                    // DrGram Fix 47: cheek slimming — mid-face narrowing that
+                    // fades before the eye line and at the mouth.
                     if (slim > 0.001f) {
-                        float ty = (y - face.cy) / Math.max(1f, hh);
+                        float ty = ly / Math.max(1f, hh);
                         float band = smoothBeauty(-0.18f, 0.04f, ty) * (1f - smoothBeauty(0.34f, 0.58f, ty));
-                        float lateral = 1f - smoothBeauty(hw * 0.44f, hw * 0.96f, Math.abs(dx));
+                        float lateral = 1f - smoothBeauty(hw * 0.44f, hw * 0.96f, Math.abs(lx));
                         float amount = slim * 0.10f * band * lateral;
-                        sx = face.cx + (sx - face.cx) / Math.max(0.84f, 1f - amount);
+                        if (amount > 0.0005f) {
+                            lx /= Math.max(0.84f, 1f - amount);
+                            warped = true;
+                        }
+                    }
+                    if (warped) {
+                        // map the face-local point back into image space
+                        float sdx = lx * cosR - ly * sinR;
+                        float sdy = lx * sinR + ly * cosR;
+                        sx = face.cx + sdx;
+                        sy = face.cy + sdy;
                     }
                 }
                 px[y * W + x] = sampleBilinear(source, W, H, sx, sy);
             }
         }
+    }
+
+    /** Real eye-ring half width when mesh geometry exists, classic ratio otherwise. */
+    private static float eyeRingX(FaceBox f, boolean left, float hw) {
+        float v = left ? f.eyeLrw : f.eyeRrw;
+        return Float.isNaN(v) ? Math.max(2f, hw * 0.24f) : v;
+    }
+
+    private static float eyeRingY(FaceBox f, boolean left, float hh) {
+        float v = left ? f.eyeLrh : f.eyeRrh;
+        return Float.isNaN(v) ? Math.max(2f, hh * 0.13f) : v;
     }
 
     private static float smoothBeauty(float edge0, float edge1, float x) {
@@ -292,15 +355,16 @@ public class DrGramPhotoBeautify {
      * Accurate landmark detector using Google Mobile Vision (already included by
      * the app). Detection runs on a downscaled copy to keep camera memory bounded.
      * Nose and mouth masks are derived from landmarks rather than face-box guesses.
+     * DrGram Fix 48: the 468-point face mesh is tried first at every scale —
+     * it returns real lip polygons / eye rings / jaw oval, not ratio guesses.
      */
     private static ArrayList<FaceBox> detectFacesFallback(int[] px, int W, int H) {
         ArrayList<FaceBox> list = new ArrayList<>();
         Bitmap probe = null;
         com.google.android.gms.vision.face.FaceDetector detector = null;
         try {
-            // DrGram Fix 46: multi-scale ML Kit retry — the 640 probe misses
-            // small / distant faces; one higher-resolution pass rescues them
-            // before the legacy chains are tried.
+            // DrGram Fix 46/48: multi-scale probe — mesh (dense organ geometry)
+            // then bundled ML Kit at each scale, then GMS/legacy once both miss.
             final int[] probeScales = {640, 1080};
             for (int scaleIdx = 0; scaleIdx < probeScales.length && list.isEmpty(); scaleIdx++) {
                 final int maxSide = probeScales[scaleIdx];
@@ -321,9 +385,16 @@ public class DrGramPhotoBeautify {
                 probe = Bitmap.createBitmap(probeW, probeH, Bitmap.Config.ARGB_8888);
                 probe.setPixels(sample, 0, probeW, 0, 0, probeW, probeH);
 
-                // DrGram Fix 45/46: bundled ML Kit first — accurate landmarks, offline,
-                // no Play-Services model download. Falls through to GMS Vision and
-                // the legacy detector when it finds nothing or fails.
+                // DrGram Fix 48: dense face mesh first — real organ contours,
+                // fully offline bundled TFLite model.
+                ArrayList<FaceBox> mesh = detectMeshFaces(probe, W, H);
+                if (!mesh.isEmpty()) {
+                    list.addAll(mesh);
+                    break;
+                }
+
+                // DrGram Fix 45/46: bundled ML Kit second — accurate landmarks,
+                // offline, no Play-Services model download.
                 ArrayList<FaceBox> mlkit = detectMlKitFaces(probe, W, H);
                 if (!mlkit.isEmpty()) {
                     list.addAll(mlkit);
@@ -471,6 +542,200 @@ public class DrGramPhotoBeautify {
         }
         return list;
     }
+
+    /** DrGram Fix 48: dense 468-point mesh — real organ polygons scaled to the full-res frame. */
+    private static ArrayList<FaceBox> detectMeshFaces(Bitmap probe, int W, int H) {
+        ArrayList<FaceBox> list = new ArrayList<>();
+        try {
+            ArrayList<DrGramFaceEngine.MeshResult> found = DrGramFaceEngine.meshDetectBlocking(probe, 2500);
+            if (found.isEmpty()) {
+                return list;
+            }
+            float invScaleX = W / (float) probe.getWidth();
+            float invScaleY = H / (float) probe.getHeight();
+            for (int i = 0; i < found.size() && list.size() < 5; i++) {
+                DrGramFaceEngine.MeshResult m = found.get(i);
+                if (m == null) continue;
+                FaceBox b = new FaceBox();
+                b.cx = m.cx * invScaleX;
+                b.cy = m.cy * invScaleY;
+                b.halfW = Math.max(4f, m.halfW * invScaleX);
+                b.halfH = Math.max(4f, m.halfH * invScaleY);
+                // Real nose tip from the bridge contour.
+                b.noseX = Float.isNaN(m.noseX) ? b.cx : m.noseX * invScaleX;
+                b.noseY = Float.isNaN(m.noseY) ? b.cy + b.halfH * 0.08f : m.noseY * invScaleY;
+                // Real eye-ring centres and extents.
+                b.eyeLX = Float.isNaN(m.leftEyeX) ? b.cx - b.halfW * 0.27f : m.leftEyeX * invScaleX;
+                b.eyeLY = Float.isNaN(m.leftEyeY) ? b.cy - b.halfH * 0.20f : m.leftEyeY * invScaleY;
+                b.eyeRX = Float.isNaN(m.rightEyeX) ? b.cx + b.halfW * 0.27f : m.rightEyeX * invScaleX;
+                b.eyeRY = Float.isNaN(m.rightEyeY) ? b.cy - b.halfH * 0.20f : m.rightEyeY * invScaleY;
+                if (!Float.isNaN(m.leftEyeX) && !Float.isNaN(m.rightEyeX)) {
+                    b.hasPreciseLandmarks = true;
+                    b.hasMesh = true;
+                    b.eyeLrw = Float.isNaN(m.leftEyeHalfW) ? Math.max(2f, b.halfW * 0.13f) : Math.max(2f, m.leftEyeHalfW * invScaleX);
+                    b.eyeLrh = Float.isNaN(m.leftEyeHalfH) ? Math.max(2f, b.halfH * 0.06f) : Math.max(2f, m.leftEyeHalfH * invScaleY);
+                    b.eyeRrw = Float.isNaN(m.rightEyeHalfW) ? Math.max(2f, b.halfW * 0.13f) : Math.max(2f, m.rightEyeHalfW * invScaleX);
+                    b.eyeRrh = Float.isNaN(m.rightEyeHalfH) ? Math.max(2f, b.halfH * 0.06f) : Math.max(2f, m.rightEyeHalfH * invScaleY);
+                    b.eyeLlowY = Float.isNaN(m.leftEyeLowerY) ? b.eyeLY + b.eyeLrh * 0.8f : m.leftEyeLowerY * invScaleY;
+                    b.eyeRlowY = Float.isNaN(m.rightEyeLowerY) ? b.eyeRY + b.eyeRrh * 0.8f : m.rightEyeLowerY * invScaleY;
+                    // Face roll from the eye line; normalise to the short arc
+                    // so a mirrored/labelling swap can't flip the warp bands.
+                    float roll = (float) Math.atan2(b.eyeRY - b.eyeLY, b.eyeRX - b.eyeLX);
+                    if (roll > (float) Math.PI * 0.5f) roll -= (float) Math.PI;
+                    if (roll < -(float) Math.PI * 0.5f) roll += (float) Math.PI;
+                    b.roll = roll;
+                    // Nose radius from the true inter-eye distance.
+                    float eyeDist = (float) Math.hypot(b.eyeRX - b.eyeLX, b.eyeRY - b.eyeLY);
+                    b.noseRadiusX = Math.max(2f, eyeDist * 0.17f);
+                    b.noseRadiusY = Math.max(2f, eyeDist * 0.15f);
+                } else {
+                    b.noseRadiusX = Math.max(2f, b.halfW * 0.15f);
+                    b.noseRadiusY = Math.max(2f, b.halfH * 0.13f);
+                }
+                // Real lip polygons + mouth geometry from the polygon bbox.
+                if (m.lipOuterX != null && m.lipOuterY != null && m.lipOuterX.length >= 6
+                        && m.lipOuterX.length == m.lipOuterY.length) {
+                    b.lipOuterX = new float[m.lipOuterX.length];
+                    b.lipOuterY = new float[m.lipOuterY.length];
+                    float sx = 0, sy = 0, minX = Float.MAX_VALUE, maxX = -Float.MAX_VALUE;
+                    float minY = Float.MAX_VALUE, maxY = -Float.MAX_VALUE;
+                    for (int k = 0; k < b.lipOuterX.length; k++) {
+                        b.lipOuterX[k] = m.lipOuterX[k] * invScaleX;
+                        b.lipOuterY[k] = m.lipOuterY[k] * invScaleY;
+                        sx += b.lipOuterX[k]; sy += b.lipOuterY[k];
+                        minX = Math.min(minX, b.lipOuterX[k]); maxX = Math.max(maxX, b.lipOuterX[k]);
+                        minY = Math.min(minY, b.lipOuterY[k]); maxY = Math.max(maxY, b.lipOuterY[k]);
+                    }
+                    int n = b.lipOuterX.length;
+                    b.mouthX = sx / n;
+                    b.mouthY = sy / n;
+                    b.mouthHalfW = Math.max(2f, (maxX - minX) * 0.5f);
+                    b.mouthHalfH = Math.max(2f, (maxY - minY) * 0.5f);
+                    b.hasPreciseLandmarks = true;
+                } else {
+                    b.mouthX = b.cx; b.mouthY = b.cy + b.halfH * 0.48f;
+                    b.mouthHalfW = Math.max(2f, b.halfW * 0.25f);
+                    b.mouthHalfH = Math.max(2f, b.halfH * 0.06f);
+                }
+                if (m.lipInnerX != null && m.lipInnerY != null && m.lipInnerX.length >= 6
+                        && m.lipInnerX.length == m.lipInnerY.length) {
+                    b.lipInnerX = new float[m.lipInnerX.length];
+                    b.lipInnerY = new float[m.lipInnerY.length];
+                    for (int k = 0; k < b.lipInnerX.length; k++) {
+                        b.lipInnerX[k] = m.lipInnerX[k] * invScaleX;
+                        b.lipInnerY[k] = m.lipInnerY[k] * invScaleY;
+                    }
+                }
+                if (m.ovalX != null && m.ovalY != null && m.ovalX.length >= 8 && m.ovalX.length == m.ovalY.length) {
+                    b.ovalX = new float[m.ovalX.length];
+                    b.ovalY = new float[m.ovalY.length];
+                    for (int k = 0; k < b.ovalX.length; k++) {
+                        b.ovalX[k] = m.ovalX[k] * invScaleX;
+                        b.ovalY[k] = m.ovalY[k] * invScaleY;
+                    }
+                }
+                list.add(b);
+            }
+        } catch (Throwable t) {
+            FileLog.e(t);
+        }
+        return list;
+    }
+
+    //region polygon helpers (Fix 48)
+
+    /** Even-odd rule point-in-polygon test. */
+    private static boolean insidePolygon(float[] xs, float[] ys, int n, float x, float y) {
+        boolean inside = false;
+        for (int i = 0, j = n - 1; i < n; j = i++) {
+            float xi = xs[i], yi = ys[i], xj = xs[j], yj = ys[j];
+            if (((yi > y) != (yj > y))
+                    && (x < (xj - xi) * (y - yi) / (yj - yi + 1e-9f) + xi)) {
+                inside = !inside;
+            }
+        }
+        return inside;
+    }
+
+    /** 3x3 supersampled polygon coverage in [0..1] — soft organ-mask edges. */
+    private static float polygonCoverage(float[] xs, float[] ys, int n, float x, float y) {
+        int hits = 0;
+        for (int sy = -1; sy <= 1; sy++) {
+            for (int sx = -1; sx <= 1; sx++) {
+                if (insidePolygon(xs, ys, n, x + sx * 0.33f, y + sy * 0.33f)) {
+                    hits++;
+                }
+            }
+        }
+        return hits / 9f;
+    }
+
+    /**
+     * Tints the interior of a real organ polygon (soft 3x3 coverage), keeping
+     * the underlying texture — the professional replacement for ratio ellipses.
+     */
+    private static void tintPolygon(int[] px, int W, int H, float[] xs, float[] ys, int tint, float amount) {
+        if (xs == null || ys == null || xs.length < 3 || xs.length != ys.length || amount <= 0.001f) {
+            return;
+        }
+        int n = xs.length;
+        float minX = Float.MAX_VALUE, maxX = -Float.MAX_VALUE;
+        float minY = Float.MAX_VALUE, maxY = -Float.MAX_VALUE;
+        for (int i = 0; i < n; i++) {
+            minX = Math.min(minX, xs[i]); maxX = Math.max(maxX, xs[i]);
+            minY = Math.min(minY, ys[i]); maxY = Math.max(maxY, ys[i]);
+        }
+        int x0 = Math.max(0, (int) (minX - 1.5f)), x1 = Math.min(W - 1, (int) (maxX + 1.5f));
+        int y0 = Math.max(0, (int) (minY - 1.5f)), y1 = Math.min(H - 1, (int) (maxY + 1.5f));
+        if (x1 < x0 || y1 < y0) return;
+        int tr = (tint >> 16) & 255, tg = (tint >> 8) & 255, tb = tint & 255;
+        for (int y = y0; y <= y1; y++) {
+            for (int x = x0; x <= x1; x++) {
+                float cov = polygonCoverage(xs, ys, n, x + 0.5f, y + 0.5f);
+                if (cov <= 0f) continue;
+                int idx = y * W + x, c = px[idx];
+                float k = amount * cov;
+                int rr = (int) (((c >> 16) & 255) * (1f - k) + tr * k);
+                int gg = (int) (((c >> 8) & 255) * (1f - k) + tg * k);
+                int bb = (int) ((c & 255) * (1f - k) + tb * k);
+                px[idx] = (c & 0xFF000000) | (clamp255(rr) << 16) | (clamp255(gg) << 8) | clamp255(bb);
+            }
+        }
+    }
+
+    /**
+     * Derives a cheek anchor from the real face-oval contour: the oval points
+     * whose y sits between the eye line and the mouth, averaged per side.
+     * Falls back to the classic ratio position when no oval exists.
+     */
+    private static void cheekAnchors(FaceBox f, float[] outL, float[] outR) {
+        float eyeY = (f.eyeLY + f.eyeRY) * 0.5f;
+        float top = eyeY + (f.mouthY - eyeY) * 0.18f;
+        float bottom = eyeY + (f.mouthY - eyeY) * 0.72f;
+        float lx = Float.NaN, ly = Float.NaN, rx = Float.NaN, ry = Float.NaN;
+        if (f.ovalX != null && f.ovalY != null && f.ovalX.length == f.ovalY.length) {
+            float lSum = 0, lYSum = 0, rSum = 0, rYSum = 0;
+            int ln = 0, rn = 0;
+            for (int i = 0; i < f.ovalX.length; i++) {
+                float ox = f.ovalX[i], oy = f.ovalY[i];
+                if (oy < top || oy > bottom) continue;
+                if (ox < f.cx) { lSum += ox; lYSum += oy; ln++; }
+                else if (ox > f.cx) { rSum += ox; rYSum += oy; rn++; }
+            }
+            if (ln >= 2) { lx = lSum / ln; ly = lYSum / ln; }
+            if (rn >= 2) { rx = rSum / rn; ry = rYSum / rn; }
+        }
+        if (Float.isNaN(lx)) {
+            lx = f.cx - f.halfW * 0.36f; ly = f.cy + f.halfH * 0.20f;
+        }
+        if (Float.isNaN(rx)) {
+            rx = f.cx + f.halfW * 0.36f; ry = f.cy + f.halfH * 0.20f;
+        }
+        outL[0] = lx; outL[1] = ly;
+        outR[0] = rx; outR[1] = ry;
+    }
+
+    //endregion
 
     /** Last-resort detector for devices where Google Mobile Vision is unavailable. */
     private static ArrayList<FaceBox> detectLegacyFaces(int[] px, int W, int H) {
@@ -630,7 +895,8 @@ public class DrGramPhotoBeautify {
         return clamp01(w);
     }
 
-    /** Horizontal pinch at the nose anchor — slims the nose naturally. */
+    /** Horizontal pinch at the nose anchor — slims the nose naturally.
+     *  DrGram Fix 48: face-local frame so tilted noses stay on the bridge. */
     private static void pinchNose(int[] px, int W, int H, ArrayList<FaceBox> faces, float nose) {
         int[] src = new int[px.length];
         System.arraycopy(px, 0, src, 0, px.length);
@@ -641,6 +907,65 @@ public class DrGramPhotoBeautify {
             int ry = Math.max(2, (int) (f.noseRadiusY > 0 ? f.noseRadiusY : f.halfH * 0.13f));
             int cx = (int) f.noseX, cy = (int) f.noseY;
             float squeeze = 1f - nose * 0.34f;
+            float cosR = 1f, sinR = 0f;
+            if (f.hasMesh && !Float.isNaN(f.roll)) {
+                cosR = (float) Math.cos(f.roll);
+                sinR = (float) Math.sin(f.roll);
+            }
+            int span = Math.max(rx, ry);
+            for (int dy = -span; dy <= span; dy++) {
+                int y = cy + dy;
+                if (y < 0 || y >= H) continue;
+                for (int dx = -span; dx <= span; dx++) {
+                    int x = cx + dx;
+                    if (x < 0 || x >= W) continue;
+                    // face-local offset of this pixel from the nose tip
+                    float pdx = dx * cosR + dy * sinR;
+                    float pdy = -dx * sinR + dy * cosR;
+                    float fx = pdx / (float) rx, fy = pdy / (float) ry;
+                    float e = fx * fx + fy * fy;
+                    if (e >= 1f) {
+                        continue;
+                    }
+                    float fall = (1f - e);
+                    float sq = 1f - (1f - squeeze) * fall * fall;
+                    float snx = pdx / sq;
+                    // map the squeezed local point back into image space
+                    float sxf = cx + snx * cosR - pdy * sinR;
+                    float syf = cy + snx * sinR + pdy * cosR;
+                    int sx = Math.max(0, Math.min(W - 1, Math.round(sxf)));
+                    int syy = Math.max(0, Math.min(H - 1, Math.round(syf)));
+                    px[y * W + x] = src[syy * W + sx];
+                }
+            }
+        }
+    }
+
+    private static void whitenTeeth(int[] px, int W, int H, ArrayList<FaceBox> faces, float teeth) {
+        for (int i = 0; i < faces.size(); i++) {
+            FaceBox f = faces.get(i);
+            // DrGram Fix 48: gate on the real inner-mouth polygon when the
+            // mesh saw the face — whitening can never leak onto lips/skin.
+            boolean meshGate = f.hasMesh && f.lipInnerX != null && f.lipInnerX.length >= 3
+                    && f.lipInnerX.length == f.lipInnerY.length;
+            int n = meshGate ? f.lipInnerX.length : 0;
+            float minX = 0, maxX = 0, minY = 0, maxY = 0;
+            if (meshGate) {
+                minX = Float.MAX_VALUE; maxX = -Float.MAX_VALUE;
+                minY = Float.MAX_VALUE; maxY = -Float.MAX_VALUE;
+                for (int k = 0; k < n; k++) {
+                    minX = Math.min(minX, f.lipInnerX[k]); maxX = Math.max(maxX, f.lipInnerX[k]);
+                    minY = Math.min(minY, f.lipInnerY[k]); maxY = Math.max(maxY, f.lipInnerY[k]);
+                }
+            }
+            int rx = meshGate
+                    ? Math.max(2, (int) ((maxX - minX) * 0.5f) + 2)
+                    : Math.max(2, (int) (f.mouthHalfW > 0 ? f.mouthHalfW : f.halfW * 0.25f));
+            int ry = meshGate
+                    ? Math.max(2, (int) ((maxY - minY) * 0.5f) + 2)
+                    : Math.max(2, (int) (f.mouthHalfH > 0 ? f.mouthHalfH : f.halfH * 0.07f));
+            int cx = meshGate ? (int) ((minX + maxX) * 0.5f) : (int) f.mouthX;
+            int cy = meshGate ? (int) ((minY + maxY) * 0.5f) : (int) f.mouthY;
             for (int dy = -ry; dy <= ry; dy++) {
                 int y = cy + dy;
                 if (y < 0 || y >= H) continue;
@@ -653,33 +978,7 @@ public class DrGramPhotoBeautify {
                     if (e >= 1f) {
                         continue;
                     }
-                    float fall = (1f - e);
-                    float sq = 1f - (1f - squeeze) * fall * fall;
-                    float sxf = cx + dx / sq;
-                    int sx = Math.max(0, Math.min(W - 1, Math.round(sxf)));
-                    px[y * W + x] = src[y * W + sx];
-                }
-            }
-        }
-    }
-
-    private static void whitenTeeth(int[] px, int W, int H, ArrayList<FaceBox> faces, float teeth) {
-        for (int i = 0; i < faces.size(); i++) {
-            FaceBox f = faces.get(i);
-            // Restrict whitening to the mouth landmarks; don't brighten skin around the lips.
-            int rx = Math.max(2, (int) (f.mouthHalfW > 0 ? f.mouthHalfW : f.halfW * 0.25f));
-            int ry = Math.max(2, (int) (f.mouthHalfH > 0 ? f.mouthHalfH : f.halfH * 0.07f));
-            int cx = (int) f.mouthX, cy = (int) f.mouthY;
-            for (int dy = -ry; dy <= ry; dy++) {
-                int y = cy + dy;
-                if (y < 0 || y >= H) continue;
-                float fy = dy / (float) ry;
-                for (int dx = -rx; dx <= rx; dx++) {
-                    int x = cx + dx;
-                    if (x < 0 || x >= W) continue;
-                    float fx = dx / (float) rx;
-                    float e = fx * fx + fy * fy;
-                    if (e >= 1f) {
+                    if (meshGate && !insidePolygon(f.lipInnerX, f.lipInnerY, n, x + 0.5f, y + 0.5f)) {
                         continue;
                     }
                     float fall = 1f - e;
@@ -807,13 +1106,19 @@ public class DrGramPhotoBeautify {
 
     /** Restrained cheek and lip tint for the Glam preset; only runs inside detected face regions. */
     private static void applyGlamMakeup(int[] px, int W, int H, ArrayList<FaceBox> faces) {
+        float[] anchorL = new float[2], anchorR = new float[2];
         for (FaceBox f : faces) {
-            tintEllipse(px, W, H, f.cx - f.halfW * 0.36f, f.cy + f.halfH * 0.20f,
+            cheekAnchors(f, anchorL, anchorR); // DrGram Fix 48: real cheek points
+            tintEllipse(px, W, H, anchorL[0], anchorL[1],
                     f.halfW * 0.22f, f.halfH * 0.12f, 0xFFE85D78, 0.20f);
-            tintEllipse(px, W, H, f.cx + f.halfW * 0.36f, f.cy + f.halfH * 0.20f,
+            tintEllipse(px, W, H, anchorR[0], anchorR[1],
                     f.halfW * 0.22f, f.halfH * 0.12f, 0xFFE85D78, 0.20f);
-            tintEllipse(px, W, H, f.mouthX, f.mouthY - f.halfH * 0.02f,
-                    f.halfW * 0.24f, f.halfH * 0.075f, 0xFFB92A4B, 0.16f);
+            if (f.hasMesh && f.lipOuterX != null && f.lipOuterX.length >= 3) {
+                tintPolygon(px, W, H, f.lipOuterX, f.lipOuterY, 0xFFB92A4B, 0.22f);
+            } else {
+                tintEllipse(px, W, H, f.mouthX, f.mouthY - f.halfH * 0.02f,
+                        f.halfW * 0.24f, f.halfH * 0.075f, 0xFFB92A4B, 0.16f);
+            }
         }
     }
 
@@ -823,16 +1128,25 @@ public class DrGramPhotoBeautify {
      * beauty panel sliders; zero keeps each feature untouched.
      */
     private static void applyMakeup(int[] px, int W, int H, ArrayList<FaceBox> faces, float blush, float lips) {
+        float[] anchorL = new float[2], anchorR = new float[2];
         for (FaceBox f : faces) {
             if (blush > 0.001f) {
                 float rx = f.halfW * 0.24f, ry = f.halfH * 0.13f;
                 int color = 0xFFEF8A9A; // soft rose, layered by slider strength
-                tintEllipse(px, W, H, f.cx - f.halfW * 0.36f, f.cy + f.halfH * 0.20f, rx, ry, color, 0.30f * blush);
-                tintEllipse(px, W, H, f.cx + f.halfW * 0.36f, f.cy + f.halfH * 0.20f, rx, ry, color, 0.30f * blush);
+                // DrGram Fix 48: real cheek anchors from the face-oval contour.
+                cheekAnchors(f, anchorL, anchorR);
+                tintEllipse(px, W, H, anchorL[0], anchorL[1], rx, ry, color, 0.30f * blush);
+                tintEllipse(px, W, H, anchorR[0], anchorR[1], rx, ry, color, 0.30f * blush);
             }
             if (lips > 0.001f) {
-                tintEllipse(px, W, H, f.mouthX, f.mouthY - f.halfH * 0.02f,
-                        f.halfW * 0.25f, f.halfH * 0.085f, 0xFFB92A4B, 0.36f * lips);
+                if (f.hasMesh && f.lipOuterX != null && f.lipOuterX.length >= 3) {
+                    // DrGram Fix 48: real lip shape — the tint follows the
+                    // actual lip outline (tilted heads included).
+                    tintPolygon(px, W, H, f.lipOuterX, f.lipOuterY, 0xFFB92A4B, 0.42f * lips);
+                } else {
+                    tintEllipse(px, W, H, f.mouthX, f.mouthY - f.halfH * 0.02f,
+                            f.halfW * 0.25f, f.halfH * 0.085f, 0xFFB92A4B, 0.36f * lips);
+                }
             }
         }
     }
@@ -876,14 +1190,27 @@ public class DrGramPhotoBeautify {
             float hw = Math.min(Math.abs(face.halfW), W * 0.24f);
             float hh = Math.min(Math.abs(face.halfH), H * 0.30f);
             if (hw < 4f || hh < 4f) continue;
-            float rx = Math.max(2f, hw * 0.17f);
-            float ry = Math.max(2f, hh * 0.075f);
-            float[][] anchors = {
-                    {face.eyeLX, face.eyeLY + hh * 0.085f},
-                    {face.eyeRX, face.eyeRY + hh * 0.085f}
-            };
-            for (float[] a : anchors) {
-                float cx = a[0], cy = a[1];
+            // DrGram Fix 48: mesh geometry puts the ellipse exactly under the
+            // lower lid, sized by the real eye ring.
+            boolean meshEyes = face.hasMesh && !Float.isNaN(face.eyeLrw) && !Float.isNaN(face.eyeRrw);
+            for (int side = 0; side < 2; side++) {
+                boolean left = side == 0;
+                float cx = left ? face.eyeLX : face.eyeRX;
+                float cy, rx, ry;
+                if (meshEyes) {
+                    float lowY = left ? face.eyeLlowY : face.eyeRlowY;
+                    float rhw = left ? face.eyeLrw : face.eyeRrw;
+                    float rhh = left ? face.eyeLrh : face.eyeRrh;
+                    cy = Float.isNaN(lowY) ? (left ? face.eyeLY : face.eyeRY) + hh * 0.085f
+                            : lowY + rhh * 0.45f;
+                    rx = Math.max(2f, rhw * 1.12f);
+                    ry = Math.max(2f, rhh * 0.95f);
+                } else {
+                    cx = left ? face.eyeLX : face.eyeRX;
+                    cy = (left ? face.eyeLY : face.eyeRY) + hh * 0.085f;
+                    rx = Math.max(2f, hw * 0.17f);
+                    ry = Math.max(2f, hh * 0.075f);
+                }
                 if (Float.isNaN(cx) || Float.isNaN(cy)) continue;
                 int x0 = Math.max(0, (int) (cx - rx)), x1 = Math.min(W - 1, (int) (cx + rx));
                 int y0 = Math.max(0, (int) (cy - ry)), y1 = Math.min(H - 1, (int) (cy + ry));

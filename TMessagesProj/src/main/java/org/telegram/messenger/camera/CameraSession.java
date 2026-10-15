@@ -84,6 +84,14 @@ public class CameraSession {
     public volatile long drgramSoftAt;
     private volatile long drgramSoftLastArmAt;
     private volatile boolean drgramSoftBusy;
+    // DrGram Fix 48: tracking state — ROI-guided re-detection, reacquire
+    // pacing and an outlier gate against wild landmark jumps.
+    private final float[] drgramSoftRoi = new float[4];   // cx, cy, halfW, halfH (normalized)
+    private volatile long drgramSoftRoiAt;
+    private volatile boolean drgramSoftHadFaces;
+    private final float[] drgramSoftLastCenter = new float[2];
+    private volatile boolean drgramSoftHasLastCenter;
+    private volatile int drgramSoftSkipStreak;
 
     private static final java.util.concurrent.Executor drgramSoftExecutor =
             java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
@@ -93,9 +101,12 @@ public class CameraSession {
                 return t;
             });
 
-    private static final long DRGRAM_SOFT_MIN_INTERVAL_MS = 450;
+    private static final long DRGRAM_SOFT_MIN_INTERVAL_MS = 450;   // while tracking
+    private static final long DRGRAM_SOFT_REACQUIRE_MS = 280;      // DrGram Fix 48: faster when lost
     private static final long DRGRAM_SOFT_RESULT_TTL_MS = 2600;
     private static final long DRGRAM_HW_STALE_MS = 1200;
+    private static final long DRGRAM_SOFT_ROI_TTL_MS = 1600;       // Fix 48: ROI freshness
+    private static final long DRGRAM_SOFT_OUTLIER_MS = 1200;       // Fix 48: gate window
 
     /**
      * Called once per rendered frame from the GL thread. Arms a one-shot
@@ -120,7 +131,9 @@ public class CameraSession {
             if (!hwStale) {
                 return;
             }
-            if (drgramSoftBusy || now - drgramSoftLastArmAt < DRGRAM_SOFT_MIN_INTERVAL_MS) {
+            if (drgramSoftBusy
+                    || now - drgramSoftLastArmAt < (drgramSoftHadFaces
+                            ? DRGRAM_SOFT_MIN_INTERVAL_MS : DRGRAM_SOFT_REACQUIRE_MS)) {
                 return;
             }
             drgramSoftLastArmAt = now;
@@ -158,41 +171,109 @@ public class CameraSession {
                 if (w <= 0 || h <= 0 || data == null || data.length < w * h) {
                     return;
                 }
-                android.graphics.Bitmap probe = drgramNv21ToBitmap(data, w, h, 384);
+                long now = android.os.SystemClock.elapsedRealtime();
+                // DrGram Fix 48: when a recent face is known, decode only the
+                // ROI crop at a much higher effective resolution; full frame
+                // otherwise (probe bumped 384 -> 448).
+                float[] roi = drgramSoftRoi;
+                boolean roiFresh = now - drgramSoftRoiAt < DRGRAM_SOFT_ROI_TTL_MS
+                        && roi[2] > 0.01f && roi[3] > 0.01f;
+                android.graphics.Bitmap probe;
+                float originX, originY, scaleX, scaleY;
+                int x0 = 0, y0 = 0, cw = 0, ch = 0;
+                if (roiFresh) {
+                    int pcx = (int) (roi[0] * w), pcy = (int) (roi[1] * h);
+                    int phw = (int) Math.min(w * 0.45f, roi[2] * w * 1.8f + 24);
+                    int phh = (int) Math.min(h * 0.45f, roi[3] * h * 1.8f + 24);
+                    x0 = Math.max(0, pcx - phw) & ~1;
+                    y0 = Math.max(0, pcy - phh) & ~1;
+                    cw = (Math.min(w, pcx + phw) - x0) & ~1;
+                    ch = (Math.min(h, pcy + phh) - y0) & ~1;
+                }
+                if (roiFresh && cw >= 64 && ch >= 64) {
+                    probe = drgramNv21CropToBitmap(data, w, h, x0, y0, cw, ch, 320);
+                    if (probe != null) {
+                        originX = x0 / (float) w;
+                        originY = y0 / (float) h;
+                        scaleX = cw / (float) (probe.getWidth() * w);
+                        scaleY = ch / (float) (probe.getHeight() * h);
+                    } else {
+                        probe = drgramNv21ToBitmap(data, w, h, 448);
+                        originX = originY = 0f;
+                        scaleX = probe == null ? 1f : 1f / probe.getWidth();
+                        scaleY = probe == null ? 1f : 1f / probe.getHeight();
+                    }
+                } else {
+                    probe = drgramNv21ToBitmap(data, w, h, 448);
+                    originX = originY = 0f;
+                    scaleX = probe == null ? 1f : 1f / probe.getWidth();
+                    scaleY = probe == null ? 1f : 1f / probe.getHeight();
+                }
                 ArrayList<org.telegram.messenger.DrGramFaceEngine.FaceResult> found =
                         probe == null ? null : org.telegram.messenger.DrGramFaceEngine.detectBlocking(probe, 1500);
                 if (found == null || found.isEmpty()) {
                     drgramSoftCount = 0;
+                    drgramSoftHadFaces = false;
+                    drgramSoftHasLastCenter = false;
                 } else {
+                    // DrGram Fix 48: stable left-to-right ordering so two-face
+                    // slots can't flip between frames.
+                    java.util.Collections.sort(found, (a, b) -> Float.compare(a.cx, b.cx));
                     float[] f = new float[8], n = new float[4], m = new float[4], el = new float[4], er = new float[4];
                     int cnt = 0;
-                    final float invW = 1f / probe.getWidth(), invH = 1f / probe.getHeight();
                     for (int i = 0; i < found.size() && cnt < 2; i++) {
                         org.telegram.messenger.DrGramFaceEngine.FaceResult r = found.get(i);
                         if (r == null) continue;
-                        f[cnt * 4] = r.cx * invW;
-                        f[cnt * 4 + 1] = r.cy * invH;
-                        f[cnt * 4 + 2] = r.halfW * invW;
-                        f[cnt * 4 + 3] = r.halfH * invH;
-                        n[cnt * 2] = Float.isNaN(r.noseX) ? r.cx * invW : r.noseX * invW;
-                        n[cnt * 2 + 1] = Float.isNaN(r.noseY) ? r.cy * invH : r.noseY * invH;
-                        m[cnt * 2] = Float.isNaN(r.mouthX) ? r.cx * invW : r.mouthX * invW;
-                        m[cnt * 2 + 1] = Float.isNaN(r.mouthY) ? (r.cy + r.halfH * 0.5f) * invH : r.mouthY * invH;
+                        f[cnt * 4] = originX + r.cx * scaleX;
+                        f[cnt * 4 + 1] = originY + r.cy * scaleY;
+                        f[cnt * 4 + 2] = r.halfW * scaleX;
+                        f[cnt * 4 + 3] = r.halfH * scaleY;
+                        n[cnt * 2] = originX + (Float.isNaN(r.noseX) ? r.cx : r.noseX) * scaleX;
+                        n[cnt * 2 + 1] = originY + (Float.isNaN(r.noseY) ? r.cy : r.noseY) * scaleY;
+                        m[cnt * 2] = originX + (Float.isNaN(r.mouthX) ? r.cx : r.mouthX) * scaleX;
+                        m[cnt * 2 + 1] = originY + (Float.isNaN(r.mouthY) ? (r.cy + r.halfH * 0.5f) : r.mouthY) * scaleY;
                         if (!Float.isNaN(r.leftEyeX)) {
-                            el[cnt * 2] = r.leftEyeX * invW;
-                            el[cnt * 2 + 1] = r.leftEyeY * invH;
+                            el[cnt * 2] = originX + r.leftEyeX * scaleX;
+                            el[cnt * 2 + 1] = originY + r.leftEyeY * scaleY;
                         } else {
-                            el[cnt * 2] = (r.cx - r.halfW * 0.27f) * invW;
-                            el[cnt * 2 + 1] = (r.cy - r.halfH * 0.20f) * invH;
+                            el[cnt * 2] = originX + (r.cx - r.halfW * 0.27f) * scaleX;
+                            el[cnt * 2 + 1] = originY + (r.cy - r.halfH * 0.20f) * scaleY;
                         }
                         if (!Float.isNaN(r.rightEyeX)) {
-                            er[cnt * 2] = r.rightEyeX * invW;
-                            er[cnt * 2 + 1] = r.rightEyeY * invH;
+                            er[cnt * 2] = originX + r.rightEyeX * scaleX;
+                            er[cnt * 2 + 1] = originY + r.rightEyeY * scaleY;
                         } else {
-                            er[cnt * 2] = (r.cx + r.halfW * 0.27f) * invW;
-                            er[cnt * 2 + 1] = (r.cy - r.halfH * 0.20f) * invH;
+                            er[cnt * 2] = originX + (r.cx + r.halfW * 0.27f) * scaleX;
+                            er[cnt * 2 + 1] = originY + (r.cy - r.halfH * 0.20f) * scaleY;
                         }
                         cnt++;
+                    }
+                    // DrGram Fix 48: outlier gate — a single-face result that
+                    // teleports while the previous one is still fresh is almost
+                    // always a detector hiccup; keep the old anchors for up to
+                    // 3 consecutive skips, then accept reality.
+                    if (cnt == 1 && drgramSoftCount == 1 && drgramSoftHasLastCenter
+                            && now - drgramSoftAt < DRGRAM_SOFT_OUTLIER_MS
+                            && drgramSoftSkipStreak < 3) {
+                        float jump = (float) Math.hypot(
+                                f[0] - drgramSoftLastCenter[0],
+                                f[1] - drgramSoftLastCenter[1]);
+                        if (jump > 0.45f) {
+                            drgramSoftSkipStreak++;
+                            drgramSoftHadFaces = true;
+                            return;
+                        }
+                    }
+                    if (cnt > 0) {
+                        drgramSoftLastCenter[0] = f[0];
+                        drgramSoftLastCenter[1] = f[1];
+                        drgramSoftHasLastCenter = true;
+                        drgramSoftSkipStreak = 0;
+                        drgramSoftRoi[0] = f[0];
+                        drgramSoftRoi[1] = f[1];
+                        drgramSoftRoi[2] = f[2];
+                        drgramSoftRoi[3] = f[3];
+                        drgramSoftRoiAt = now;
                     }
                     drgramSoftFaceData = f;
                     drgramSoftNoseData = n;
@@ -200,7 +281,8 @@ public class CameraSession {
                     drgramSoftEyeLData = el;
                     drgramSoftEyeRData = er;
                     drgramSoftCount = cnt;
-                    drgramSoftAt = android.os.SystemClock.elapsedRealtime();
+                    drgramSoftAt = now;
+                    drgramSoftHadFaces = cnt > 0;
                 }
             } catch (Throwable t) {
                 FileLog.e(t);
@@ -208,6 +290,45 @@ public class CameraSession {
                 drgramSoftBusy = false;
             }
         });
+    }
+
+    /** DrGram Fix 48: NV21 crop + downscale — ROI re-detection at high effective resolution. */
+    private static android.graphics.Bitmap drgramNv21CropToBitmap(byte[] nv21, int w, int h,
+                                                                  int x0, int y0, int cw, int ch, int maxSide) {
+        try {
+            if (x0 < 0 || y0 < 0 || cw <= 0 || ch <= 0 || x0 + cw > w || y0 + ch > h) {
+                return null;
+            }
+            int stride = Math.max(1, Math.max(cw, ch) / maxSide);
+            int dw = cw / stride, dh = ch / stride;
+            if (dw <= 0 || dh <= 0) return null;
+            int[] px = new int[dw * dh];
+            int yPlane = w * h;
+            for (int dy = 0; dy < dh; dy++) {
+                int sy = y0 + Math.min(ch - 1, dy * stride);
+                int uvRow = (sy / 2) * w;
+                for (int dx = 0; dx < dw; dx++) {
+                    int sx = x0 + Math.min(cw - 1, dx * stride);
+                    int y = nv21[sy * w + sx] & 0xFF;
+                    int uvIdx = yPlane + uvRow + (sx / 2) * 2;
+                    int v = (nv21[uvIdx] & 0xFF) - 128;
+                    int u = (nv21[uvIdx + 1] & 0xFF) - 128;
+                    int r = (int) (y + 1.370705f * v);
+                    int g = (int) (y - 0.698001f * v - 0.337633f * u);
+                    int b = (int) (y + 1.732446f * u);
+                    px[dy * dw + dx] = 0xFF000000
+                            | (Math.max(0, Math.min(255, r)) << 16)
+                            | (Math.max(0, Math.min(255, g)) << 8)
+                            | Math.max(0, Math.min(255, b));
+                }
+            }
+            android.graphics.Bitmap bmp = android.graphics.Bitmap.createBitmap(dw, dh, android.graphics.Bitmap.Config.ARGB_8888);
+            bmp.setPixels(px, 0, dw, 0, 0, dw, dh);
+            return bmp;
+        } catch (Throwable t) {
+            FileLog.e(t);
+            return null;
+        }
     }
 
     /** Nearest-neighbour NV21 -> RGB conversion, downscaled to keep ML Kit cheap. */
