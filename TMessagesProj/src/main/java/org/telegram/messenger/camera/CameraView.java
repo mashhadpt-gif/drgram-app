@@ -1414,8 +1414,6 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
                     fxTeethHandle = GLES20.glGetUniformLocation(drawProgram, "fxTeeth"); // DrGram Fix 41
                     fxEyesHandle = GLES20.glGetUniformLocation(drawProgram, "fxEyes"); // DrGram face shaping
                     fxJawHandle = GLES20.glGetUniformLocation(drawProgram, "fxJaw"); // DrGram face shaping
-                    fxEyesHandle = GLES20.glGetUniformLocation(drawProgram, "fxEyes"); // DrGram face shaping
-                    fxJawHandle = GLES20.glGetUniformLocation(drawProgram, "fxJaw"); // DrGram face shaping
                     fxFxHandle = GLES20.glGetUniformLocation(drawProgram, "fxFx"); // DrGram Fix 41
                     fxFaceCountHandle = GLES20.glGetUniformLocation(drawProgram, "fxFaceCount"); // DrGram Fix 41
                     fxFacesHandle = GLES20.glGetUniformLocation(drawProgram, "fxFaces"); // DrGram Fix 41
