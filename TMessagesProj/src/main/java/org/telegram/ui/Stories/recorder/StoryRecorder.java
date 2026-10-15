@@ -3901,19 +3901,36 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
                 org.telegram.messenger.DrGramMedia::setBeautifyEyes));
         beautySliders.add(addBeautySlider(context, panel, "فرم‌دهی خط فک", org.telegram.messenger.DrGramMedia.beautifyJaw(),
                 org.telegram.messenger.DrGramMedia::setBeautifyJaw));
+        // DrGram Fix 46: standalone makeup suite
+        beautySliders.add(addBeautySlider(context, panel, "روشن‌کننده پوست", org.telegram.messenger.DrGramMedia.beautifyBright(),
+                org.telegram.messenger.DrGramMedia::setBeautifyBright));
+        beautySliders.add(addBeautySlider(context, panel, "رژگونه طبیعی", org.telegram.messenger.DrGramMedia.beautifyBlush(),
+                org.telegram.messenger.DrGramMedia::setBeautifyBlush));
+        beautySliders.add(addBeautySlider(context, panel, "رنگ لب طبیعی", org.telegram.messenger.DrGramMedia.beautifyLips(),
+                org.telegram.messenger.DrGramMedia::setBeautifyLips));
+
+        // DrGram Fix 46: 8 sliders need scrolling on small screens
+        android.widget.ScrollView panelScroll = new android.widget.ScrollView(context);
+        panelScroll.setVerticalScrollBarEnabled(false);
+        panelScroll.addView(panel, new android.view.ViewGroup.LayoutParams(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
         final class BeautyPreset {
-            final String name; final float skin, nose, teeth, eyes, jaw; final int fx;
+            final String name; final float skin, nose, teeth, eyes, jaw, bright, blush, lips; final int fx;
             BeautyPreset(String name, float skin, float nose, float teeth, float eyes, float jaw, int fx) {
-                this.name=name; this.skin=skin; this.nose=nose; this.teeth=teeth; this.eyes=eyes; this.jaw=jaw; this.fx=fx;
+                this(name, skin, nose, teeth, eyes, jaw, fx, 0f, 0f, 0f);
+            }
+            BeautyPreset(String name, float skin, float nose, float teeth, float eyes, float jaw, int fx, float bright, float blush, float lips) {
+                this.name=name; this.skin=skin; this.nose=nose; this.teeth=teeth; this.eyes=eyes; this.jaw=jaw;
+                this.bright=bright; this.blush=blush; this.lips=lips; this.fx=fx;
             }
         }
         BeautyPreset[] presets = new BeautyPreset[] {
-                new BeautyPreset("طبیعی", 0.32f, 0.05f, 0.18f, 0.00f, 0.00f, 0),
-                new BeautyPreset("صورتی ملایم", 0.42f, 0.06f, 0.25f, 0.08f, 0.04f, 14),
-                new BeautyPreset("هلویی", 0.46f, 0.07f, 0.30f, 0.10f, 0.05f, 19),
-                new BeautyPreset("شفاف", 0.36f, 0.03f, 0.42f, 0.04f, 0.02f, 16),
-                new BeautyPreset("گلام", 0.52f, 0.08f, 0.48f, 0.12f, 0.06f, 20)
+                new BeautyPreset("طبیعی", 0.32f, 0.05f, 0.18f, 0.00f, 0.00f, 0, 0.10f, 0.00f, 0.00f),
+                new BeautyPreset("خودکار", 0.55f, 0.42f, 0.55f, 0.28f, 0.30f, 0, 0.35f, 0.28f, 0.22f),
+                new BeautyPreset("صورتی ملایم", 0.42f, 0.06f, 0.25f, 0.08f, 0.04f, 14, 0.18f, 0.20f, 0.12f),
+                new BeautyPreset("هلویی", 0.46f, 0.07f, 0.30f, 0.10f, 0.05f, 19, 0.22f, 0.26f, 0.16f),
+                new BeautyPreset("شفاف", 0.36f, 0.03f, 0.42f, 0.04f, 0.02f, 16, 0.30f, 0.08f, 0.05f),
+                new BeautyPreset("گلام", 0.52f, 0.08f, 0.48f, 0.12f, 0.06f, 20, 0.28f, 0.34f, 0.30f)
         };
         for (BeautyPreset preset : presets) {
             TextView chip = new TextView(context);
@@ -3935,12 +3952,15 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
                 org.telegram.messenger.DrGramMedia.setBeautifyTeeth(preset.teeth);
                 org.telegram.messenger.DrGramMedia.setBeautifyEyes(preset.eyes);
                 org.telegram.messenger.DrGramMedia.setBeautifyJaw(preset.jaw);
+                org.telegram.messenger.DrGramMedia.setBeautifyBright(preset.bright);
+                org.telegram.messenger.DrGramMedia.setBeautifyBlush(preset.blush);
+                org.telegram.messenger.DrGramMedia.setBeautifyLips(preset.lips);
                 org.telegram.messenger.DrGramMedia.setCameraFx(preset.fx);
-                setBeautySliderProgress(beautySliders.get(0), preset.skin);
-                setBeautySliderProgress(beautySliders.get(1), preset.nose);
-                setBeautySliderProgress(beautySliders.get(2), preset.teeth);
-                setBeautySliderProgress(beautySliders.get(3), preset.eyes);
-                setBeautySliderProgress(beautySliders.get(4), preset.jaw);
+                for (int i = 0; i < 8; i++) {
+                    setBeautySliderProgress(beautySliders.get(i), i == 0 ? preset.skin
+                            : i == 1 ? preset.nose : i == 2 ? preset.teeth : i == 3 ? preset.eyes
+                            : i == 4 ? preset.jaw : i == 5 ? preset.bright : i == 6 ? preset.blush : preset.lips);
+                }
                 updateFxStripSelection();
             });
             LinearLayout.LayoutParams cp = new LinearLayout.LayoutParams(LayoutHelper.WRAP_CONTENT, AndroidUtilities.dp(36));
@@ -3968,6 +3988,9 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
                 setBeautySliderProgress(beautySliders.get(2), org.telegram.messenger.DrGramMedia.beautifyTeeth());
                 setBeautySliderProgress(beautySliders.get(3), org.telegram.messenger.DrGramMedia.beautifyEyes());
                 setBeautySliderProgress(beautySliders.get(4), org.telegram.messenger.DrGramMedia.beautifyJaw());
+                setBeautySliderProgress(beautySliders.get(5), org.telegram.messenger.DrGramMedia.beautifyBright());
+                setBeautySliderProgress(beautySliders.get(6), org.telegram.messenger.DrGramMedia.beautifyBlush());
+                setBeautySliderProgress(beautySliders.get(7), org.telegram.messenger.DrGramMedia.beautifyLips());
                 updateFxStripSelection();
                 BulletinFactory.of(captionContainer, resourcesProvider).createSimpleBulletin(R.raw.chats_infotip, "تنظیمات ذخیره‌شده اعمال شد").show();
             } else {
@@ -3979,18 +4002,23 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
         new AlertDialog.Builder(context)
                 .setTitle("زیباسازی چهره")
                 .setMessage("استایل آماده را انتخاب کن یا هر مقدار را جداگانه تنظیم کن. برای نتیجه طبیعی، شدت کم تا متوسط پیشنهاد می‌شود.")
-                .setView(panel)
+                .setView(panelScroll)
                 .setPositiveButton("تمام", null)
                 .setNeutralButton("بازنشانی", (dialog, which) -> {
                     org.telegram.messenger.DrGramMedia.setBeautifyEnabled(false);
                     org.telegram.messenger.DrGramMedia.setBeautifyStrength(0f);
                     org.telegram.messenger.DrGramMedia.setBeautifyNose(0f);
                     org.telegram.messenger.DrGramMedia.setBeautifyTeeth(0f);
+                    org.telegram.messenger.DrGramMedia.setBeautifyEyes(0f);
+                    org.telegram.messenger.DrGramMedia.setBeautifyJaw(0f);
+                    org.telegram.messenger.DrGramMedia.setBeautifyBright(0f);
+                    org.telegram.messenger.DrGramMedia.setBeautifyBlush(0f);
+                    org.telegram.messenger.DrGramMedia.setBeautifyLips(0f);
                     org.telegram.messenger.DrGramMedia.setCameraFx(0);
                     enabled.setChecked(false);
-                    setBeautySliderProgress(beautySliders.get(0), 0f);
-                    setBeautySliderProgress(beautySliders.get(1), 0f);
-                    setBeautySliderProgress(beautySliders.get(2), 0f);
+                    for (int i = 0; i < beautySliders.size(); i++) {
+                        setBeautySliderProgress(beautySliders.get(i), 0f);
+                    }
                     updateFxStripSelection();
                 })
                 .show();
@@ -4235,15 +4263,19 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
             float teeth = enabled ? org.telegram.messenger.DrGramMedia.beautifyTeeth() : 0f;
             float eyes = enabled ? org.telegram.messenger.DrGramMedia.beautifyEyes() : 0f;
             float jaw = enabled ? org.telegram.messenger.DrGramMedia.beautifyJaw() : 0f;
+            float bright = enabled ? org.telegram.messenger.DrGramMedia.beautifyBright() : 0f; // DrGram Fix 46
+            float blush = enabled ? org.telegram.messenger.DrGramMedia.beautifyBlush() : 0f; // DrGram Fix 46
+            float lips = enabled ? org.telegram.messenger.DrGramMedia.beautifyLips() : 0f; // DrGram Fix 46
             int fx = org.telegram.messenger.DrGramMedia.cameraFx();
-            if (strength <= 0.001f && nose <= 0.001f && teeth <= 0.001f && eyes <= 0.001f && jaw <= 0.001f && fx == 0) return;
+            if (strength <= 0.001f && nose <= 0.001f && teeth <= 0.001f && eyes <= 0.001f && jaw <= 0.001f
+                    && bright <= 0.001f && blush <= 0.001f && lips <= 0.001f && fx == 0) return;
             Bitmap bitmap = null;
             try {
                 BitmapFactory.Options options = new BitmapFactory.Options();
                 options.inPreferredConfig = Bitmap.Config.ARGB_8888;
                 bitmap = BitmapFactory.decodeFile(photoFile.getAbsolutePath(), options);
                 if (bitmap == null) return;
-                org.telegram.messenger.DrGramPhotoBeautify.process(bitmap, null, strength, nose, teeth, fx, eyes, jaw);
+                org.telegram.messenger.DrGramPhotoBeautify.process(bitmap, null, strength, nose, teeth, fx, eyes, jaw, blush, lips, bright);
                 if (org.telegram.messenger.DrGramMedia.storyPortraitBg()) {
                     org.telegram.messenger.DrGramPhotoBeautify.applyPortraitBackgroundBlur(bitmap, 1f); // DrGram Fix 45
                 }

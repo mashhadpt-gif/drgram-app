@@ -52,13 +52,25 @@ public class DrGramPhotoBeautify {
 
     /** Full still-photo beauty pipeline, including conservative eye/jaw shaping. */
     public static Bitmap process(Bitmap bitmap, Camera.Face[] cameraFaces, float strength, float nose, float teeth, int fxId, float eyes, float jaw) {
+        return process(bitmap, cameraFaces, strength, nose, teeth, fxId, eyes, jaw, 0f, 0f, 0f);
+    }
+
+    /**
+     * DrGram Fix 46: full pipeline plus the standalone makeup suite
+     * (blush / lip tint / skin brightening), all 0..1, zero = off.
+     */
+    public static Bitmap process(Bitmap bitmap, Camera.Face[] cameraFaces, float strength, float nose, float teeth, int fxId, float eyes, float jaw, float blush, float lips, float bright) {
         if (bitmap == null || bitmap.isRecycled() || bitmap.getConfig() == null) {
             return bitmap;
         }
         fxId = Math.max(0, Math.min(20, fxId));
         eyes = clamp01(eyes);
         jaw = clamp01(jaw);
-        if (strength <= 0.001f && nose <= 0.001f && teeth <= 0.001f && eyes <= 0.001f && jaw <= 0.001f && fxId == 0) {
+        blush = clamp01(blush);
+        lips = clamp01(lips);
+        bright = clamp01(bright);
+        if (strength <= 0.001f && nose <= 0.001f && teeth <= 0.001f && eyes <= 0.001f && jaw <= 0.001f
+                && blush <= 0.001f && lips <= 0.001f && bright <= 0.001f && fxId == 0) {
             return bitmap;
         }
         try {
@@ -91,8 +103,14 @@ public class DrGramPhotoBeautify {
             if (teeth > 0.001f && !faces.isEmpty()) {
                 whitenTeeth(px, W, H, faces, teeth);
             }
+            if (bright > 0.001f && !faces.isEmpty()) {
+                brightenSkin(px, W, H, faces, bright); // DrGram Fix 46
+            }
             if (strength > 0.001f && !faces.isEmpty()) {
                 faceGlow(px, W, H, faces, strength);
+            }
+            if ((blush > 0.001f || lips > 0.001f) && !faces.isEmpty()) {
+                applyMakeup(px, W, H, faces, blush, lips); // DrGram Fix 46
             }
             if (fxId > 0) applyCameraFx(px, W, H, fxId);
             if (fxId == 20 && !faces.isEmpty()) {
@@ -245,28 +263,39 @@ public class DrGramPhotoBeautify {
         Bitmap probe = null;
         com.google.android.gms.vision.face.FaceDetector detector = null;
         try {
-            final int maxSide = 640;
-            float scale = Math.min(1f, maxSide / (float) Math.max(W, H));
-            int probeW = Math.max(160, Math.round(W * scale));
-            int probeH = Math.max(160, Math.round(H * scale));
-            int[] sample = new int[probeW * probeH];
-            for (int y = 0; y < probeH; y++) {
-                int srcY = Math.min(H - 1, (int) ((long) y * H / probeH));
-                for (int x = 0; x < probeW; x++) {
-                    int srcX = Math.min(W - 1, (int) ((long) x * W / probeW));
-                    sample[y * probeW + x] = px[srcY * W + srcX] | 0xFF000000;
+            // DrGram Fix 46: multi-scale ML Kit retry — the 640 probe misses
+            // small / distant faces; one higher-resolution pass rescues them
+            // before the legacy chains are tried.
+            final int[] probeScales = {640, 1080};
+            for (int scaleIdx = 0; scaleIdx < probeScales.length && list.isEmpty(); scaleIdx++) {
+                final int maxSide = probeScales[scaleIdx];
+                float scale = Math.min(1f, maxSide / (float) Math.max(W, H));
+                int probeW = Math.max(160, Math.round(W * scale));
+                int probeH = Math.max(160, Math.round(H * scale));
+                int[] sample = new int[probeW * probeH];
+                for (int y = 0; y < probeH; y++) {
+                    int srcY = Math.min(H - 1, (int) ((long) y * H / probeH));
+                    for (int x = 0; x < probeW; x++) {
+                        int srcX = Math.min(W - 1, (int) ((long) x * W / probeW));
+                        sample[y * probeW + x] = px[srcY * W + srcX] | 0xFF000000;
+                    }
+                }
+                if (probe != null && !probe.isRecycled()) {
+                    probe.recycle();
+                }
+                probe = Bitmap.createBitmap(probeW, probeH, Bitmap.Config.ARGB_8888);
+                probe.setPixels(sample, 0, probeW, 0, 0, probeW, probeH);
+
+                // DrGram Fix 45/46: bundled ML Kit first — accurate landmarks, offline,
+                // no Play-Services model download. Falls through to GMS Vision and
+                // the legacy detector when it finds nothing or fails.
+                ArrayList<FaceBox> mlkit = detectMlKitFaces(probe, W, H);
+                if (!mlkit.isEmpty()) {
+                    list.addAll(mlkit);
                 }
             }
-            probe = Bitmap.createBitmap(probeW, probeH, Bitmap.Config.ARGB_8888);
-            probe.setPixels(sample, 0, probeW, 0, 0, probeW, probeH);
-
-            // DrGram Fix 45: bundled ML Kit first — accurate landmarks, offline,
-            // no Play-Services model download. Falls through to GMS Vision and
-            // the legacy detector when it finds nothing or fails.
-            ArrayList<FaceBox> mlkit = detectMlKitFaces(probe, W, H);
-            if (!mlkit.isEmpty()) {
-                if (probe != null && !probe.isRecycled()) probe.recycle();
-                return mlkit;
+            if (!list.isEmpty()) {
+                return list;
             }
 
             detector = new com.google.android.gms.vision.face.FaceDetector.Builder(ApplicationLoader.applicationContext)
@@ -733,6 +762,54 @@ public class DrGramPhotoBeautify {
                     f.halfW * 0.22f, f.halfH * 0.12f, 0xFFE85D78, 0.20f);
             tintEllipse(px, W, H, f.mouthX, f.mouthY - f.halfH * 0.02f,
                     f.halfW * 0.24f, f.halfH * 0.075f, 0xFFB92A4B, 0.16f);
+        }
+    }
+
+    /**
+     * DrGram Fix 46: standalone user-controlled makeup. Anchors come from the
+     * detected face (ML Kit landmarks when available), scaled 0..1 by the
+     * beauty panel sliders; zero keeps each feature untouched.
+     */
+    private static void applyMakeup(int[] px, int W, int H, ArrayList<FaceBox> faces, float blush, float lips) {
+        for (FaceBox f : faces) {
+            if (blush > 0.001f) {
+                float rx = f.halfW * 0.24f, ry = f.halfH * 0.13f;
+                int color = 0xFFEF8A9A; // soft rose, layered by slider strength
+                tintEllipse(px, W, H, f.cx - f.halfW * 0.36f, f.cy + f.halfH * 0.20f, rx, ry, color, 0.30f * blush);
+                tintEllipse(px, W, H, f.cx + f.halfW * 0.36f, f.cy + f.halfH * 0.20f, rx, ry, color, 0.30f * blush);
+            }
+            if (lips > 0.001f) {
+                tintEllipse(px, W, H, f.mouthX, f.mouthY - f.halfH * 0.02f,
+                        f.halfW * 0.25f, f.halfH * 0.085f, 0xFFB92A4B, 0.36f * lips);
+            }
+        }
+    }
+
+    /**
+     * DrGram Fix 46: skin-masked, face-weighted luminance lift — a cleaner
+     * brightening than the legacy flat glow (hair/eyes/background stay put).
+     */
+    private static void brightenSkin(int[] px, int W, int H, ArrayList<FaceBox> faces, float bright) {
+        float add = 4f + 22f * bright;
+        for (int i = 0; i < faces.size(); i++) {
+            FaceBox f = faces.get(i);
+            int x0 = Math.max(0, (int) (f.cx - f.halfW * 1.3f)), x1 = Math.min(W - 1, (int) (f.cx + f.halfW * 1.3f));
+            int y0 = Math.max(0, (int) (f.cy - f.halfH * 1.3f)), y1 = Math.min(H - 1, (int) (f.cy + f.halfH * 1.3f));
+            for (int y = y0; y <= y1; y++) {
+                for (int x = x0; x <= x1; x++) {
+                    int idx = y * W + x;
+                    int c = px[idx];
+                    int r = (c >> 16) & 0xFF, g = (c >> 8) & 0xFF, b = c & 0xFF;
+                    float w = faceWeightAt(faces, x, y) * skinLikelihood(c);
+                    if (w <= 0.02f) {
+                        continue;
+                    }
+                    int nr = clamp255((int) (r + add * w));
+                    int ng = clamp255((int) (g + add * w * 0.985f));
+                    int nb = clamp255((int) (b + add * w * 0.94f));
+                    px[idx] = 0xFF000000 | (nr << 16) | (ng << 8) | nb;
+                }
+            }
         }
     }
 

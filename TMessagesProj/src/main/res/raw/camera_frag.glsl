@@ -23,6 +23,13 @@ uniform float fxFaceCount;   // 0..2
 uniform vec4 fxFaces[2];     // xy = face center (uv), zw = half size (uv)
 uniform vec2 fxNoses[2];     // nose anchor (uv)
 uniform vec2 fxMouths[2];    // mouth anchor (uv)
+// DrGram Fix 46: standalone makeup suite + real eye landmarks
+uniform float fxBlush;       // 0..1 cheek tint
+uniform float fxLips;        // 0..1 lip tint
+uniform float fxBright;      // 0..1 skin brightening
+uniform vec2 fxEyesL[2];     // real left-eye anchor (uv) per face (ML Kit)
+uniform vec2 fxEyesR[2];     // real right-eye anchor (uv) per face (ML Kit)
+uniform float fxEyePrecise;  // 1.0 when real eye anchors are valid
 
 float modI(float a,float b) {
   return floor(a-floor((a+0.5)/b)*b+0.5);
@@ -164,13 +171,19 @@ highp vec2 drgramWarp(highp vec2 p) {
           }
         }
 
-        // Eye centers are conservatively estimated from face geometry. The effect
-        // is localized and defaults to zero because Camera1 does not expose dense landmarks.
+        // DrGram Fix 46: real ML Kit eye anchors when the software detector is
+        // feeding the shader; geometric estimate stays the fallback for the
+        // hardware-only path, which exposes no dense landmarks.
         if (fxEyes > 0.001) {
           for (int eye = 0; eye < 2; eye++) {
             highp float side = eye == 0 ? -1.0 : 1.0;
             highp vec2 eyeCenter = face + vec2(side * hs.x * 0.27, -hs.y * 0.20);
-            highp vec2 eyeQ = (p - eyeCenter) / max(hs * vec2(0.19, 0.13), vec2(1e-4));
+            highp vec2 eyeHalf = hs * vec2(0.19, 0.13);
+            if (fxEyePrecise > 0.5) {
+              eyeCenter = eye == 0 ? fxEyesL[i] : fxEyesR[i];
+              eyeHalf = hs * vec2(0.15, 0.105);
+            }
+            highp vec2 eyeQ = (p - eyeCenter) / max(eyeHalf, vec2(1e-4));
             highp float eyeD = dot(eyeQ, eyeQ);
             if (eyeD < 1.0) {
               highp float eyeMask = (1.0 - smoothstep(0.42, 1.0, eyeD));
@@ -379,7 +392,7 @@ mediump vec3 drgramCartoon(mediump vec3 c) {
 }
 
 vec4 beautifySample(vec4 base) {
-  if (beautify <= 0.001 && fxNose <= 0.001 && fxTeeth <= 0.001 && fxEyes <= 0.001 && fxJaw <= 0.001 && fxFx <= 0.001)
+  if (beautify <= 0.001 && fxNose <= 0.001 && fxTeeth <= 0.001 && fxEyes <= 0.001 && fxJaw <= 0.001 && fxFx <= 0.001 && fxBlush <= 0.001 && fxLips <= 0.001 && fxBright <= 0.001)
     return base;
   highp vec2 p = drgramWarp(uv);
   mediump vec4 C;
@@ -397,8 +410,34 @@ vec4 beautifySample(vec4 base) {
   mediump vec3 rgb = C.rgb;
   rgb = drgramSkinSmooth(p, rgb, fw);
   rgb = drgramTeeth(rgb, p);
-  rgb += beautify * 0.035 * fw;
+  // DrGram Fix 46: glow is now skin-masked so hair/eyes/background stay untouched.
+  rgb += beautify * 0.035 * fw * skinMask(rgb);
+  // DrGram Fix 46: standalone skin brightening (skin-masked luminance lift).
+  if (fxBright > 0.001) {
+    rgb += fxBright * 0.055 * fw * skinMask(rgb);
+  }
   rgb = clamp(rgb, 0.0, 1.0);
+  // DrGram Fix 46: standalone blush + lip tint, anchored on the detected face.
+  if ((fxBlush > 0.001 || fxLips > 0.001) && fxFaceCount > 0.5) {
+    mediump float blush = 0.0;
+    mediump float lips = 0.0;
+    for (int i = 0; i < 2; i++) {
+      if (float(i) < fxFaceCount) {
+        mediump vec2 center = fxFaces[i].xy;
+        mediump vec2 halfSize = fxFaces[i].zw;
+        mediump vec2 cheekSize = max(halfSize * vec2(0.24, 0.13), vec2(0.001));
+        blush = max(blush, ellipseFalloff(p, center + vec2(-halfSize.x * 0.36, halfSize.y * 0.20), cheekSize));
+        blush = max(blush, ellipseFalloff(p, center + vec2( halfSize.x * 0.36, halfSize.y * 0.20), cheekSize));
+        lips = max(lips, ellipseFalloff(p, fxMouths[i] + vec2(0.0, -halfSize.y * 0.02), max(halfSize * vec2(0.25, 0.085), vec2(0.001))));
+      }
+    }
+    if (fxBlush > 0.001) {
+      rgb = mix(rgb, vec3(0.94, 0.48, 0.55), clamp(blush * fxBlush * 0.32, 0.0, 0.32));
+    }
+    if (fxLips > 0.001) {
+      rgb = mix(rgb, vec3(0.80, 0.24, 0.34), clamp(lips * fxLips * 0.42, 0.0, 0.42));
+    }
+  }
   rgb = drgramColorFx(rgb, p);
   // Glam adds restrained cheek and lip tint only when a face is detected.
   if (fxFx > 19.5 && fxFx < 20.5 && fxFaceCount > 0.5) {

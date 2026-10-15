@@ -59,7 +59,211 @@ public class CameraSession {
     // DrGram Fix 41: latest Camera1 face-detection result, consumed by the
     // CameraView shader (skin smoothing / nose slim / teeth whiten).
     public volatile android.hardware.Camera.Face[] drgramFaces;
-    public final android.hardware.Camera.FaceDetectionListener drgramFaceListener = (faces, cam) -> drgramFaces = faces;
+    public volatile boolean drgramHwFacesStarted; // Fix 46: hardware detection actually started
+    public volatile long drgramHwFaceSeenAt;      // Fix 46: last time hardware reported >=1 face
+    public final android.hardware.Camera.FaceDetectionListener drgramFaceListener = (faces, cam) -> {
+        drgramFaces = faces;
+        if (faces != null && faces.length > 0) {
+            drgramHwFaceSeenAt = android.os.SystemClock.elapsedRealtime();
+        }
+    };
+
+    // ================= DrGram Fix 46: software face detection =================
+    // Most phone front cameras expose no hardware face detection
+    // (getMaxNumDetectedFaces() == 0), which left the live beauty warps dead
+    // (only global skin smoothing worked). The bundled ML Kit detector now
+    // covers that gap: one-shot NV21 preview frames are decoded on a tiny
+    // executor and the result feeds the exact same uniform arrays the
+    // hardware path produces. Zero extra cost while hardware detection works.
+    public volatile int drgramSoftCount;
+    public volatile float[] drgramSoftFaceData = new float[8];
+    public volatile float[] drgramSoftNoseData = new float[4];
+    public volatile float[] drgramSoftMouthData = new float[4];
+    public volatile float[] drgramSoftEyeLData = new float[4];
+    public volatile float[] drgramSoftEyeRData = new float[4];
+    public volatile long drgramSoftAt;
+    private volatile long drgramSoftLastArmAt;
+    private volatile boolean drgramSoftBusy;
+
+    private static final java.util.concurrent.Executor drgramSoftExecutor =
+            java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
+                Thread t = new Thread(r, "DrGramSoftFace");
+                t.setPriority(Thread.MIN_PRIORITY);
+                t.setDaemon(true);
+                return t;
+            });
+
+    private static final long DRGRAM_SOFT_MIN_INTERVAL_MS = 450;
+    private static final long DRGRAM_SOFT_RESULT_TTL_MS = 2600;
+    private static final long DRGRAM_HW_STALE_MS = 1200;
+
+    /**
+     * Called once per rendered frame from the GL thread. Arms a one-shot
+     * preview callback when the live beauty needs face anchors but hardware
+     * detection is unavailable or went quiet, then re-arms itself until faces
+     * come back or the user turns the face effects off.
+     */
+    public void drgramSoftwareDetectTick(android.hardware.Camera.Face[] hwFaces) {
+        try {
+            if (destroyed || !org.telegram.messenger.DrGramMedia.cameraBeautyNeedsFaces()) {
+                return;
+            }
+            android.hardware.Camera camera = cameraInfo == null ? null : cameraInfo.camera;
+            if (camera == null) {
+                return;
+            }
+            long now = android.os.SystemClock.elapsedRealtime();
+            boolean hwMissing = hwFaces == null || hwFaces.length == 0;
+            boolean hwStale = hwMissing
+                    && now - sessionStartedAt() >= DRGRAM_HW_STALE_MS
+                    && now - drgramHwFaceSeenAt >= DRGRAM_HW_STALE_MS;
+            if (!hwStale) {
+                return;
+            }
+            if (drgramSoftBusy || now - drgramSoftLastArmAt < DRGRAM_SOFT_MIN_INTERVAL_MS) {
+                return;
+            }
+            drgramSoftLastArmAt = now;
+            try {
+                camera.setOneShotPreviewCallback(this::drgramOnSoftFrame);
+            } catch (Throwable t) {
+                FileLog.e(t);
+            }
+        } catch (Throwable ignore) {
+            // camera preview resilience first
+        }
+    }
+
+    private long sessionStartedAt = -1;
+
+    private long sessionStartedAt() {
+        if (sessionStartedAt < 0) {
+            sessionStartedAt = android.os.SystemClock.elapsedRealtime();
+        }
+        return sessionStartedAt;
+    }
+
+    private void drgramOnSoftFrame(byte[] data, android.hardware.Camera camera) {
+        drgramSoftBusy = true;
+        drgramSoftExecutor.execute(() -> {
+            try {
+                int w, h;
+                try {
+                    android.hardware.Camera.Size sz = camera.getParameters().getPreviewSize();
+                    w = sz.width;
+                    h = sz.height;
+                } catch (Throwable t) {
+                    w = h = 0;
+                }
+                if (w <= 0 || h <= 0 || data == null || data.length < w * h) {
+                    return;
+                }
+                android.graphics.Bitmap probe = drgramNv21ToBitmap(data, w, h, 384);
+                ArrayList<org.telegram.messenger.DrGramFaceEngine.FaceResult> found =
+                        probe == null ? null : org.telegram.messenger.DrGramFaceEngine.detectBlocking(probe, 1500);
+                if (found == null || found.isEmpty()) {
+                    drgramSoftCount = 0;
+                } else {
+                    float[] f = new float[8], n = new float[4], m = new float[4], el = new float[4], er = new float[4];
+                    int cnt = 0;
+                    final float invW = 1f / probe.getWidth(), invH = 1f / probe.getHeight();
+                    for (int i = 0; i < found.size() && cnt < 2; i++) {
+                        org.telegram.messenger.DrGramFaceEngine.FaceResult r = found.get(i);
+                        if (r == null) continue;
+                        f[cnt * 4] = r.cx * invW;
+                        f[cnt * 4 + 1] = r.cy * invH;
+                        f[cnt * 4 + 2] = r.halfW * invW;
+                        f[cnt * 4 + 3] = r.halfH * invH;
+                        n[cnt * 2] = Float.isNaN(r.noseX) ? r.cx * invW : r.noseX * invW;
+                        n[cnt * 2 + 1] = Float.isNaN(r.noseY) ? r.cy * invH : r.noseY * invH;
+                        m[cnt * 2] = Float.isNaN(r.mouthX) ? r.cx * invW : r.mouthX * invW;
+                        m[cnt * 2 + 1] = Float.isNaN(r.mouthY) ? (r.cy + r.halfH * 0.5f) * invH : r.mouthY * invH;
+                        if (!Float.isNaN(r.leftEyeX)) {
+                            el[cnt * 2] = r.leftEyeX * invW;
+                            el[cnt * 2 + 1] = r.leftEyeY * invH;
+                        } else {
+                            el[cnt * 2] = (r.cx - r.halfW * 0.27f) * invW;
+                            el[cnt * 2 + 1] = (r.cy - r.halfH * 0.20f) * invH;
+                        }
+                        if (!Float.isNaN(r.rightEyeX)) {
+                            er[cnt * 2] = r.rightEyeX * invW;
+                            er[cnt * 2 + 1] = r.rightEyeY * invH;
+                        } else {
+                            er[cnt * 2] = (r.cx + r.halfW * 0.27f) * invW;
+                            er[cnt * 2 + 1] = (r.cy - r.halfH * 0.20f) * invH;
+                        }
+                        cnt++;
+                    }
+                    drgramSoftFaceData = f;
+                    drgramSoftNoseData = n;
+                    drgramSoftMouthData = m;
+                    drgramSoftEyeLData = el;
+                    drgramSoftEyeRData = er;
+                    drgramSoftCount = cnt;
+                    drgramSoftAt = android.os.SystemClock.elapsedRealtime();
+                }
+            } catch (Throwable t) {
+                FileLog.e(t);
+            } finally {
+                drgramSoftBusy = false;
+            }
+        });
+    }
+
+    /** Nearest-neighbour NV21 -> RGB conversion, downscaled to keep ML Kit cheap. */
+    private static android.graphics.Bitmap drgramNv21ToBitmap(byte[] nv21, int w, int h, int maxSide) {
+        try {
+            int stride = Math.max(1, Math.max(w, h) / maxSide);
+            int dw = w / stride, dh = h / stride;
+            if (dw <= 0 || dh <= 0) return null;
+            int[] px = new int[dw * dh];
+            int yPlane = w * h;
+            for (int dy = 0; dy < dh; dy++) {
+                int sy = Math.min(h - 1, dy * stride);
+                int uvRow = (sy / 2) * w;
+                for (int dx = 0; dx < dw; dx++) {
+                    int sx = Math.min(w - 1, dx * stride);
+                    int y = nv21[sy * w + sx] & 0xFF;
+                    int uvIdx = yPlane + uvRow + (sx / 2) * 2;
+                    int v = (nv21[uvIdx] & 0xFF) - 128;
+                    int u = (nv21[uvIdx + 1] & 0xFF) - 128;
+                    int r = (int) (y + 1.370705f * v);
+                    int g = (int) (y - 0.698001f * v - 0.337633f * u);
+                    int b = (int) (y + 1.732446f * u);
+                    px[dy * dw + dx] = 0xFF000000
+                            | (Math.max(0, Math.min(255, r)) << 16)
+                            | (Math.max(0, Math.min(255, g)) << 8)
+                            | Math.max(0, Math.min(255, b));
+                }
+            }
+            android.graphics.Bitmap bmp = android.graphics.Bitmap.createBitmap(dw, dh, android.graphics.Bitmap.Config.ARGB_8888);
+            bmp.setPixels(px, 0, dw, 0, 0, dw, dh);
+            return bmp;
+        } catch (Throwable t) {
+            FileLog.e(t);
+            return null;
+        }
+    }
+
+    /** Fresh software detection result (null when stale/empty). */
+    public boolean drgramSoftFacesFresh(float[] faceOut, float[] noseOut, float[] mouthOut, float[] eyeLOut, float[] eyeROut) {
+        int count = drgramSoftCount;
+        if (count <= 0) {
+            return false;
+        }
+        long now = android.os.SystemClock.elapsedRealtime();
+        if (now - drgramSoftAt > DRGRAM_SOFT_RESULT_TTL_MS) {
+            return false;
+        }
+        System.arraycopy(drgramSoftFaceData, 0, faceOut, 0, faceOut.length);
+        System.arraycopy(drgramSoftNoseData, 0, noseOut, 0, noseOut.length);
+        System.arraycopy(drgramSoftMouthData, 0, mouthOut, 0, mouthOut.length);
+        System.arraycopy(drgramSoftEyeLData, 0, eyeLOut, 0, eyeLOut.length);
+        System.arraycopy(drgramSoftEyeRData, 0, eyeROut, 0, eyeROut.length);
+        return true;
+    }
+
+    // ================= end Fix 46 software face detection =================
 
     // Low-cost temporal stabilization for live beauty masks. Camera face callbacks
     // can jitter between frames; an EMA dampens that movement without adding a
@@ -67,14 +271,19 @@ public class CameraSession {
     private final float[] drgramSmoothFaceData = new float[8];
     private final float[] drgramSmoothNoseData = new float[4];
     private final float[] drgramSmoothMouthData = new float[4];
+    private final float[] drgramSmoothEyeLData = new float[4]; // DrGram Fix 46
+    private final float[] drgramSmoothEyeRData = new float[4]; // DrGram Fix 46
     private int drgramSmoothFaceCount = -1;
 
-    public synchronized void smoothDrgramBeautyLandmarks(float[] faceData, float[] noseData, float[] mouthData, int count) {
+    public synchronized void smoothDrgramBeautyLandmarks(float[] faceData, float[] noseData, float[] mouthData,
+                                                         float[] eyeLData, float[] eyeRData, int count) {
         if (count <= 0) {
             drgramSmoothFaceCount = 0;
             java.util.Arrays.fill(drgramSmoothFaceData, 0f);
             java.util.Arrays.fill(drgramSmoothNoseData, 0f);
             java.util.Arrays.fill(drgramSmoothMouthData, 0f);
+            java.util.Arrays.fill(drgramSmoothEyeLData, 0f);
+            java.util.Arrays.fill(drgramSmoothEyeRData, 0f);
             return;
         }
         count = Math.min(2, count);
@@ -82,6 +291,8 @@ public class CameraSession {
             System.arraycopy(faceData, 0, drgramSmoothFaceData, 0, faceData.length);
             System.arraycopy(noseData, 0, drgramSmoothNoseData, 0, noseData.length);
             System.arraycopy(mouthData, 0, drgramSmoothMouthData, 0, mouthData.length);
+            System.arraycopy(eyeLData, 0, drgramSmoothEyeLData, 0, eyeLData.length);
+            System.arraycopy(eyeRData, 0, drgramSmoothEyeRData, 0, eyeRData.length);
             drgramSmoothFaceCount = count;
             return;
         }
@@ -97,6 +308,14 @@ public class CameraSession {
         for (int i = 0; i < mouthData.length; i++) {
             drgramSmoothMouthData[i] += (mouthData[i] - drgramSmoothMouthData[i]) * newWeight;
             mouthData[i] = drgramSmoothMouthData[i];
+        }
+        for (int i = 0; i < eyeLData.length; i++) {
+            drgramSmoothEyeLData[i] += (eyeLData[i] - drgramSmoothEyeLData[i]) * newWeight;
+            eyeLData[i] = drgramSmoothEyeLData[i];
+        }
+        for (int i = 0; i < eyeRData.length; i++) {
+            drgramSmoothEyeRData[i] += (eyeRData[i] - drgramSmoothEyeRData[i]) * newWeight;
+            eyeRData[i] = drgramSmoothEyeRData[i];
         }
     }
 

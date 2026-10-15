@@ -187,6 +187,55 @@ public class DrGramMedia {
         return isBeautifyEnabled() ? beautifyJaw() : 0f;
     }
 
+    // DrGram Fix 46: standalone makeup suite — blush / lip tint / skin brightening
+    public static float beautifyBlush() {
+        try {
+            return clampBeauty(prefs().getFloat("camera_beautify_blush", 0f));
+        } catch (Throwable t) {
+            return 0f;
+        }
+    }
+
+    public static void setBeautifyBlush(float value) {
+        prefs().edit().putFloat("camera_beautify_blush", clampBeauty(value)).apply();
+    }
+
+    public static float beautifyBlushUniform() {
+        return isBeautifyEnabled() ? beautifyBlush() : 0f;
+    }
+
+    public static float beautifyLips() {
+        try {
+            return clampBeauty(prefs().getFloat("camera_beautify_lips", 0f));
+        } catch (Throwable t) {
+            return 0f;
+        }
+    }
+
+    public static void setBeautifyLips(float value) {
+        prefs().edit().putFloat("camera_beautify_lips", clampBeauty(value)).apply();
+    }
+
+    public static float beautifyLipsUniform() {
+        return isBeautifyEnabled() ? beautifyLips() : 0f;
+    }
+
+    public static float beautifyBright() {
+        try {
+            return clampBeauty(prefs().getFloat("camera_beautify_bright", 0f));
+        } catch (Throwable t) {
+            return 0f;
+        }
+    }
+
+    public static void setBeautifyBright(float value) {
+        prefs().edit().putFloat("camera_beautify_bright", clampBeauty(value)).apply();
+    }
+
+    public static float beautifyBrightUniform() {
+        return isBeautifyEnabled() ? beautifyBright() : 0f;
+    }
+
     private static float clampBeauty(float value) {
         if (Float.isNaN(value) || Float.isInfinite(value)) {
             return 0f;
@@ -243,6 +292,9 @@ public class DrGramMedia {
                 .putFloat("preset_teeth", beautifyTeeth())
                 .putFloat("preset_eyes", beautifyEyes())
                 .putFloat("preset_jaw", beautifyJaw())
+                .putFloat("preset_blush", beautifyBlush())
+                .putFloat("preset_lips", beautifyLips())
+                .putFloat("preset_bright", beautifyBright())
                 .putInt("preset_fx", cameraFx())
                 .apply();
     }
@@ -259,6 +311,9 @@ public class DrGramMedia {
                 .putFloat("camera_beautify_teeth", clampBeauty(prefs().getFloat("preset_teeth", 0.6f)))
                 .putFloat("camera_beautify_eyes", clampBeauty(prefs().getFloat("preset_eyes", 0f)))
                 .putFloat("camera_beautify_jaw", clampBeauty(prefs().getFloat("preset_jaw", 0f)))
+                .putFloat("camera_beautify_blush", clampBeauty(prefs().getFloat("preset_blush", 0f)))
+                .putFloat("camera_beautify_lips", clampBeauty(prefs().getFloat("preset_lips", 0f)))
+                .putFloat("camera_beautify_bright", clampBeauty(prefs().getFloat("preset_bright", 0f)))
                 .putInt("camera_fx", Math.max(0, Math.min(20, prefs().getInt("preset_fx", 0))))
                 .apply();
         return true;
@@ -273,7 +328,20 @@ public class DrGramMedia {
     public static boolean cameraBeautyActive() {
         return isBeautifyEnabled() && (beautifyUniform() > 0.001f
                 || beautifyNose() > 0.001f || beautifyTeeth() > 0.001f
-                || beautifyEyes() > 0.001f || beautifyJaw() > 0.001f);
+                || beautifyEyes() > 0.001f || beautifyJaw() > 0.001f
+                || beautifyBlush() > 0.001f || beautifyLips() > 0.001f
+                || beautifyBright() > 0.001f);
+    }
+
+    /**
+     * DrGram Fix 46: true when any live effect needs a detected face
+     * (nose / teeth / eyes / jaw / blush / lips). Drives the software
+     * face-detection fallback for cameras without hardware detection.
+     */
+    public static boolean cameraBeautyNeedsFaces() {
+        return isBeautifyEnabled() && (beautifyNose() > 0.001f || beautifyTeeth() > 0.001f
+                || beautifyEyes() > 0.001f || beautifyJaw() > 0.001f
+                || beautifyBlush() > 0.001f || beautifyLips() > 0.001f);
     }
 
     public static void setStoryGradientEnabled(boolean value) {
