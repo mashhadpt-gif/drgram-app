@@ -54,16 +54,25 @@ jobs:
       - name: Build universal APK
         run: ./gradlew --no-daemon --stacktrace -Dorg.gradle.jvmargs="-Xmx5g -XX:MaxMetaspaceSize=1g" -PAPP_ABIS="$APP_ABIS" :TMessagesProj_App:assembleAfatRelease
 
-      - name: Verify APK output
+      - name: Verify APK output and write build metadata
         shell: bash
         run: |
           test -f TMessagesProj_App/build/outputs/apk/afat/release/app.apk
           ls -lh TMessagesProj_App/build/outputs/apk/afat/release/app.apk
+          {
+            echo "app_version_name=5.11"
+            echo "app_version_code=52"
+            echo "commit_sha=$GITHUB_SHA"
+            echo "workflow_run=$GITHUB_RUN_ID"
+            echo "apk_path=TMessagesProj_App/build/outputs/apk/afat/release/app.apk"
+          } > TMessagesProj_App/build/outputs/apk/afat/release/build-info.txt
 
-      - name: Upload DrGram 5.11 APK
+      - name: Upload DrGram 5.11 APK and build metadata
         uses: actions/upload-artifact@v4
         with:
           name: DrGram-5.11-universal-APK
-          path: TMessagesProj_App/build/outputs/apk/afat/release/app.apk
+          path: |
+            TMessagesProj_App/build/outputs/apk/afat/release/app.apk
+            TMessagesProj_App/build/outputs/apk/afat/release/build-info.txt
           if-no-files-found: error
-          retention-days: 14
+          retention-days: 30
