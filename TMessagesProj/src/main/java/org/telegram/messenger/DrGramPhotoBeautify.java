@@ -47,11 +47,18 @@ public class DrGramPhotoBeautify {
 
     /** Applies face beauty (when detectable) and a whole-frame FX to a still photo. */
     public static Bitmap process(Bitmap bitmap, Camera.Face[] cameraFaces, float strength, float nose, float teeth, int fxId) {
+        return process(bitmap, cameraFaces, strength, nose, teeth, fxId, 0f, 0f);
+    }
+
+    /** Full still-photo beauty pipeline, including conservative eye/jaw shaping. */
+    public static Bitmap process(Bitmap bitmap, Camera.Face[] cameraFaces, float strength, float nose, float teeth, int fxId, float eyes, float jaw) {
         if (bitmap == null || bitmap.isRecycled() || bitmap.getConfig() == null) {
             return bitmap;
         }
         fxId = Math.max(0, Math.min(20, fxId));
-        if (strength <= 0.001f && nose <= 0.001f && teeth <= 0.001f && fxId == 0) {
+        eyes = clamp01(eyes);
+        jaw = clamp01(jaw);
+        if (strength <= 0.001f && nose <= 0.001f && teeth <= 0.001f && eyes <= 0.001f && jaw <= 0.001f && fxId == 0) {
             return bitmap;
         }
         try {
@@ -65,6 +72,12 @@ public class DrGramPhotoBeautify {
             ArrayList<FaceBox> faces = collectFaces(cameraFaces, W, H);
             if (faces.isEmpty()) {
                 faces = detectFacesFallback(px, W, H);
+            }
+
+            // Geometry edits use a source copy so sampling never feeds on already warped pixels.
+            if (!faces.isEmpty() && (eyes > 0.001f || jaw > 0.001f) && (long) W * H <= 8_000_000L) {
+                // Keep the extra source copy bounded on high-resolution phones.
+                warpFaceShape(px, W, H, faces, eyes, jaw);
             }
 
             // If face detection fails, skip face-only retouching but still
@@ -91,6 +104,75 @@ public class DrGramPhotoBeautify {
             FileLog.e(t);
         }
         return bitmap;
+    }
+
+    private static void warpFaceShape(int[] px, int W, int H, ArrayList<FaceBox> faces, float eyes, float jaw) {
+        int[] source = px.clone();
+        for (int y = 0; y < H; y++) {
+            for (int x = 0; x < W; x++) {
+                float sx = x, sy = y;
+                for (FaceBox face : faces) {
+                    float hw = Math.min(Math.abs(face.halfW), W * 0.24f);
+                    float hh = Math.min(Math.abs(face.halfH), H * 0.30f);
+                    if (hw < 4f || hh < 4f) continue;
+                    float dx = x - face.cx;
+                    float dy = y - face.cy;
+                    if (Math.abs(dx) > hw * 1.15f || Math.abs(dy) > hh * 1.20f) continue;
+
+                    if (eyes > 0.001f) {
+                        for (int side = -1; side <= 1; side += 2) {
+                            float ex = face.cx + side * hw * 0.43f;
+                            float ey = face.cy - hh * 0.22f;
+                            float qx = (sx - ex) / Math.max(1f, hw * 0.24f);
+                            float qy = (sy - ey) / Math.max(1f, hh * 0.13f);
+                            float d = qx * qx + qy * qy;
+                            if (d < 1f) {
+                                float edge = 1f - d;
+                                float amount = eyes * 0.13f * edge * edge;
+                                sx = ex + (sx - ex) * (1f - amount);
+                                sy = ey + (sy - ey) * (1f - amount);
+                            }
+                        }
+                    }
+                    if (jaw > 0.001f) {
+                        float vertical = (y - (face.cy + hh * 0.02f)) / Math.max(1f, hh * 0.95f);
+                        float rise = smoothBeauty(0.05f, 0.32f, vertical);
+                        float fall = 1f - smoothBeauty(0.82f, 1.08f, vertical);
+                        float lateral = 1f - smoothBeauty(hw * 0.48f, hw * 0.98f, Math.abs(dx));
+                        float amount = jaw * 0.10f * rise * fall * lateral;
+                        sx = face.cx + (sx - face.cx) / Math.max(0.84f, 1f - amount);
+                    }
+                }
+                px[y * W + x] = sampleBilinear(source, W, H, sx, sy);
+            }
+        }
+    }
+
+    private static float smoothBeauty(float edge0, float edge1, float x) {
+        if (edge1 <= edge0) return x < edge0 ? 0f : 1f;
+        float t = clamp01((x - edge0) / (edge1 - edge0));
+        return t * t * (3f - 2f * t);
+    }
+
+    private static int sampleBilinear(int[] src, int W, int H, float x, float y) {
+        x = Math.max(0f, Math.min(W - 1.001f, x));
+        y = Math.max(0f, Math.min(H - 1.001f, y));
+        int x0 = (int) x, y0 = (int) y;
+        int x1 = Math.min(W - 1, x0 + 1), y1 = Math.min(H - 1, y0 + 1);
+        float fx = x - x0, fy = y - y0;
+        int c00 = src[y0 * W + x0], c10 = src[y0 * W + x1];
+        int c01 = src[y1 * W + x0], c11 = src[y1 * W + x1];
+        int a = blendChannel(c00 >>> 24, c10 >>> 24, c01 >>> 24, c11 >>> 24, fx, fy);
+        int r = blendChannel((c00 >> 16) & 255, (c10 >> 16) & 255, (c01 >> 16) & 255, (c11 >> 16) & 255, fx, fy);
+        int g = blendChannel((c00 >> 8) & 255, (c10 >> 8) & 255, (c01 >> 8) & 255, (c11 >> 8) & 255, fx, fy);
+        int b = blendChannel(c00 & 255, c10 & 255, c01 & 255, c11 & 255, fx, fy);
+        return (a << 24) | (r << 16) | (g << 8) | b;
+    }
+
+    private static int blendChannel(int c00, int c10, int c01, int c11, float fx, float fy) {
+        float top = c00 + (c10 - c00) * fx;
+        float bottom = c01 + (c11 - c01) * fx;
+        return Math.max(0, Math.min(255, Math.round(top + (bottom - top) * fy)));
     }
 
     //region face collection
