@@ -61,6 +61,45 @@ public class CameraSession {
     public volatile android.hardware.Camera.Face[] drgramFaces;
     public final android.hardware.Camera.FaceDetectionListener drgramFaceListener = (faces, cam) -> drgramFaces = faces;
 
+    // Low-cost temporal stabilization for live beauty masks. Camera face callbacks
+    // can jitter between frames; an EMA dampens that movement without adding a
+    // per-frame ML inference workload.
+    private final float[] drgramSmoothFaceData = new float[8];
+    private final float[] drgramSmoothNoseData = new float[4];
+    private final float[] drgramSmoothMouthData = new float[4];
+    private int drgramSmoothFaceCount = -1;
+
+    public synchronized void smoothDrgramBeautyLandmarks(float[] faceData, float[] noseData, float[] mouthData, int count) {
+        if (count <= 0) {
+            drgramSmoothFaceCount = 0;
+            java.util.Arrays.fill(drgramSmoothFaceData, 0f);
+            java.util.Arrays.fill(drgramSmoothNoseData, 0f);
+            java.util.Arrays.fill(drgramSmoothMouthData, 0f);
+            return;
+        }
+        count = Math.min(2, count);
+        if (drgramSmoothFaceCount != count) {
+            System.arraycopy(faceData, 0, drgramSmoothFaceData, 0, faceData.length);
+            System.arraycopy(noseData, 0, drgramSmoothNoseData, 0, noseData.length);
+            System.arraycopy(mouthData, 0, drgramSmoothMouthData, 0, mouthData.length);
+            drgramSmoothFaceCount = count;
+            return;
+        }
+        final float newWeight = 0.42f;
+        for (int i = 0; i < faceData.length; i++) {
+            drgramSmoothFaceData[i] += (faceData[i] - drgramSmoothFaceData[i]) * newWeight;
+            faceData[i] = drgramSmoothFaceData[i];
+        }
+        for (int i = 0; i < noseData.length; i++) {
+            drgramSmoothNoseData[i] += (noseData[i] - drgramSmoothNoseData[i]) * newWeight;
+            noseData[i] = drgramSmoothNoseData[i];
+        }
+        for (int i = 0; i < mouthData.length; i++) {
+            drgramSmoothMouthData[i] += (mouthData[i] - drgramSmoothMouthData[i]) * newWeight;
+            mouthData[i] = drgramSmoothMouthData[i];
+        }
+    }
+
     private int infoCameraId = -1;
     Camera.CameraInfo info = new Camera.CameraInfo();
 
