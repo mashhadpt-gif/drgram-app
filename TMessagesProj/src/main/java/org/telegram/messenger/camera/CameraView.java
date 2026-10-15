@@ -2347,6 +2347,14 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
                 count++;
             }
         }
+        // Stabilize detector jitter before the shader consumes the live masks.
+        try {
+            if (session != null && session.camera1Session != null) {
+                session.camera1Session.smoothDrgramBeautyLandmarks(faceData, noseData, mouthData, count);
+            }
+        } catch (Throwable ignore) {
+            // Keep camera preview resilient if a device camera implementation fails.
+        }
         GLES20.glUniform1f(faceCountHandle, count);
         GLES20.glUniform4fv(facesHandle, 2, faceData, 0);
         GLES20.glUniform2fv(nosesHandle, 2, noseData, 0);
