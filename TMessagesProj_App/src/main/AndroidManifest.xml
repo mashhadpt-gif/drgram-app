@@ -15,7 +15,7 @@
          try/catch fail-safe that permanently falls back to the bundled ML Kit
          chain on any engine error, so forcing the merge is safe: on the rare
          API 21-23 device the tracker either works or cleanly disables itself. -->
-    <uses-sdk tools:overrideLibrary="com.google.mediapipe.tasks.vision" />
+    <uses-sdk tools:overrideLibrary="com.google.mediapipe.tasks.vision,com.google.mediapipe.tasks.core" />
 
     <application android:name="org.telegram.messenger.ApplicationLoaderImpl" tools:replace="name">
         <service
