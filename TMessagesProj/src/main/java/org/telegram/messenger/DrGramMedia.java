@@ -160,7 +160,7 @@ public class DrGramMedia {
         return Math.max(0f, Math.min(1f, value));
     }
 
-    /** Selected camera FX id (0 = none; 1..12 = effect pack). */
+    /** Selected camera FX id (0 = none; 1..20 = effect pack). */
     public static int cameraFx() {
         try {
             return prefs().getInt("camera_fx", 0);
@@ -170,7 +170,7 @@ public class DrGramMedia {
     }
 
     public static void setCameraFx(int id) {
-        if (id < 0 || id > 12) id = 0;
+        if (id < 0 || id > 20) id = 0;
         prefs().edit().putInt("camera_fx", id).apply();
     }
 
@@ -195,7 +195,7 @@ public class DrGramMedia {
                 .putFloat("camera_beautify_strength", clampBeauty(prefs().getFloat("preset_strength", 0.55f)))
                 .putFloat("camera_beautify_nose", clampBeauty(prefs().getFloat("preset_nose", 0.5f)))
                 .putFloat("camera_beautify_teeth", clampBeauty(prefs().getFloat("preset_teeth", 0.6f)))
-                .putInt("camera_fx", Math.max(0, Math.min(12, prefs().getInt("preset_fx", 0))))
+                .putInt("camera_fx", Math.max(0, Math.min(20, prefs().getInt("preset_fx", 0))))
                 .apply();
         return true;
     }
