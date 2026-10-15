@@ -153,6 +153,40 @@ public class DrGramMedia {
         return isBeautifyEnabled() ? beautifyTeeth() : 0f;
     }
 
+    /** Conservative eye enlargement amount, applied only inside estimated eye regions. */
+    public static float beautifyEyes() {
+        try {
+            return clampBeauty(prefs().getFloat("camera_beautify_eyes", 0f));
+        } catch (Exception e) {
+            return 0f;
+        }
+    }
+
+    public static void setBeautifyEyes(float value) {
+        prefs().edit().putFloat("camera_beautify_eyes", clampBeauty(value)).apply();
+    }
+
+    public static float beautifyEyesUniform() {
+        return isBeautifyEnabled() ? beautifyEyes() : 0f;
+    }
+
+    /** Lower-face contour slimming amount. Keep defaults at zero for natural results. */
+    public static float beautifyJaw() {
+        try {
+            return clampBeauty(prefs().getFloat("camera_beautify_jaw", 0f));
+        } catch (Exception e) {
+            return 0f;
+        }
+    }
+
+    public static void setBeautifyJaw(float value) {
+        prefs().edit().putFloat("camera_beautify_jaw", clampBeauty(value)).apply();
+    }
+
+    public static float beautifyJawUniform() {
+        return isBeautifyEnabled() ? beautifyJaw() : 0f;
+    }
+
     private static float clampBeauty(float value) {
         if (Float.isNaN(value) || Float.isInfinite(value)) {
             return 0f;
@@ -181,6 +215,8 @@ public class DrGramMedia {
                 .putFloat("preset_strength", beautifyStrength())
                 .putFloat("preset_nose", beautifyNose())
                 .putFloat("preset_teeth", beautifyTeeth())
+                .putFloat("preset_eyes", beautifyEyes())
+                .putFloat("preset_jaw", beautifyJaw())
                 .putInt("preset_fx", cameraFx())
                 .apply();
     }
@@ -195,6 +231,8 @@ public class DrGramMedia {
                 .putFloat("camera_beautify_strength", clampBeauty(prefs().getFloat("preset_strength", 0.55f)))
                 .putFloat("camera_beautify_nose", clampBeauty(prefs().getFloat("preset_nose", 0.5f)))
                 .putFloat("camera_beautify_teeth", clampBeauty(prefs().getFloat("preset_teeth", 0.6f)))
+                .putFloat("camera_beautify_eyes", clampBeauty(prefs().getFloat("preset_eyes", 0f)))
+                .putFloat("camera_beautify_jaw", clampBeauty(prefs().getFloat("preset_jaw", 0f)))
                 .putInt("camera_fx", Math.max(0, Math.min(20, prefs().getInt("preset_fx", 0))))
                 .apply();
         return true;
@@ -208,7 +246,8 @@ public class DrGramMedia {
     /** True when any camera processing is active (drives face detection startup). */
     public static boolean cameraBeautyActive() {
         return isBeautifyEnabled() && (beautifyUniform() > 0.001f
-                || beautifyNose() > 0.001f || beautifyTeeth() > 0.001f);
+                || beautifyNose() > 0.001f || beautifyTeeth() > 0.001f
+                || beautifyEyes() > 0.001f || beautifyJaw() > 0.001f);
     }
 
     public static void setStoryGradientEnabled(boolean value) {
