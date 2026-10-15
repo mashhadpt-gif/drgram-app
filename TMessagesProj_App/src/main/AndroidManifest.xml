@@ -9,6 +9,14 @@
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" tools:node="remove" />
     <uses-permission android:name="android.permission.READ_CALL_LOG" tools:node="remove" />
 
+    <!-- DrGram Fix 50: MediaPipe tasks-vision declares a conservative minSdk 24
+         (its Java layer prefers java.util.Optional), but the underlying TFLite
+         runtime supports API 19+. The face-mesh tracker runs entirely inside a
+         try/catch fail-safe that permanently falls back to the bundled ML Kit
+         chain on any engine error, so forcing the merge is safe: on the rare
+         API 21-23 device the tracker either works or cleanly disables itself. -->
+    <uses-sdk tools:overrideLibrary="com.google.mediapipe.tasks.vision" />
+
     <application android:name="org.telegram.messenger.ApplicationLoaderImpl" tools:replace="name">
         <service
             android:name="org.telegram.messenger.GoogleVoiceClientService"
