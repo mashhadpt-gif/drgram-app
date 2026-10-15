@@ -124,29 +124,43 @@ public class DrGramFaceEngine {
         }
     }
 
-    /** Blocking selfie segmentation. Returns an ALPHA_8 mask sized to input (alpha = person confidence), or null. */
+    /**
+     * Blocking subject segmentation (GMS ML Kit, thin — model may need a one-time
+     * Play Services download; null = unavailable). Returns an ALPHA_8 mask sized to
+     * input where alpha = person/foreground confidence.
+     */
     public static Bitmap personMaskBlocking(Bitmap bitmap, long timeoutMs) {
         if (bitmap == null || bitmap.isRecycled() || bitmap.getConfig() == null) {
             return null;
         }
         try {
-            com.google.mlkit.vision.segmentation.selfie.SelfieSegmenterOptions opts =
-                new com.google.mlkit.vision.segmentation.selfie.SelfieSegmenterOptions.Builder()
-                    .setDetectorMode(com.google.mlkit.vision.segmentation.selfie.SelfieSegmenterOptions.SINGLE_IMAGE_MODE)
-                    .build();
-            com.google.mlkit.vision.segmentation.selfie.SelfieSegmentation segmenter =
-                com.google.mlkit.vision.segmentation.selfie.SelfieSegmentation.getClient(opts);
-            com.google.mlkit.vision.segmentation.selfie.SelfieSegmentationMask result =
+            com.google.mlkit.vision.segmentation.subject.SubjectSegmenter segmenter =
+                com.google.mlkit.vision.segmentation.subject.SubjectSegmentation.getClient(
+                    new com.google.mlkit.vision.segmentation.subject.SubjectSegmenterOptions.Builder()
+                        .enableForegroundConfidenceMask()
+                        .build());
+            com.google.mlkit.vision.segmentation.subject.SubjectSegmentationResult result =
                 com.google.android.gms.tasks.Tasks.await(
                     segmenter.process(com.google.mlkit.vision.common.InputImage.fromBitmap(bitmap, 0)),
                     timeoutMs, TimeUnit.MILLISECONDS);
-            if (result == null || result.getBuffer() == null) {
+            if (result == null || result.getSubjects().isEmpty()) {
                 return null;
             }
-            Bitmap buffer = result.getBuffer();
-            Bitmap copy = buffer.copy(Bitmap.Config.ALPHA_8, false);
-            // do NOT recycle buffer — the segmenter may hold an internal reference
-            return copy;
+            com.google.mlkit.vision.segmentation.subject.Subject subject = result.getSubjects().get(0);
+            java.nio.FloatBuffer confidence =
+                com.google.android.gms.tasks.Tasks.await(subject.getForegroundConfidenceMask(), timeoutMs, TimeUnit.MILLISECONDS);
+            if (confidence == null) {
+                return null;
+            }
+            final int mw = bitmap.getWidth(), mh = bitmap.getHeight();
+            int[] mp = new int[mw * mh];
+            for (int i = 0; i < mp.length && i < confidence.remaining(); i++) {
+                int a = (int) (confidence.get(i) * 255f);
+                mp[i] = (Math.max(0, Math.min(255, a))) << 24;
+            }
+            Bitmap mask = Bitmap.createBitmap(mw, mh, Bitmap.Config.ALPHA_8);
+            mask.setPixels(mp, 0, mw, 0, 0, mw, mh);
+            return mask;
         } catch (Throwable t) {
             FileLog.e(t);
             return null;

@@ -376,19 +376,21 @@ public class ChatListItemAnimator extends DefaultItemAnimator {
     }
 
     private static void drgramClearEnterBlur(View view) {
+        drgramRemoveAnimator(view);
+        drgramApplyEnterBlur(view, 0);
+    }
+
+    /** DrGram Fix 45b: cancel this view's animator only — never touches other cells. */
+    private static void drgramRemoveAnimator(View view) {
         ValueAnimator running = drgramBlurAnimators.remove(view);
         if (running != null) {
             running.cancel();
         }
-        drgramApplyEnterBlur(view, 0);
     }
 
     /** DrGram Fix 45: start (or restart) this view's own blur-out; never touches other cells. */
-    private static void drgramStartEnterBlurClear(View view, long duration) {
-        ValueAnimator existing = drgramBlurAnimators.remove(view);
-        if (existing != null) {
-            existing.cancel();
-        }
+    private void drgramStartEnterBlurClear(View view, long duration) {
+        drgramRemoveAnimator(view);
         ValueAnimator a = ValueAnimator.ofFloat(16f, 0f);
         a.setDuration(duration);
         a.setInterpolator(translationInterpolator);
@@ -402,19 +404,6 @@ public class ChatListItemAnimator extends DefaultItemAnimator {
         });
         drgramBlurAnimators.put(view, a);
         a.start();
-    }
-
-    @Override
-    public void onViewDetachedFromWindow(@NonNull RecyclerView.ViewHolder holder) {
-        // DrGram Fix 45: a detached cell must never carry frost into reuse
-        drgramClearEnterBlur(holder.itemView);
-        super.onViewDetachedFromWindow(holder);
-    }
-
-    @Override
-    public boolean onFailedToRecycleView(@NonNull RecyclerView.ViewHolder holder) {
-        drgramClearEnterBlur(holder.itemView);
-        return super.onFailedToRecycleView(holder);
     }
 
     //endregion
