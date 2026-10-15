@@ -154,11 +154,6 @@ public class DrGramPhotoBeautify {
         return t * t * (3f - 2f * t);
     }
 
-    private static float clamp01(float value) {
-        if (Float.isNaN(value) || Float.isInfinite(value)) return 0f;
-        return Math.max(0f, Math.min(1f, value));
-    }
-
     private static int sampleBilinear(int[] src, int W, int H, float x, float y) {
         x = Math.max(0f, Math.min(W - 1.001f, x));
         y = Math.max(0f, Math.min(H - 1.001f, y));
