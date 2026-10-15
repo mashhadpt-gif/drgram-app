@@ -4092,6 +4092,34 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
             navigateTo(PAGE_PREVIEW, true);
         }
 
+
+        private void applyDrGramPhotoEffects(File photoFile) {
+            if (photoFile == null || !photoFile.isFile()) return;
+            boolean enabled = org.telegram.messenger.DrGramMedia.isBeautifyEnabled();
+            float strength = enabled ? org.telegram.messenger.DrGramMedia.beautifyStrength() : 0f;
+            float nose = enabled ? org.telegram.messenger.DrGramMedia.beautifyNose() : 0f;
+            float teeth = enabled ? org.telegram.messenger.DrGramMedia.beautifyTeeth() : 0f;
+            int fx = org.telegram.messenger.DrGramMedia.cameraFx();
+            if (strength <= 0.001f && nose <= 0.001f && teeth <= 0.001f && fx == 0) return;
+            Bitmap bitmap = null;
+            try {
+                BitmapFactory.Options options = new BitmapFactory.Options();
+                options.inPreferredConfig = Bitmap.Config.ARGB_8888;
+                bitmap = BitmapFactory.decodeFile(photoFile.getAbsolutePath(), options);
+                if (bitmap == null) return;
+                org.telegram.messenger.DrGramPhotoBeautify.process(bitmap, null, strength, nose, teeth, fx);
+                try (FileOutputStream out = new FileOutputStream(photoFile, false)) {
+                    if (!bitmap.compress(Bitmap.CompressFormat.JPEG, 98, out)) {
+                        FileLog.e("DrGram photo effects: JPEG compression failed");
+                    }
+                }
+            } catch (Throwable t) {
+                FileLog.e(t);
+            } finally {
+                if (bitmap != null && !bitmap.isRecycled()) bitmap.recycle();
+            }
+        }
+
         private void takePicture(Utilities.Callback<Runnable> done) {
             boolean savedFromTextureView = false;
             if (!useDisplayFlashlight()) {
@@ -4127,6 +4155,9 @@ public class StoryRecorder implements NotificationCenter.NotificationCenterDeleg
                     if (outputFile == null) {
                         return;
                     }
+                    // CameraController saves the sensor JPEG, not the GL-filtered preview.
+                    // Apply the selected look to the real story photo before StoryEntry reads it.
+                    applyDrGramPhotoEffects(outputFile);
                     int w = -1, h = -1;
                     try {
                         BitmapFactory.Options opts = new BitmapFactory.Options();
