@@ -182,6 +182,10 @@ public class DrGramToolsActivity extends BaseFragment {
         // DrGram Fix 32: style gallery — brand palettes + curated collection
         addSectionRow(makeActionRow(context, LocaleController.getString(R.string.DrGramStyleGallery), v ->
                 presentFragment(new DrGramStyleGalleryActivity())));
+        // DrGram Fix 57: camera GL shader diagnostics — the exact GLSL compile/link
+        // logs + GPU identity the camera records on this device (tap to view).
+        addSectionRow(makeActionRow(context, LocaleController.getString(R.string.DrGramGlDiag), v ->
+                drgramShowGlDiag()));
     }
 
     //endregion
@@ -210,6 +214,42 @@ public class DrGramToolsActivity extends BaseFragment {
      * DrGram Fix 29: share the last recorded crash log so a bug report carries
      * the exact stack trace — no adb or logcat needed.
      */
+    /**
+     * DrGram Fix 57: show the camera's recorded GL shader diagnostics (GPU
+     * identity + exact compile/link logs) so a single screenshot of this
+     * dialog pins down any remaining shader incompatibility.
+     */
+    private void drgramShowGlDiag() {
+        try {
+            Context ctx = getParentActivity();
+            if (ctx == null) {
+                return;
+            }
+            String text;
+            try {
+                text = ctx.getSharedPreferences("drgramconf", Context.MODE_PRIVATE)
+                        .getString("gldiag", null);
+            } catch (Throwable ignore) {
+                text = null;
+            }
+            if (text == null || text.length() == 0) {
+                text = LocaleController.getString(R.string.DrGramGlDiagClean);
+            }
+            TextView tv = new TextView(ctx);
+            tv.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 12.5f);
+            tv.setTextColor(0xFFEDE7DA);
+            tv.setPadding(AndroidUtilities.dp(20), AndroidUtilities.dp(16), AndroidUtilities.dp(20), AndroidUtilities.dp(8));
+            tv.setText(text);
+            AlertDialog.Builder b = new AlertDialog.Builder(ctx);
+            b.setTitle(LocaleController.getString(R.string.DrGramGlDiag));
+            b.setView(tv);
+            b.setPositiveButton(LocaleController.getString(R.string.OK), null);
+            b.show();
+        } catch (Throwable t) {
+            FileLog.e(t);
+        }
+    }
+
     private void drgramShareLastCrash() {
         try {
             if (getParentActivity() == null) {

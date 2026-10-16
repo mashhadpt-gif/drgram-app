@@ -640,6 +640,9 @@
     <string name="DrGramCCFallbackText">مرکز کنترل به خطای غیرمنتظره‌ای خورد. دوباره تلاش کنید — اگر تکرار شد، همین پیام را برای تیم لوکس‌گرام بفرستید.</string>
     <string name="DrGramSendCrash">ارسال آخرین کرش به پشتیبانی</string>
     <string name="DrGramNoCrash">کرشی ثبت نشده است</string>
+    <!-- DrGram Fix 57: camera GL shader diagnostics -->
+    <string name="DrGramGlDiag">عیب‌یابی شیدر دوربین</string>
+    <string name="DrGramGlDiagClean">هیچ خطای شیدر دوربینی ثبت نشده — همه برنامه‌های گرافیکی سالم ساخته شدند</string>
     <!--DrGram Fix 30: explore search + channel options + control center lite-->
     <string name="DrGramExploreSearchHint">جستجو در کل تلگرام — متن، جمله یا آیدی…</string>
     <string name="DrGramExploreResultsFor">نتایج برای</string>

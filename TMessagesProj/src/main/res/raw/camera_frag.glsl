@@ -41,65 +41,33 @@ uniform vec4 fxMouthRect[2];
 uniform vec4 fxEyeRectL[2];
 uniform vec4 fxEyeRectR[2];
 uniform float fxOrganPrecise; // 1.0 = rects come from the dense mesh
-// DrGram Fix 52: sampled mesh contours packed two xy points per vec4.
-// 16-point face oval per face, 12-point outer lip ring and 8-point eye rings.
-uniform vec4 fxFaceOval[16]; // 8 vec4 per face
-uniform vec4 fxNosePoly[12]; // 6 vec4 per face, 12 contour points per nose
-uniform vec4 fxLipOuter[12]; // 6 vec4 per face
-uniform vec4 fxEyePolyL[8];  // 4 vec4 per face
-uniform vec4 fxEyePolyR[8];
+// DrGram Fix 57: contour points now travel in a 128x1 RGBA8 texture (unit 2)
+// instead of 56 uniform vectors. One texel per point; xy is split into 16-bit
+// hi/lo byte pairs (R=hi_x G=lo_x B=hi_y A=lo_y, quantized to 65520). The
+// sampler is declared highp so the byte values survive lookup: x = R + G/256.
+// This removes the uniform-array block that PowerVR GPUs reject at link time
+// and replaces the loop-guarded selects that stressed their compiler.
+uniform highp sampler2D fxPolyTex;
 uniform float fxPolygonPrecise;
 
-// Fetches one contour point from the packed polygon uniforms. Loop-guarded
-// selection keeps the code compact for mobile shader compilers (GLSL ES 1.00
-// requires constant-index expressions for fragment uniform arrays — the loop
-// counter qualifies). polygonType: 0 = face oval (16 pts), 1 = outer lips
-// (12), 2/3 = left/right eye (8), 4 = nose ring (12).
+// Fetches one contour point from the polygon texture. Slots: face oval
+// face*16 (0..31), nose ring 32+face*12 (32..55), lips 56+face*12 (56..79),
+// left eye 80+face*8 (80..95), right eye 96+face*8 (96..111).
 highp vec2 drgramMeshPoint(int faceIndex, int pointIndex, int polygonType) {
-  highp vec2 result = vec2(0.0);
-  highp float pickZW = mod(float(pointIndex), 2.0);
+  int base;
   if (polygonType == 0) {
-    int slot = faceIndex * 8 + pointIndex / 2;
-    for (int k = 0; k < 16; k++) {
-      if (k == slot) {
-        highp vec4 v = fxFaceOval[k];
-        result = mix(v.xy, v.zw, pickZW);
-      }
-    }
+    base = faceIndex * 16 + pointIndex;
   } else if (polygonType == 4) {
-    int slot = faceIndex * 6 + pointIndex / 2;
-    for (int k = 0; k < 12; k++) {
-      if (k == slot) {
-        highp vec4 v = fxNosePoly[k];
-        result = mix(v.xy, v.zw, pickZW);
-      }
-    }
+    base = 32 + faceIndex * 12 + pointIndex;
   } else if (polygonType == 1) {
-    int slot = faceIndex * 6 + pointIndex / 2;
-    for (int k = 0; k < 12; k++) {
-      if (k == slot) {
-        highp vec4 v = fxLipOuter[k];
-        result = mix(v.xy, v.zw, pickZW);
-      }
-    }
+    base = 56 + faceIndex * 12 + pointIndex;
   } else if (polygonType == 2) {
-    int slot = faceIndex * 4 + pointIndex / 2;
-    for (int k = 0; k < 8; k++) {
-      if (k == slot) {
-        highp vec4 v = fxEyePolyL[k];
-        result = mix(v.xy, v.zw, pickZW);
-      }
-    }
+    base = 80 + faceIndex * 8 + pointIndex;
   } else {
-    int slot = faceIndex * 4 + pointIndex / 2;
-    for (int k = 0; k < 8; k++) {
-      if (k == slot) {
-        highp vec4 v = fxEyePolyR[k];
-        result = mix(v.xy, v.zw, pickZW);
-      }
-    }
+    base = 96 + faceIndex * 8 + pointIndex;
   }
-  return result;
+  highp vec4 c = texture2D(fxPolyTex, vec2((float(base) + 0.5) / 128.0, 0.5));
+  return vec2(c.r + c.g / 256.0, c.b + c.a / 256.0);
 }
 
 // Returns a softly antialiased coverage for a tracked mesh polygon.

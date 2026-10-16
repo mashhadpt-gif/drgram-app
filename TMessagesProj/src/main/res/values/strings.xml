@@ -11619,6 +11619,9 @@
     <!-- DrGram Fix 29: crash diagnostics + special options -->
     <string name="DrGramSendCrash">Send last crash to support</string>
     <string name="DrGramNoCrash">No crash recorded yet</string>
+    <!-- DrGram Fix 57: camera GL shader diagnostics -->
+    <string name="DrGramGlDiag">Camera shader diagnostics</string>
+    <string name="DrGramGlDiagClean">No camera shader errors recorded — all shader programs built fine</string>
     <!--DrGram Fix 30: explore search + channel options + control center lite-->
     <string name="DrGramExploreSearchHint">Search all of Telegram — text, sentence or id…</string>
     <string name="DrGramExploreResultsFor">Results for</string>

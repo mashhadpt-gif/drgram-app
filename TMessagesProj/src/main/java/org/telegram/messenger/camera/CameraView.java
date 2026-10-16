@@ -1388,7 +1388,9 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
         int blush, lips, bright, eyesL, eyesR, eyePrecise;
         int dark, slim; // DrGram Fix 47
         int noseRects, mouthRects, eyeLRects, eyeRRects, organPrecise; // DrGram Fix 51
-        int faceOvalPoly, nosePoly, lipOuterPoly, eyeLPoly, eyeRPoly, polygonPrecise; // DrGram Fix 52/53
+        int polyTexSampler, polygonPrecise; // DrGram Fix 57 (texture instead of 5 uniform arrays)
+        int polyTexture; // GL context-local, lazily created
+        java.nio.ByteBuffer polyBuffer;
 
         void fetch(int program) {
             nose = GLES20.glGetUniformLocation(program, "fxNose");
@@ -1413,11 +1415,7 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
             eyeLRects = GLES20.glGetUniformLocation(program, "fxEyeRectL");
             eyeRRects = GLES20.glGetUniformLocation(program, "fxEyeRectR");
             organPrecise = GLES20.glGetUniformLocation(program, "fxOrganPrecise");
-            faceOvalPoly = GLES20.glGetUniformLocation(program, "fxFaceOval");
-            nosePoly = GLES20.glGetUniformLocation(program, "fxNosePoly");
-            lipOuterPoly = GLES20.glGetUniformLocation(program, "fxLipOuter");
-            eyeLPoly = GLES20.glGetUniformLocation(program, "fxEyePolyL");
-            eyeRPoly = GLES20.glGetUniformLocation(program, "fxEyePolyR");
+            polyTexSampler = GLES20.glGetUniformLocation(program, "fxPolyTex"); // Fix 57: -1 on lite/core
             polygonPrecise = GLES20.glGetUniformLocation(program, "fxPolygonPrecise");
         }
     }
@@ -1668,6 +1666,9 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
                 return false;
             }
             drgramLiteProgramActive = drgramLiteProgram;
+            if (drgramDiagLogs.length() > 0) {
+                drgramDiagPersist("FALLBACK USED\n" + drgramDiagLogs); // Fix 57: keep the why for the Tools diag row
+            }
             if (drgramCoreProgramActive && BuildVars.LOGS_ENABLED) {
                 FileLog.e("DrGram preview CORE compat program active; failed attempts: " + drgramDiagLogs);
             }
@@ -1865,6 +1866,7 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
                         GLES20.glDeleteShader(fullFragment);
                     }
                     drgramFullShaderSave(2);
+                    drgramDiagPersist("UPGRADE COMPILE FAIL\n" + drgramLastShaderLog); // Fix 57
                     if (BuildVars.LOGS_ENABLED) {
                         FileLog.e("DrGram full shader upgrade: compile failed, staying lite");
                     }
@@ -1874,6 +1876,7 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
                 if (fullProgram == 0) {
                     GLES20.glDeleteShader(fullFragment);
                     drgramFullShaderSave(2);
+                    drgramDiagPersist("UPGRADE LINK FAIL\n" + drgramLastLinkLog); // Fix 57
                     if (BuildVars.LOGS_ENABLED) {
                         FileLog.e("DrGram full shader upgrade: link failed, staying lite");
                     }
@@ -2885,12 +2888,80 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
         GLES20.glUniform1f(h.organPrecise, organPrecise ? 1f : 0f);
         // Shared shader uploader is used by live preview and VideoRecorder, so
         // the same exact mesh masks follow every encoded frame as well.
-        GLES20.glUniform4fv(h.faceOvalPoly, 16, faceOvalPolyData, 0);
-        GLES20.glUniform4fv(h.nosePoly, 12, nosePolyData, 0);
-        GLES20.glUniform4fv(h.lipOuterPoly, 12, lipOuterPolyData, 0);
-        GLES20.glUniform4fv(h.eyeLPoly, 8, eyeLPolyData, 0);
-        GLES20.glUniform4fv(h.eyeRPoly, 8, eyeRPolyData, 0);
+        // DrGram Fix 57: contour points travel via a 128x1 RGBA8 texture on
+        // unit 2 (one texel per point, 16-bit hi/lo split) — the 56-vector
+        // uniform block exceeded budget GPUs' link limits.
+        if (polygonPrecise && h.polyTexSampler != -1) {
+            if (h.polyTexture == 0) {
+                int[] tex = new int[1];
+                GLES20.glGenTextures(1, tex, 0);
+                h.polyTexture = tex[0];
+                GLES20.glActiveTexture(GLES20.GL_TEXTURE2);
+                GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, h.polyTexture);
+                GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST);
+                GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_NEAREST);
+                GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_S, GLES20.GL_CLAMP_TO_EDGE);
+                GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_WRAP_T, GLES20.GL_CLAMP_TO_EDGE);
+                GLES20.glTexImage2D(GLES20.GL_TEXTURE_2D, 0, GLES20.GL_RGBA, 128, 1, 0, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, null);
+                GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+            }
+            if (h.polyBuffer == null) {
+                h.polyBuffer = java.nio.ByteBuffer.allocateDirect(128 * 4).order(java.nio.ByteOrder.nativeOrder());
+            }
+            drgramPackPolyTexture(faceOvalPolyData, nosePolyData, lipOuterPolyData, eyeLPolyData, eyeRPolyData, h.polyBuffer);
+            GLES20.glActiveTexture(GLES20.GL_TEXTURE2);
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, h.polyTexture);
+            GLES20.glTexSubImage2D(GLES20.GL_TEXTURE_2D, 0, 0, 0, 128, 1, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, h.polyBuffer);
+            GLES20.glUniform1i(h.polyTexSampler, 2);
+            GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+        }
         GLES20.glUniform1f(h.polygonPrecise, polygonPrecise ? 1f : 0f);
+    }
+
+    // Packs faceOval(64f), nose(48f), lips(48f), eyeL(32f), eyeR(32f) — each
+    // vec4 holding two xy contour points — into 128 RGBA8 texels as 16-bit
+    // hi/lo pairs. Decode in shader: x = R + G/256, y = B + A/256, which is
+    // exact for values quantized to 65520 (= 255 * 256).
+    private static void drgramPackPolyTexture(float[] oval, float[] nose, float[] lips, float[] eyeL, float[] eyeR, ByteBuffer buf) {
+        buf.rewind();
+        for (int face = 0; face < 2; face++) {
+            for (int p = 0; p < 16; p++) {
+                int k = face * 32 + (p >> 1) * 4 + (p & 1) * 2;
+                drgramPutPoint(buf, oval[k], oval[k + 1]);
+            }
+            for (int p = 0; p < 12; p++) {
+                int k = face * 24 + (p >> 1) * 4 + (p & 1) * 2;
+                drgramPutPoint(buf, nose[k], nose[k + 1]);
+            }
+            for (int p = 0; p < 12; p++) {
+                int k = face * 24 + (p >> 1) * 4 + (p & 1) * 2;
+                drgramPutPoint(buf, lips[k], lips[k + 1]);
+            }
+            for (int p = 0; p < 8; p++) {
+                int k = face * 16 + (p >> 1) * 4 + (p & 1) * 2;
+                drgramPutPoint(buf, eyeL[k], eyeL[k + 1]);
+            }
+            for (int p = 0; p < 8; p++) {
+                int k = face * 16 + (p >> 1) * 4 + (p & 1) * 2;
+                drgramPutPoint(buf, eyeR[k], eyeR[k + 1]);
+            }
+        }
+        buf.rewind();
+    }
+
+    private static void drgramPutPoint(ByteBuffer buf, float x, float y) {
+        if (!(x >= 0f && x <= 1f)) {
+            x = 0f;
+        }
+        if (!(y >= 0f && y <= 1f)) {
+            y = 0f;
+        }
+        int x16 = (int) (x * 65520f + 0.5f);
+        int y16 = (int) (y * 65520f + 0.5f);
+        buf.put((byte) ((x16 >> 8) & 0xFF));
+        buf.put((byte) (x16 & 0xFF));
+        buf.put((byte) ((y16 >> 8) & 0xFF));
+        buf.put((byte) (y16 & 0xFF));
     }
 
     private int loadShader(int type, String shaderCode) {
