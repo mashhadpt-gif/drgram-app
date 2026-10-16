@@ -2526,6 +2526,8 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
             if (session != null && session.camera1Session != null) {
                 session.camera1Session.smoothDrgramBeautyLandmarks(faceData, noseData, mouthData, eyeLData, eyeRData, count);
                 session.camera1Session.smoothDrgramOrganRects(noseRectData, mouthRectData, eyeLRectData, eyeRRectData, count);
+                session.camera1Session.smoothDrgramBeautyPolygons(faceOvalPolyData, lipOuterPolyData,
+                        eyeLPolyData, eyeRPolyData, polygonPrecise ? count : 0);
             }
         } catch (Throwable ignore) {
             // Keep camera preview resilient if a device camera implementation fails.
