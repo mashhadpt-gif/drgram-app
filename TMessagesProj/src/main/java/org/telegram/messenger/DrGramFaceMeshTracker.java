@@ -50,6 +50,12 @@ public final class DrGramFaceMeshTracker {
         public final float[] mouthRect = new float[8];  // vec4[2]
         public final float[] eyeLRect = new float[8];   // vec4[2]
         public final float[] eyeRRect = new float[8];   // vec4[2]
+        // DrGram Fix 52: sampled mesh contours packed as normalized x/y points.
+        // Face oval: 16 points per face; outer lips and each eye: 12/8 points.
+        public final float[] faceOvalData = new float[64]; // 2 faces * 16 * xy
+        public final float[] lipOuterData = new float[48]; // 2 faces * 12 * xy
+        public final float[] eyeLPolyData = new float[32]; // 2 faces * 8 * xy
+        public final float[] eyeRPolyData = new float[32]; // 2 faces * 8 * xy
     }
 
     // ================= canonical face mesh topology =================
@@ -265,10 +271,12 @@ public final class DrGramFaceMeshTracker {
             }
             java.util.Arrays.sort(order, (a, b) -> Float.compare(face[a][0], face[b][0]));
 
+            int[] assignedSources = new int[n];
             if (slotCount != n) {
                 // Reacquire / face count changed — seed slots directly.
                 for (int s = 0; s < n; s++) {
                     int src = order[s];
+                    assignedSources[s] = src;
                     copyFace(slotFace, s, face[src], slotNose, s, nose[src], slotMouth, s, mouth[src], slotEyeL, s, eyeL[src], slotEyeR, s, eyeR[src]);
                     System.arraycopy(noseRect[src], 0, slotNoseRect, s * 4, 4);
                     System.arraycopy(mouthRect[src], 0, slotMouthRect, s * 4, 4);
@@ -281,6 +289,7 @@ public final class DrGramFaceMeshTracker {
                 int[] assign = bestAssignment(face, nose, mouth, eyeL, eyeR, order, n);
                 for (int s = 0; s < n; s++) {
                     int src = assign[s];
+                    assignedSources[s] = src;
                     smoothInto(slotFace, s * 4, face[src], 0, 4);
                     smoothInto(slotNose, s * 2, nose[src], 0, 2);
                     smoothInto(slotMouth, s * 2, mouth[src], 0, 2);
@@ -302,9 +311,34 @@ public final class DrGramFaceMeshTracker {
                 System.arraycopy(slotMouthRect, s * 4, out.mouthRect, s * 4, 4);
                 System.arraycopy(slotEyeLRect, s * 4, out.eyeLRect, s * 4, 4);
                 System.arraycopy(slotEyeRRect, s * 4, out.eyeRRect, s * 4, 4);
+                // Mesh contours are copied in the same stable face-slot order.
+                List<com.google.mediapipe.tasks.components.containers.NormalizedLandmark> points = valid.get(assignedSources[s]);
+                sampleRing(points, FACE_OVAL, 16, out.faceOvalData, s * 32);
+                sampleRing(points, LIPS_OUTER_RING, 12, out.lipOuterData, s * 24);
+                sampleRing(points, LEFT_EYE_RING, 8, out.eyeLPolyData, s * 16);
+                sampleRing(points, RIGHT_EYE_RING, 8, out.eyeRPolyData, s * 16);
             }
             return out;
         }
+    }
+
+    /** Copies a uniformly sampled normalized contour into the face-slot buffer. */
+    private static void sampleRing(
+            List<com.google.mediapipe.tasks.components.containers.NormalizedLandmark> points,
+            int[] ring, int sampleCount, float[] out, int offset) {
+        if (points == null || ring == null || ring.length == 0) return;
+        for (int j = 0; j < sampleCount; j++) {
+            int sourceIndex = (int) ((long) j * ring.length / sampleCount);
+            int landmarkIndex = ring[sourceIndex];
+            if (landmarkIndex < 0 || landmarkIndex >= points.size()) return;
+            com.google.mediapipe.tasks.components.containers.NormalizedLandmark p = points.get(landmarkIndex);
+            out[offset + j * 2] = clamp01(p.x());
+            out[offset + j * 2 + 1] = clamp01(p.y());
+        }
+    }
+
+    private static float clamp01(float v) {
+        return Math.max(0f, Math.min(1f, v));
     }
 
     /** Chooses identity or swapped slot mapping — lower total centre distance wins. */

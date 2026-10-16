@@ -1212,6 +1212,7 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
         int blush, lips, bright, eyesL, eyesR, eyePrecise;
         int dark, slim; // DrGram Fix 47
         int noseRects, mouthRects, eyeLRects, eyeRRects, organPrecise; // DrGram Fix 51
+        int faceOvalPoly, lipOuterPoly, eyeLPoly, eyeRPoly, polygonPrecise; // DrGram Fix 52
 
         void fetch(int program) {
             nose = GLES20.glGetUniformLocation(program, "fxNose");
@@ -1236,6 +1237,11 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
             eyeLRects = GLES20.glGetUniformLocation(program, "fxEyeRectL");
             eyeRRects = GLES20.glGetUniformLocation(program, "fxEyeRectR");
             organPrecise = GLES20.glGetUniformLocation(program, "fxOrganPrecise");
+            faceOvalPoly = GLES20.glGetUniformLocation(program, "fxFaceOval");
+            lipOuterPoly = GLES20.glGetUniformLocation(program, "fxLipOuter");
+            eyeLPoly = GLES20.glGetUniformLocation(program, "fxEyePolyL");
+            eyeRPoly = GLES20.glGetUniformLocation(program, "fxEyePolyR");
+            polygonPrecise = GLES20.glGetUniformLocation(program, "fxPolygonPrecise");
         }
     }
 
@@ -2343,10 +2349,16 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
         float[] mouthRectData = new float[8];
         float[] eyeLRectData = new float[8];
         float[] eyeRRectData = new float[8];
+        // DrGram Fix 52: packed mesh contours (two points per vec4 uniform).
+        float[] faceOvalPolyData = new float[64];
+        float[] lipOuterPolyData = new float[48];
+        float[] eyeLPolyData = new float[32];
+        float[] eyeRPolyData = new float[32];
         int count = 0;
         boolean preciseEyes = false;
         boolean feedIsSoftware = false;
         boolean organPrecise = false;
+        boolean polygonPrecise = false;
         // DrGram Fix 50: a fresh MediaPipe mesh result LEADS the feed — the
         // 478-point temporal mesh (iris-grade anchors, glide-stable centre)
         // is strictly better than the coarse hardware boxes that caused the
@@ -2470,6 +2482,14 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
                     }
                     organPrecise = rectsFresh;
                 }
+                if (feedIsSoftware && session != null && session.camera1Session != null) {
+                    try {
+                        polygonPrecise = session.camera1Session.drgramSoftPolygonsFresh(
+                                faceOvalPolyData, lipOuterPolyData, eyeLPolyData, eyeRPolyData);
+                    } catch (Throwable ignore) {
+                        polygonPrecise = false;
+                    }
+                }
             }
             if (!rectsFresh) {
                 organPrecise = false;
@@ -2506,6 +2526,8 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
             if (session != null && session.camera1Session != null) {
                 session.camera1Session.smoothDrgramBeautyLandmarks(faceData, noseData, mouthData, eyeLData, eyeRData, count);
                 session.camera1Session.smoothDrgramOrganRects(noseRectData, mouthRectData, eyeLRectData, eyeRRectData, count);
+                session.camera1Session.smoothDrgramBeautyPolygons(faceOvalPolyData, lipOuterPolyData,
+                        eyeLPolyData, eyeRPolyData, polygonPrecise ? count : 0);
             }
         } catch (Throwable ignore) {
             // Keep camera preview resilient if a device camera implementation fails.
@@ -2523,6 +2545,13 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
         GLES20.glUniform4fv(h.eyeLRects, 2, eyeLRectData, 0);
         GLES20.glUniform4fv(h.eyeRRects, 2, eyeRRectData, 0);
         GLES20.glUniform1f(h.organPrecise, organPrecise ? 1f : 0f);
+        // Shared shader uploader is used by live preview and VideoRecorder, so
+        // the same exact mesh masks follow every encoded frame as well.
+        GLES20.glUniform4fv(h.faceOvalPoly, 16, faceOvalPolyData, 0);
+        GLES20.glUniform4fv(h.lipOuterPoly, 12, lipOuterPolyData, 0);
+        GLES20.glUniform4fv(h.eyeLPoly, 8, eyeLPolyData, 0);
+        GLES20.glUniform4fv(h.eyeRPoly, 8, eyeRPolyData, 0);
+        GLES20.glUniform1f(h.polygonPrecise, polygonPrecise ? 1f : 0f);
     }
 
     private int loadShader(int type, String shaderCode) {
