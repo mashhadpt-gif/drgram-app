@@ -41,6 +41,56 @@ uniform vec4 fxMouthRect[2];
 uniform vec4 fxEyeRectL[2];
 uniform vec4 fxEyeRectR[2];
 uniform float fxOrganPrecise; // 1.0 = rects come from the dense mesh
+// DrGram Fix 52: sampled mesh contours packed two xy points per vec4.
+// 16-point face oval per face, 12-point outer lip ring and 8-point eye rings.
+uniform vec4 fxFaceOval[16]; // 8 vec4 per face
+uniform vec4 fxLipOuter[12]; // 6 vec4 per face
+uniform vec4 fxEyePolyL[8];  // 4 vec4 per face
+uniform vec4 fxEyePolyR[8];
+uniform float fxPolygonPrecise;
+
+vec2 drgramMeshPoint(int faceIndex, int pointIndex, int polygonType) {
+  int pairIndex;
+  vec4 pair;
+  if (polygonType == 0) {
+    pairIndex = faceIndex * 8 + pointIndex / 2;
+    pair = fxFaceOval[pairIndex];
+  } else if (polygonType == 1) {
+    pairIndex = faceIndex * 6 + pointIndex / 2;
+    pair = fxLipOuter[pairIndex];
+  } else if (polygonType == 2) {
+    pairIndex = faceIndex * 4 + pointIndex / 2;
+    pair = fxEyePolyL[pairIndex];
+  } else {
+    pairIndex = faceIndex * 4 + pointIndex / 2;
+    pair = fxEyePolyR[pairIndex];
+  }
+  return (pointIndex - (pointIndex / 2) * 2) == 0 ? pair.xy : pair.zw;
+}
+
+// Returns a softly antialiased coverage for a tracked mesh polygon.
+mediump float drgramMeshPolygonMask(mediump vec2 p, int faceIndex, int polygonType) {
+  int pointCount = polygonType == 0 ? 16 : (polygonType == 1 ? 12 : 8);
+  bool inside = false;
+  mediump float edgeDistance = 1.0;
+  mediump vec2 previous = drgramMeshPoint(faceIndex, pointCount - 1, polygonType);
+  for (int j = 0; j < 16; j++) {
+    if (j < pointCount) {
+      mediump vec2 current = drgramMeshPoint(faceIndex, j, polygonType);
+      mediump vec2 segment = current - previous;
+      mediump float segmentLength = max(dot(segment, segment), 1e-6);
+      mediump float along = clamp(dot(p - previous, segment) / segmentLength, 0.0, 1.0);
+      edgeDistance = min(edgeDistance, length(p - (previous + segment * along)));
+      mediump float dy = previous.y - current.y;
+      bool crosses = ((current.y > p.y) != (previous.y > p.y))
+          && (p.x < (previous.x - current.x) * (p.y - current.y) / (abs(dy) > 1e-6 ? dy : 1e-6) + current.x);
+      if (crosses) inside = !inside;
+      previous = current;
+    }
+  }
+  if (!inside) return 0.0;
+  return smoothstep(0.0, 0.0035, edgeDistance);
+}
 
 float modI(float a,float b) {
   return floor(a-floor((a+0.5)/b)*b+0.5);
@@ -139,7 +189,10 @@ mediump float faceWeight(mediump vec2 p) {
   mediump float w = 0.0;
   for (int i = 0; i < 2; i++) {
     if (float(i) < fxFaceCount) {
-      w = max(w, ellipseFalloff(p, fxFaces[i].xy, fxFaces[i].zw * 1.12));
+      mediump float region = fxPolygonPrecise > 0.5
+          ? drgramMeshPolygonMask(p, i, 0)
+          : ellipseFalloff(p, fxFaces[i].xy, fxFaces[i].zw * 1.12);
+      w = max(w, region);
     }
   }
   return w;
@@ -221,8 +274,10 @@ highp vec2 drgramWarp(highp vec2 p) {
             }
             highp vec2 eyeQ = (p - eyeCenter) / max(eyeHalf, vec2(1e-4));
             highp float eyeD = dot(eyeQ, eyeQ);
-            if (eyeD < 1.0) {
-              highp float eyeMask = (1.0 - smoothstep(0.42, 1.0, eyeD));
+            if (eyeD < 1.0 || fxPolygonPrecise > 0.5) {
+              highp float eyeMask = fxPolygonPrecise > 0.5
+                  ? drgramMeshPolygonMask(p, i, eye == 0 ? 2 : 3)
+                  : (1.0 - smoothstep(0.42, 1.0, eyeD));
               p = eyeCenter + (p - eyeCenter) * (1.0 - fxEyes * 0.16 * eyeMask);
             }
           }
@@ -320,7 +375,10 @@ mediump vec3 drgramTeeth(mediump vec3 base, mediump vec2 p) {
         c = fxMouths[i] - vec2(0.0, fxFaces[i].w * 0.10);
         hs = fxFaces[i].zw * vec2(0.50, 0.26);
       }
-      best = max(best, ellipseFalloff(p, c, hs));
+      mediump float teethRegion = fxPolygonPrecise > 0.5
+          ? drgramMeshPolygonMask(p, i, 1)
+          : ellipseFalloff(p, c, hs);
+      best = max(best, teethRegion);
     }
   }
   if (best < 0.01) {
@@ -523,7 +581,10 @@ vec4 beautifySample(vec4 base) {
         if (mr.z > 0.002) {
           lips = max(lips, ellipseFalloff(p, mr.xy, max(mr.zw * vec2(1.06, 1.14), vec2(0.001))));
         } else {
-          lips = max(lips, ellipseFalloff(p, fxMouths[i] + vec2(0.0, -halfSize.y * 0.02), max(halfSize * vec2(0.25, 0.085), vec2(0.001))));
+          mediump float lipRegion = fxPolygonPrecise > 0.5
+              ? drgramMeshPolygonMask(p, i, 1)
+              : ellipseFalloff(p, fxMouths[i] + vec2(0.0, -halfSize.y * 0.02), max(halfSize * vec2(0.25, 0.085), vec2(0.001)));
+          lips = max(lips, lipRegion);
         }
       }
     }
@@ -551,7 +612,10 @@ vec4 beautifySample(vec4 base) {
         if (mr2.z > 0.002) {
           lips = max(lips, ellipseFalloff(p, mr2.xy, max(mr2.zw * vec2(1.04, 1.10), vec2(0.001))));
         } else {
-          lips = max(lips, ellipseFalloff(p, fxMouths[i] + vec2(0.0, -halfSize.y * 0.02), max(halfSize * vec2(0.24, 0.075), vec2(0.001))));
+          mediump float lipRegion = fxPolygonPrecise > 0.5
+              ? drgramMeshPolygonMask(p, i, 1)
+              : ellipseFalloff(p, fxMouths[i] + vec2(0.0, -halfSize.y * 0.02), max(halfSize * vec2(0.24, 0.075), vec2(0.001)));
+          lips = max(lips, lipRegion);
         }
       }
     }
