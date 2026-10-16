@@ -81,6 +81,12 @@ public class CameraSession {
     public volatile float[] drgramSoftMouthData = new float[4];
     public volatile float[] drgramSoftEyeLData = new float[4];
     public volatile float[] drgramSoftEyeRData = new float[4];
+    // DrGram Fix 51: real organ rects from the mesh (vec4 per face: cx, cy,
+    // halfW, halfH — frame-normalized). Zero halfW = not available.
+    public volatile float[] drgramSoftNoseRect = new float[8];
+    public volatile float[] drgramSoftMouthRect = new float[8];
+    public volatile float[] drgramSoftEyeLRect = new float[8];
+    public volatile float[] drgramSoftEyeRRect = new float[8];
     public volatile long drgramSoftAt;
     private volatile long drgramSoftLastArmAt;
     private volatile boolean drgramSoftBusy;
@@ -211,6 +217,8 @@ public class CameraSession {
                     scaleY = probe == null ? 1f : 1f / probe.getHeight();
                 }
                 float[] f = new float[8], n = new float[4], m = new float[4], el = new float[4], er = new float[4];
+                // DrGram Fix 51: organ rect scratch (vec4 per face).
+                float[] nRect = new float[8], mRect = new float[8], elRect = new float[8], erRect = new float[8];
                 int cnt = 0;
                 boolean meshPrecise = false;
 
@@ -237,6 +245,24 @@ public class CameraSession {
                             el[cnt * 2 + 1] = originY + tr.eyeLData[cnt * 2 + 1] * mapNY;
                             er[cnt * 2] = originX + tr.eyeRData[cnt * 2] * mapNX;
                             er[cnt * 2 + 1] = originY + tr.eyeRData[cnt * 2 + 1] * mapNY;
+                            // DrGram Fix 51: real organ rects — centres map like
+                            // positions, half-extents map like sizes.
+                            nRect[cnt * 4] = originX + tr.noseRect[cnt * 4] * mapNX;
+                            nRect[cnt * 4 + 1] = originY + tr.noseRect[cnt * 4 + 1] * mapNY;
+                            nRect[cnt * 4 + 2] = tr.noseRect[cnt * 4 + 2] * mapNX;
+                            nRect[cnt * 4 + 3] = tr.noseRect[cnt * 4 + 3] * mapNY;
+                            mRect[cnt * 4] = originX + tr.mouthRect[cnt * 4] * mapNX;
+                            mRect[cnt * 4 + 1] = originY + tr.mouthRect[cnt * 4 + 1] * mapNY;
+                            mRect[cnt * 4 + 2] = tr.mouthRect[cnt * 4 + 2] * mapNX;
+                            mRect[cnt * 4 + 3] = tr.mouthRect[cnt * 4 + 3] * mapNY;
+                            elRect[cnt * 4] = originX + tr.eyeLRect[cnt * 4] * mapNX;
+                            elRect[cnt * 4 + 1] = originY + tr.eyeLRect[cnt * 4 + 1] * mapNY;
+                            elRect[cnt * 4 + 2] = tr.eyeLRect[cnt * 4 + 2] * mapNX;
+                            elRect[cnt * 4 + 3] = tr.eyeLRect[cnt * 4 + 3] * mapNY;
+                            erRect[cnt * 4] = originX + tr.eyeRRect[cnt * 4] * mapNX;
+                            erRect[cnt * 4 + 1] = originY + tr.eyeRRect[cnt * 4 + 1] * mapNY;
+                            erRect[cnt * 4 + 2] = tr.eyeRRect[cnt * 4 + 2] * mapNX;
+                            erRect[cnt * 4 + 3] = tr.eyeRRect[cnt * 4 + 3] * mapNY;
                             cnt++;
                         }
                         meshPrecise = cnt > 0;
@@ -322,6 +348,10 @@ public class CameraSession {
                     drgramSoftMouthData = m;
                     drgramSoftEyeLData = el;
                     drgramSoftEyeRData = er;
+                    drgramSoftNoseRect = nRect;   // DrGram Fix 51
+                    drgramSoftMouthRect = mRect;
+                    drgramSoftEyeLRect = elRect;
+                    drgramSoftEyeRRect = erRect;
                     drgramSoftCount = cnt;
                     drgramSoftAt = now;
                     drgramSoftHadFaces = cnt > 0;
@@ -428,6 +458,32 @@ public class CameraSession {
     }
 
     /**
+     * DrGram Fix 51: real organ rectangles accompanying a fresh software
+     * result (false = caller must keep its geometric estimates).
+     */
+    public boolean drgramSoftOrganRectsFresh(float[] noseRectOut, float[] mouthRectOut,
+                                             float[] eyeLRectOut, float[] eyeRRectOut) {
+        int count = drgramSoftCount;
+        if (count <= 0) {
+            return false;
+        }
+        long now = android.os.SystemClock.elapsedRealtime();
+        if (now - drgramSoftAt > DRGRAM_SOFT_RESULT_TTL_MS) {
+            return false;
+        }
+        float[] nr = drgramSoftNoseRect, mr = drgramSoftMouthRect;
+        float[] elr = drgramSoftEyeLRect, err = drgramSoftEyeRRect;
+        if (nr == null || nr.length < 8 || mr == null || mr.length < 8) {
+            return false;
+        }
+        System.arraycopy(nr, 0, noseRectOut, 0, noseRectOut.length);
+        System.arraycopy(mr, 0, mouthRectOut, 0, mouthRectOut.length);
+        if (elr != null && elr.length >= 8) System.arraycopy(elr, 0, eyeLRectOut, 0, eyeLRectOut.length);
+        if (err != null && err.length >= 8) System.arraycopy(err, 0, eyeRRectOut, 0, eyeRRectOut.length);
+        return true;
+    }
+
+    /**
      * DrGram Fix 50: true when a fresh, mesh-precise (MediaPipe) software
      * result should LEAD the shader feed instead of the coarse hardware
      * boxes. Hardware detection keeps the quality it always had; the mesh
@@ -448,6 +504,11 @@ public class CameraSession {
     private final float[] drgramSmoothMouthData = new float[4];
     private final float[] drgramSmoothEyeLData = new float[4]; // DrGram Fix 46
     private final float[] drgramSmoothEyeRData = new float[4]; // DrGram Fix 46
+    private final float[] drgramSmoothNoseRect = new float[8]; // DrGram Fix 51
+    private final float[] drgramSmoothMouthRect = new float[8];
+    private final float[] drgramSmoothEyeLRect = new float[8];
+    private final float[] drgramSmoothEyeRRect = new float[8];
+    private int drgramSmoothOrganCount = -1; // DrGram Fix 51
     private int drgramSmoothFaceCount = -1;
 
     public synchronized void smoothDrgramBeautyLandmarks(float[] faceData, float[] noseData, float[] mouthData,
@@ -491,6 +552,40 @@ public class CameraSession {
         for (int i = 0; i < eyeRData.length; i++) {
             drgramSmoothEyeRData[i] += (eyeRData[i] - drgramSmoothEyeRData[i]) * newWeight;
             eyeRData[i] = drgramSmoothEyeRData[i];
+        }
+    }
+
+    /**
+     * DrGram Fix 51: EMA smoothing for the organ rects, same cadence as the
+     * anchor smoothing. Rect centres and half-extents are smoothed as one
+     * 4-vector so the region never leads/lags its own anchor.
+     */
+    public synchronized void smoothDrgramOrganRects(float[] noseRect, float[] mouthRect,
+                                                    float[] eyeLRect, float[] eyeRRect, int count) {
+        if (count <= 0) {
+            java.util.Arrays.fill(drgramSmoothNoseRect, 0f);
+            java.util.Arrays.fill(drgramSmoothMouthRect, 0f);
+            java.util.Arrays.fill(drgramSmoothEyeLRect, 0f);
+            java.util.Arrays.fill(drgramSmoothEyeRRect, 0f);
+            drgramSmoothOrganCount = 0;
+            return;
+        }
+        if (drgramSmoothOrganCount != count) {
+            System.arraycopy(noseRect, 0, drgramSmoothNoseRect, 0, noseRect.length);
+            System.arraycopy(mouthRect, 0, drgramSmoothMouthRect, 0, mouthRect.length);
+            System.arraycopy(eyeLRect, 0, drgramSmoothEyeLRect, 0, eyeLRect.length);
+            System.arraycopy(eyeRRect, 0, drgramSmoothEyeRRect, 0, eyeRRect.length);
+            drgramSmoothOrganCount = count;
+            return;
+        }
+        final float w = 0.42f;
+        float[][] all = {noseRect, mouthRect, eyeLRect, eyeRRect};
+        float[][] state = {drgramSmoothNoseRect, drgramSmoothMouthRect, drgramSmoothEyeLRect, drgramSmoothEyeRRect};
+        for (int a = 0; a < all.length; a++) {
+            for (int i = 0; i < all[a].length; i++) {
+                state[a][i] += (all[a][i] - state[a][i]) * w;
+                all[a][i] = state[a][i];
+            }
         }
     }
 

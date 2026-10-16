@@ -128,6 +128,10 @@ public class DrGramFaceEngine {
         public float[] lipInnerX, lipInnerY;
         // Face oval contour (jawline / cheeks).
         public float[] ovalX, ovalY;
+        // DrGram Fix 51: real nose rectangle from the closed nose ring
+        // (MediaPipe path only). NaN when unavailable.
+        public float noseCX = Float.NaN, noseCY = Float.NaN;
+        public float noseHalfW = Float.NaN, noseHalfH = Float.NaN;
         public int pointCount;
     }
 

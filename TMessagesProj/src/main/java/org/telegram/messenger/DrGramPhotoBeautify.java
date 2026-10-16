@@ -590,6 +590,17 @@ public class DrGramPhotoBeautify {
                     float eyeDist = (float) Math.hypot(b.eyeRX - b.eyeLX, b.eyeRY - b.eyeLY);
                     b.noseRadiusX = Math.max(2f, eyeDist * 0.17f);
                     b.noseRadiusY = Math.max(2f, eyeDist * 0.15f);
+                    // DrGram Fix 51: the real ala-to-ala nose rectangle beats any
+                    // inter-eye estimate — the pinch now covers exactly the nose
+                    // (nasion to columella, ala to ala) and never the cheeks.
+                    if (!Float.isNaN(m.noseHalfW) && !Float.isNaN(m.noseHalfH)) {
+                        b.noseRadiusX = Math.max(2f, m.noseHalfW * invScaleX * 1.08f);
+                        b.noseRadiusY = Math.max(2f, m.noseHalfH * invScaleY * 1.08f);
+                        if (!Float.isNaN(m.noseCX) && !Float.isNaN(m.noseCY)) {
+                            b.noseX = m.noseCX * invScaleX;
+                            b.noseY = m.noseCY * invScaleY;
+                        }
+                    }
                 } else {
                     b.noseRadiusX = Math.max(2f, b.halfW * 0.15f);
                     b.noseRadiusY = Math.max(2f, b.halfH * 0.13f);

@@ -33,6 +33,14 @@ uniform float fxEyePrecise;  // 1.0 when real eye anchors are valid
 // DrGram Fix 47: under-eye brightening + cheek slimming
 uniform float fxDark;        // 0..1 dark-circle brightening
 uniform float fxSlim;        // 0..1 mid-face (cheek) slimming
+// DrGram Fix 51: REAL organ rectangles from the 478-pt mesh. Each vec4 is
+// (cx, cy, halfW, halfH) in uv space. The nose rect spans ala-to-ala /
+// nasion-to-columella, so nose work stays ON the nose — no more clown halo.
+uniform vec4 fxNoseRect[2];
+uniform vec4 fxMouthRect[2];
+uniform vec4 fxEyeRectL[2];
+uniform vec4 fxEyeRectR[2];
+uniform float fxOrganPrecise; // 1.0 = rects come from the dense mesh
 
 float modI(float a,float b) {
   return floor(a-floor((a+0.5)/b)*b+0.5);
@@ -154,9 +162,12 @@ mediump float skinMask(mediump vec3 c) {
   return clamp(m, 0.0, 1.0);
 }
 
-// Nose slimming: horizontal pinch around each detected nose anchor.
-// Sampling coordinate is pushed AWAY from the nose line horizontally, so the
-// rendered image compresses toward it -> slimmer nose, natural edges.
+// Nose slimming: horizontal pinch scoped to the REAL nose region (Fix 51).
+// The pinch zone is the mesh nose rect (ala-to-ala wide, nasion-to-columella
+// tall) with a smooth falloff that reaches zero slightly outside the organ,
+// plus vertical weighting so the tip/nostrils get the full squeeze while the
+// bridge stays gentle. Sampling is pushed AWAY from the nose centre line ->
+// slimmer nose, cheeks untouched.
 highp vec2 drgramWarp(highp vec2 p) {
   if (fxFaceCount > 0.5) {
     for (int i = 0; i < 2; i++) {
@@ -164,19 +175,35 @@ highp vec2 drgramWarp(highp vec2 p) {
         highp vec2 face = fxFaces[i].xy;
         highp vec2 hs = fxFaces[i].zw;
         if (fxNose > 0.001) {
-          highp vec2 c = fxNoses[i];
-          highp vec2 q = (p - c) / max(hs * vec2(0.60, 0.85), vec2(1e-4));
-          highp float e = dot(q, q);
-          if (e < 1.0) {
-            highp float f = 1.0 - e;
-            highp float squeeze = 1.0 - fxNose * 0.30 * f * f;
-            p.x = c.x + (p.x - c.x) / squeeze;
+          highp vec2 nc = fxNoseRect[i].xy;
+          highp vec2 nh = fxNoseRect[i].zw;
+          if (nh.x > 0.002 && nh.y > 0.002) {
+            highp vec2 q = (p - nc) / max(nh * 1.22, vec2(1e-4));
+            highp float e = dot(q, q);
+            if (e < 1.0) {
+              highp float f = 1.0 - smoothstep(0.28, 1.0, sqrt(e));
+              // vertical weight: strongest at the tip/nostril half
+              highp float v = clamp((p.y - (nc.y - nh.y)) / max(2.0 * nh.y, 1e-4), 0.0, 1.0);
+              highp float vw = mix(0.55, 1.0, smoothstep(0.05, 0.60, v));
+              highp float squeeze = 1.0 - fxNose * 0.32 * f * f * vw;
+              p.x = nc.x + (p.x - nc.x) / squeeze;
+            }
+          } else {
+            // legacy guard — face-box estimate (kept far tighter than the
+            // original 0.60x0.85 ellipse so cheeks can never be pinched)
+            highp vec2 q = (p - fxNoses[i]) / max(hs * vec2(0.30, 0.32), vec2(1e-4));
+            highp float e = dot(q, q);
+            if (e < 1.0) {
+              highp float f = 1.0 - e;
+              highp float squeeze = 1.0 - fxNose * 0.30 * f * f;
+              p.x = fxNoses[i].x + (p.x - fxNoses[i].x) / squeeze;
+            }
           }
         }
 
-        // DrGram Fix 46: real ML Kit eye anchors when the software detector is
-        // feeding the shader; geometric estimate stays the fallback for the
-        // hardware-only path, which exposes no dense landmarks.
+        // DrGram Fix 46/51: eye enlargement now hugs the real eye ring. The
+        // mesh eye rect (plus a small lash margin) replaces the face-box
+        // estimate, so the pull never leaks onto the nose or temples.
         if (fxEyes > 0.001) {
           for (int eye = 0; eye < 2; eye++) {
             highp float side = eye == 0 ? -1.0 : 1.0;
@@ -184,7 +211,13 @@ highp vec2 drgramWarp(highp vec2 p) {
             highp vec2 eyeHalf = hs * vec2(0.19, 0.13);
             if (fxEyePrecise > 0.5) {
               eyeCenter = eye == 0 ? fxEyesL[i] : fxEyesR[i];
-              eyeHalf = hs * vec2(0.15, 0.105);
+              highp vec2 rrect = eye == 0 ? fxEyeRectL[i] : fxEyeRectR[i];
+              if (rrect.z > 0.002) {
+                eyeCenter = rrect.xy;
+                eyeHalf = rrect.zw * 1.30;
+              } else {
+                eyeHalf = hs * vec2(0.15, 0.105);
+              }
             }
             highp vec2 eyeQ = (p - eyeCenter) / max(eyeHalf, vec2(1e-4));
             highp float eyeD = dot(eyeQ, eyeQ);
@@ -267,8 +300,9 @@ mediump vec3 drgramSkinSmooth(mediump vec2 p, mediump vec3 base, mediump float f
   return mix(base, smoothC, clamp(strength * mask * 1.25, 0.0, 0.92));
 }
 
-// Teeth whitening: inside the mouth ellipse, push bright yellowish pixels
-// toward a clean neutral white. Lips/hairline survive the luma gate.
+// Teeth whitening: scoped to the REAL mouth rect (Fix 51) — the zone sits
+// inside the outer lip ring, so only the visible teeth band can lighten.
+// Lips/hairline survive the luma gate.
 mediump vec3 drgramTeeth(mediump vec3 base, mediump vec2 p) {
   if (fxTeeth < 0.01 || fxFaceCount < 0.5) {
     return base;
@@ -276,8 +310,16 @@ mediump vec3 drgramTeeth(mediump vec3 base, mediump vec2 p) {
   mediump float best = 0.0;
   for (int i = 0; i < 2; i++) {
     if (float(i) < fxFaceCount) {
-      mediump vec2 c = fxMouths[i] - vec2(0.0, fxFaces[i].w * 0.10);
-      mediump vec2 hs = fxFaces[i].zw * vec2(0.50, 0.26);
+      mediump vec2 mr = fxMouthRect[i];
+      mediump vec2 c;
+      mediump vec2 hs;
+      if (mr.z > 0.002) {
+        c = mr.xy - vec2(0.0, mr.w * 0.10);
+        hs = mr.zw * vec2(0.80, 0.62);
+      } else {
+        c = fxMouths[i] - vec2(0.0, fxFaces[i].w * 0.10);
+        hs = fxFaces[i].zw * vec2(0.50, 0.26);
+      }
       best = max(best, ellipseFalloff(p, c, hs));
     }
   }
@@ -447,6 +489,13 @@ vec4 beautifySample(vec4 base) {
           }
           mediump vec2 c = ec + vec2(0.0, fhs.y * 0.085);
           mediump vec2 ehs = vec2(fhs.x * 0.17, fhs.y * 0.075);
+          // DrGram Fix 51: real eye ring extents — the lift zone tracks the
+          // actual lower lid instead of a face-box guess.
+          mediump vec2 er = eye == 0 ? fxEyeRectL[i] : fxEyeRectR[i];
+          if (er.z > 0.002) {
+            c = ec + vec2(0.0, er.w * 1.15);
+            ehs = vec2(er.z * 1.25, er.w * 0.80);
+          }
           undereye = max(undereye, ellipseFalloff(p, c, ehs));
         }
       }
@@ -469,7 +518,13 @@ vec4 beautifySample(vec4 base) {
         mediump vec2 cheekSize = max(halfSize * vec2(0.24, 0.13), vec2(0.001));
         blush = max(blush, ellipseFalloff(p, center + vec2(-halfSize.x * 0.36, halfSize.y * 0.20), cheekSize));
         blush = max(blush, ellipseFalloff(p, center + vec2( halfSize.x * 0.36, halfSize.y * 0.20), cheekSize));
-        lips = max(lips, ellipseFalloff(p, fxMouths[i] + vec2(0.0, -halfSize.y * 0.02), max(halfSize * vec2(0.25, 0.085), vec2(0.001))));
+        // DrGram Fix 51: lip tint hugs the real outer-lip rect from the mesh.
+        mediump vec2 mr = fxMouthRect[i];
+        if (mr.z > 0.002) {
+          lips = max(lips, ellipseFalloff(p, mr.xy, max(mr.zw * vec2(1.06, 1.14), vec2(0.001))));
+        } else {
+          lips = max(lips, ellipseFalloff(p, fxMouths[i] + vec2(0.0, -halfSize.y * 0.02), max(halfSize * vec2(0.25, 0.085), vec2(0.001))));
+        }
       }
     }
     if (fxBlush > 0.001) {
@@ -491,7 +546,13 @@ vec4 beautifySample(vec4 base) {
         mediump vec2 cheekSize = max(halfSize * vec2(0.22, 0.12), vec2(0.001));
         blush = max(blush, ellipseFalloff(p, center + vec2(-halfSize.x * 0.36, halfSize.y * 0.20), cheekSize));
         blush = max(blush, ellipseFalloff(p, center + vec2( halfSize.x * 0.36, halfSize.y * 0.20), cheekSize));
-        lips = max(lips, ellipseFalloff(p, fxMouths[i] + vec2(0.0, -halfSize.y * 0.02), max(halfSize * vec2(0.24, 0.075), vec2(0.001))));
+        // DrGram Fix 51: same real-lip scoping for the glam preset.
+        mediump vec2 mr2 = fxMouthRect[i];
+        if (mr2.z > 0.002) {
+          lips = max(lips, ellipseFalloff(p, mr2.xy, max(mr2.zw * vec2(1.04, 1.10), vec2(0.001))));
+        } else {
+          lips = max(lips, ellipseFalloff(p, fxMouths[i] + vec2(0.0, -halfSize.y * 0.02), max(halfSize * vec2(0.24, 0.075), vec2(0.001))));
+        }
       }
     }
     rgb = mix(rgb, vec3(0.92, 0.36, 0.43), clamp(blush * 0.22, 0.0, 0.22));

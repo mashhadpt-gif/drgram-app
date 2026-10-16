@@ -42,6 +42,14 @@ public final class DrGramFaceMeshTracker {
         public final float[] mouthData = new float[4]; // x, y
         public final float[] eyeLData = new float[4];  // x, y
         public final float[] eyeRData = new float[4];  // x, y
+        // DrGram Fix 51: REAL organ rectangles (cx, cy, halfW, halfH) taken
+        // from the mesh topology itself — the nose rect spans ala-to-ala and
+        // nasion-to-columella, so effects can be scoped to the nose itself
+        // instead of face-box guesses (the "clown nose" fix).
+        public final float[] noseRect = new float[8];   // vec4[2]
+        public final float[] mouthRect = new float[8];  // vec4[2]
+        public final float[] eyeLRect = new float[8];   // vec4[2]
+        public final float[] eyeRRect = new float[8];   // vec4[2]
     }
 
     // ================= canonical face mesh topology =================
@@ -71,6 +79,15 @@ public final class DrGramFaceMeshTracker {
             157, 158, 159, 160, 161, 246
     };
     private static final int[] NOSE_BRIDGE = {168, 6, 197, 195, 5, 4};
+    // DrGram Fix 51: the full nose region as a closed ring — nasion (168) down
+    // the left wall (122, 174, 198, 209, 219), around the left ala crease and
+    // outer ala (49, 48, 64, 129), the left nostril (98, 97), the columella
+    // (2), then the mirrored right side back up to the nasion. Width is exactly
+    // ala-to-ala (64 <-> 294); height is exactly nasion-to-columella.
+    private static final int[] NOSE_RING = {
+            168, 122, 174, 198, 209, 219, 49, 48, 64, 129, 98, 97, 2,
+            326, 327, 358, 294, 278, 279, 439, 429, 417, 399, 351
+    };
     // Attention (iris) points — present when the model returns 478 landmarks.
     private static final int IRIS_R_CENTER = 468;
     private static final int IRIS_L_CENTER = 473;
@@ -92,6 +109,11 @@ public final class DrGramFaceMeshTracker {
     private static final float[] slotMouth = new float[4];
     private static final float[] slotEyeL = new float[4];
     private static final float[] slotEyeR = new float[4];
+    // DrGram Fix 51: smoothed organ rects (vec4 per slot).
+    private static final float[] slotNoseRect = new float[8];
+    private static final float[] slotMouthRect = new float[8];
+    private static final float[] slotEyeLRect = new float[8];
+    private static final float[] slotEyeRRect = new float[8];
 
     private DrGramFaceMeshTracker() {
     }
@@ -229,8 +251,13 @@ public final class DrGramFaceMeshTracker {
             float[][] mouth = new float[n][2];
             float[][] eyeL = new float[n][2];
             float[][] eyeR = new float[n][2];
+            float[][] noseRect = new float[n][4];
+            float[][] mouthRect = new float[n][4];
+            float[][] eyeLRect = new float[n][4];
+            float[][] eyeRRect = new float[n][4];
             for (int i = 0; i < n; i++) {
                 readFace(valid.get(i), face[i], nose[i], mouth[i], eyeL[i], eyeR[i]);
+                readOrganRects(valid.get(i), noseRect[i], mouthRect[i], eyeLRect[i], eyeRRect[i], face[i]);
             }
             final Integer[] order = new Integer[n];
             for (int i = 0; i < n; i++) {
@@ -243,6 +270,10 @@ public final class DrGramFaceMeshTracker {
                 for (int s = 0; s < n; s++) {
                     int src = order[s];
                     copyFace(slotFace, s, face[src], slotNose, s, nose[src], slotMouth, s, mouth[src], slotEyeL, s, eyeL[src], slotEyeR, s, eyeR[src]);
+                    System.arraycopy(noseRect[src], 0, slotNoseRect, s * 4, 4);
+                    System.arraycopy(mouthRect[src], 0, slotMouthRect, s * 4, 4);
+                    System.arraycopy(eyeLRect[src], 0, slotEyeLRect, s * 4, 4);
+                    System.arraycopy(eyeRRect[src], 0, slotEyeRRect, s * 4, 4);
                 }
                 slotCount = n;
             } else {
@@ -255,6 +286,10 @@ public final class DrGramFaceMeshTracker {
                     smoothInto(slotMouth, s * 2, mouth[src], 0, 2);
                     smoothInto(slotEyeL, s * 2, eyeL[src], 0, 2);
                     smoothInto(slotEyeR, s * 2, eyeR[src], 0, 2);
+                    smoothInto(slotNoseRect, s * 4, noseRect[src], 0, 4);
+                    smoothInto(slotMouthRect, s * 4, mouthRect[src], 0, 4);
+                    smoothInto(slotEyeLRect, s * 4, eyeLRect[src], 0, 4);
+                    smoothInto(slotEyeRRect, s * 4, eyeRRect[src], 0, 4);
                 }
             }
             for (int s = 0; s < n; s++) {
@@ -263,6 +298,10 @@ public final class DrGramFaceMeshTracker {
                 System.arraycopy(slotMouth, s * 2, out.mouthData, s * 2, 2);
                 System.arraycopy(slotEyeL, s * 2, out.eyeLData, s * 2, 2);
                 System.arraycopy(slotEyeR, s * 2, out.eyeRData, s * 2, 2);
+                System.arraycopy(slotNoseRect, s * 4, out.noseRect, s * 4, 4);
+                System.arraycopy(slotMouthRect, s * 4, out.mouthRect, s * 4, 4);
+                System.arraycopy(slotEyeLRect, s * 4, out.eyeLRect, s * 4, 4);
+                System.arraycopy(slotEyeRRect, s * 4, out.eyeRRect, s * 4, 4);
             }
             return out;
         }
@@ -389,6 +428,30 @@ public final class DrGramFaceMeshTracker {
         r.lipOuterY = ringCoords(pts, LIPS_OUTER_RING, h, false);
         r.lipInnerX = ringCoords(pts, LIPS_INNER_RING, w, true);
         r.lipInnerY = ringCoords(pts, LIPS_INNER_RING, h, false);
+
+        // DrGram Fix 51: real nose rectangle from the closed nose ring —
+        // the photo pipeline's nose pinch becomes ala-exact instead of an
+        // inter-eye-distance estimate.
+        float nMinX = Float.MAX_VALUE, nMaxX = -Float.MAX_VALUE;
+        float nMinY = Float.MAX_VALUE, nMaxY = -Float.MAX_VALUE;
+        boolean noseOk = true;
+        for (int idx : NOSE_RING) {
+            if (idx >= pts.size()) {
+                noseOk = false;
+                break;
+            }
+            float x = pts.get(idx).x() * w, y = pts.get(idx).y() * h;
+            nMinX = Math.min(nMinX, x);
+            nMaxX = Math.max(nMaxX, x);
+            nMinY = Math.min(nMinY, y);
+            nMaxY = Math.max(nMaxY, y);
+        }
+        if (noseOk) {
+            r.noseHalfW = Math.max(2f, (nMaxX - nMinX) * 0.5f);
+            r.noseHalfH = Math.max(2f, (nMaxY - nMinY) * 0.5f);
+            r.noseCX = (nMinX + nMaxX) * 0.5f;
+            r.noseCY = (nMinY + nMaxY) * 0.5f;
+        }
 
         r.ovalX = ringCoords(pts, FACE_OVAL, w, true);
         r.ovalY = ringCoords(pts, FACE_OVAL, h, false);
@@ -523,6 +586,63 @@ public final class DrGramFaceMeshTracker {
 
         readEye(pts, LEFT_EYE_RING, IRIS_L_CENTER, eyeL);
         readEye(pts, RIGHT_EYE_RING, IRIS_R_CENTER, eyeR);
+    }
+
+    /**
+     * DrGram Fix 51: real organ rectangles from the mesh topology. Each rect is
+     * (cx, cy, halfW, halfH) — the bounding box of the organ's landmark ring.
+     * Zeroed (never negative) so "rect halfW < epsilon" reliably means absent.
+     */
+    private static void readOrganRects(List<com.google.mediapipe.tasks.components.containers.NormalizedLandmark> pts,
+                                       float[] noseRect, float[] mouthRect, float[] eyeLRect, float[] eyeRRect,
+                                       float[] face) {
+        ringRect(pts, NOSE_RING, noseRect);
+        ringRect(pts, LIPS_OUTER_RING, mouthRect);
+        ringRect(pts, LEFT_EYE_RING, eyeLRect);
+        ringRect(pts, RIGHT_EYE_RING, eyeRRect);
+        // Degenerate guard: any organ the mesh failed to outline falls back to
+        // a tight anatomical estimate around its anchor (not the face box) so
+        // the shader never has to widen the effect.
+        if (noseRect[2] < 0.004f && !Float.isNaN(face[0])) {
+            noseRect[0] = face[0];
+            noseRect[1] = face[1] + face[3] * 0.12f;
+            noseRect[2] = face[2] * 0.30f;
+            noseRect[3] = face[3] * 0.30f;
+        }
+        if (mouthRect[2] < 0.004f && !Float.isNaN(face[0])) {
+            mouthRect[0] = face[0];
+            mouthRect[1] = face[1] + face[3] * 0.50f;
+            mouthRect[2] = face[2] * 0.42f;
+            mouthRect[3] = face[3] * 0.16f;
+        }
+    }
+
+    private static void ringRect(List<com.google.mediapipe.tasks.components.containers.NormalizedLandmark> pts,
+                                 int[] ring, float[] outRect) {
+        float minX = Float.MAX_VALUE, maxX = -Float.MAX_VALUE;
+        float minY = Float.MAX_VALUE, maxY = -Float.MAX_VALUE;
+        int count = 0;
+        for (int idx : ring) {
+            if (idx >= pts.size()) {
+                count = 0;
+                break;
+            }
+            float x = pts.get(idx).x(), y = pts.get(idx).y();
+            minX = Math.min(minX, x);
+            maxX = Math.max(maxX, x);
+            minY = Math.min(minY, y);
+            maxY = Math.max(maxY, y);
+            count++;
+        }
+        if (count < 3) {
+            outRect[0] = outRect[1] = 0f;
+            outRect[2] = outRect[3] = 0f;
+            return;
+        }
+        outRect[0] = (minX + maxX) * 0.5f;
+        outRect[1] = (minY + maxY) * 0.5f;
+        outRect[2] = Math.max(0.002f, (maxX - minX) * 0.5f);
+        outRect[3] = Math.max(0.002f, (maxY - minY) * 0.5f);
     }
 
     private static void readEye(List<com.google.mediapipe.tasks.components.containers.NormalizedLandmark> pts,

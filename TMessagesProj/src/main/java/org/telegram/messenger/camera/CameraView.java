@@ -1211,6 +1211,7 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
         int nose, teeth, eyes, jaw, fx, faceCount, faces, noses, mouths;
         int blush, lips, bright, eyesL, eyesR, eyePrecise;
         int dark, slim; // DrGram Fix 47
+        int noseRects, mouthRects, eyeLRects, eyeRRects, organPrecise; // DrGram Fix 51
 
         void fetch(int program) {
             nose = GLES20.glGetUniformLocation(program, "fxNose");
@@ -1230,6 +1231,11 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
             eyePrecise = GLES20.glGetUniformLocation(program, "fxEyePrecise");
             dark = GLES20.glGetUniformLocation(program, "fxDark"); // DrGram Fix 47
             slim = GLES20.glGetUniformLocation(program, "fxSlim"); // DrGram Fix 47
+            noseRects = GLES20.glGetUniformLocation(program, "fxNoseRect");   // DrGram Fix 51
+            mouthRects = GLES20.glGetUniformLocation(program, "fxMouthRect");
+            eyeLRects = GLES20.glGetUniformLocation(program, "fxEyeRectL");
+            eyeRRects = GLES20.glGetUniformLocation(program, "fxEyeRectR");
+            organPrecise = GLES20.glGetUniformLocation(program, "fxOrganPrecise");
         }
     }
 
@@ -2332,8 +2338,15 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
         float[] mouthData = new float[4];
         float[] eyeLData = new float[4];
         float[] eyeRData = new float[4];
+        // DrGram Fix 51: real organ rects (vec4[2]: cx, cy, halfW, halfH).
+        float[] noseRectData = new float[8];
+        float[] mouthRectData = new float[8];
+        float[] eyeLRectData = new float[8];
+        float[] eyeRRectData = new float[8];
         int count = 0;
         boolean preciseEyes = false;
+        boolean feedIsSoftware = false;
+        boolean organPrecise = false;
         // DrGram Fix 50: a fresh MediaPipe mesh result LEADS the feed — the
         // 478-point temporal mesh (iris-grade anchors, glide-stable centre)
         // is strictly better than the coarse hardware boxes that caused the
@@ -2350,6 +2363,7 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
                 if (session.camera1Session.drgramSoftFacesFresh(faceData, noseData, mouthData, eyeLData, eyeRData)) {
                     count = Math.max(1, Math.min(2, session.camera1Session.drgramSoftCount));
                     preciseEyes = true;
+                    feedIsSoftware = true;
                 }
             } catch (Throwable ignore) {
             }
@@ -2416,6 +2430,7 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
                 if (session.camera1Session.drgramSoftFacesFresh(faceData, noseData, mouthData, eyeLData, eyeRData)) {
                     count = Math.max(1, Math.min(2, session.camera1Session.drgramSoftCount));
                     preciseEyes = true;
+                    feedIsSoftware = true;
                 }
             } catch (Throwable ignore) {
             }
@@ -2429,10 +2444,68 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
                 eyeRData[i * 2 + 1] = cy - hh * 0.20f;
             }
         }
+        // DrGram Fix 51: real organ rects. When the software (mesh) feed led
+        // the pipeline, pull the exact nose/mouth/eye rectangles tracked from
+        // the 478-point mesh; otherwise derive TIGHT anatomical estimates from
+        // the anchors — never the huge face-box ellipses the shader used
+        // before (the "clown nose" bug).
+        if (count > 0) {
+            boolean rectsFresh = false;
+            if (feedIsSoftware && session != null && session.camera1Session != null) {
+                try {
+                    rectsFresh = session.camera1Session.drgramSoftOrganRectsFresh(
+                            noseRectData, mouthRectData, eyeLRectData, eyeRRectData);
+                } catch (Throwable ignore) {
+                }
+                if (rectsFresh) {
+                    // A rect is trusted only when its half-extent exists; faces
+                    // beyond the tracked slot count keep their estimates.
+                    for (int i = 0; i < count; i++) {
+                        boolean valid = noseRectData[i * 4 + 2] > 0.001f && mouthRectData[i * 4 + 2] > 0.001f
+                                && eyeLRectData[i * 4 + 2] > 0.001f && eyeRRectData[i * 4 + 2] > 0.001f;
+                        if (!valid) {
+                            rectsFresh = false;
+                            break;
+                        }
+                    }
+                    organPrecise = rectsFresh;
+                }
+            }
+            if (!rectsFresh) {
+                organPrecise = false;
+                for (int i = 0; i < count; i++) {
+                    float cx = faceData[i * 4], cy = faceData[i * 4 + 1];
+                    float hw = faceData[i * 4 + 2], hh = faceData[i * 4 + 3];
+                    float nx = noseData[i * 2], ny = noseData[i * 2 + 1];
+                    float mx = mouthData[i * 2], my = mouthData[i * 2 + 1];
+                    float lx = eyeLData[i * 2], ly = eyeLData[i * 2 + 1];
+                    float rx = eyeRData[i * 2], ry = eyeRData[i * 2 + 1];
+                    // Anatomically-scaled tight regions (fractions of the FACE
+                    // box, but only a fraction of the old shader guesses).
+                    noseRectData[i * 4] = nx;
+                    noseRectData[i * 4 + 1] = ny;
+                    noseRectData[i * 4 + 2] = Math.max(0.004f, hw * 0.30f);
+                    noseRectData[i * 4 + 3] = Math.max(0.004f, hh * 0.30f);
+                    mouthRectData[i * 4] = mx;
+                    mouthRectData[i * 4 + 1] = my;
+                    mouthRectData[i * 4 + 2] = Math.max(0.004f, hw * 0.26f);
+                    mouthRectData[i * 4 + 3] = Math.max(0.004f, hh * 0.11f);
+                    eyeLRectData[i * 4] = lx;
+                    eyeLRectData[i * 4 + 1] = ly;
+                    eyeLRectData[i * 4 + 2] = Math.max(0.003f, hw * 0.13f);
+                    eyeLRectData[i * 4 + 3] = Math.max(0.003f, hh * 0.085f);
+                    eyeRRectData[i * 4] = rx;
+                    eyeRRectData[i * 4 + 1] = ry;
+                    eyeRRectData[i * 4 + 2] = Math.max(0.003f, hw * 0.13f);
+                    eyeRRectData[i * 4 + 3] = Math.max(0.003f, hh * 0.085f);
+                }
+            }
+        }
         // Stabilize detector jitter before the shader consumes the live masks.
         try {
             if (session != null && session.camera1Session != null) {
                 session.camera1Session.smoothDrgramBeautyLandmarks(faceData, noseData, mouthData, eyeLData, eyeRData, count);
+                session.camera1Session.smoothDrgramOrganRects(noseRectData, mouthRectData, eyeLRectData, eyeRRectData, count);
             }
         } catch (Throwable ignore) {
             // Keep camera preview resilient if a device camera implementation fails.
@@ -2444,6 +2517,12 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
         GLES20.glUniform2fv(h.eyesL, 2, eyeLData, 0);
         GLES20.glUniform2fv(h.eyesR, 2, eyeRData, 0);
         GLES20.glUniform1f(h.eyePrecise, preciseEyes ? 1f : 0f);
+        // DrGram Fix 51: real organ region rects.
+        GLES20.glUniform4fv(h.noseRects, 2, noseRectData, 0);
+        GLES20.glUniform4fv(h.mouthRects, 2, mouthRectData, 0);
+        GLES20.glUniform4fv(h.eyeLRects, 2, eyeLRectData, 0);
+        GLES20.glUniform4fv(h.eyeRRects, 2, eyeRRectData, 0);
+        GLES20.glUniform1f(h.organPrecise, organPrecise ? 1f : 0f);
     }
 
     private int loadShader(int type, String shaderCode) {
