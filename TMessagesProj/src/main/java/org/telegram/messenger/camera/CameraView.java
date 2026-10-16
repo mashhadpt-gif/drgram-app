@@ -751,6 +751,9 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
             }
             if (text != null) {
                 drgramDiagView.setText(text);
+                // Fix 56: long reasons (GPU line + per-stage GLSL logs) need a
+                // smaller typeface to stay fully readable on one screen.
+                drgramDiagView.setTextSize(text.length() > 120 ? 13f : 18f);
                 drgramDiagView.setBackgroundColor(background);
                 drgramDiagView.setVisibility(VISIBLE);
             } else {
@@ -768,6 +771,44 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
         drgramGlFail = reason;
         drgramGlState = DRGRAM_GL_FAILED;
     }
+
+    // ===== DrGram Fix 56: exact GLSL diagnostics =====
+    // Captures the REAL compiler/linker info logs plus the GPU identity and
+    // uniform budget, so a single screenshot of the DIAG overlay pins down
+    // exactly why a shader was rejected on a given device.
+    private static volatile String drgramDiagGpu = "";
+    private static volatile String drgramDiagLogs = "";
+    private static volatile String drgramLastShaderLog = "";
+    private static volatile String drgramLastLinkLog = "";
+    private static volatile boolean drgramCoreProgramActive;
+
+    private static String drgramTrimLog(String s, int n) {
+        if (s == null) {
+            return "";
+        }
+        s = s.replace('\n', ' ').replace('\r', ' ').trim();
+        return s.length() > n ? s.substring(0, n) : s;
+    }
+
+    private static void drgramDiagPersist(String reason) {
+        try {
+            ApplicationLoader.applicationContext.getSharedPreferences(DRGRAM_PREFS, Context.MODE_PRIVATE)
+                    .edit().putString("gldiag", drgramTrimLog(reason, 600)).apply();
+        } catch (Throwable ignore) {}
+    }
+
+    private static void drgramDiagQueryGpu() {
+        try {
+            String renderer = drgramTrimLog(GLES20.glGetString(GLES20.GL_RENDERER), 24);
+            String version = drgramTrimLog(GLES20.glGetString(GLES20.GL_VERSION), 30);
+            int[] maxFu = new int[1];
+            int[] maxVu = new int[1];
+            GLES20.glGetIntegerv(GLES20.GL_MAX_FRAGMENT_UNIFORM_VECTORS, maxFu, 0);
+            GLES20.glGetIntegerv(GLES20.GL_MAX_VERTEX_UNIFORM_VECTORS, maxVu, 0);
+            drgramDiagGpu = renderer + " MAXFU" + maxFu[0] + " MVU" + maxVu[0] + " " + version + "\n";
+        } catch (Throwable ignore) {}
+    }
+    // ===== end DrGram Fix 56 =====
 
     // DrGram Fix 55: persistence for the full (polygon) shader verdict so the
     // guaranteed lite program starts the preview on every device and the heavy
@@ -1572,9 +1613,11 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
 
             android.opengl.Matrix.setIdentityM(mSTMatrix[0], 0);
 
+            drgramDiagQueryGpu(); // DrGram Fix 56: renderer + uniform budget for the DIAG overlay
+
             int vertexShader = loadShader(GLES20.GL_VERTEX_SHADER, AndroidUtilities.readRes(R.raw.camera_vert));
             if (vertexShader == 0) {
-                CameraView.this.drgramGlFailed("SHADER COMPILE VERTEX"); // Fix 55
+                CameraView.this.drgramGlFailed("SHADER COMPILE VERTEX: " + drgramLastShaderLog); // Fix 55/56
                 finish();
                 return false;
             }
@@ -1586,31 +1629,48 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
             // (drgramTryUpgradeToFull). Camera start can never hang on (or die
             // from) the big shader again.
             boolean drgramLiteProgram = true;
+            // DrGram Fix 56: final CORE fallback (upstream Telegram camera
+            // shader, verbatim, no beauty) — the one shader proven to compile
+            // and link on every GPU that runs Telegram, including the budget
+            // PowerVR units that reject both DrGram beauty programs.
             boolean drgramWantFullFirst = drgramFullShaderRead() == 1;
             int[] drgramOrder = drgramWantFullFirst
-                    ? new int[]{R.raw.camera_frag, R.raw.camera_frag_lite}
-                    : new int[]{R.raw.camera_frag_lite, R.raw.camera_frag};
+                    ? new int[]{R.raw.camera_frag, R.raw.camera_frag_lite, R.raw.camera_frag_core}
+                    : new int[]{R.raw.camera_frag_lite, R.raw.camera_frag, R.raw.camera_frag_core};
+            String[] drgramNames = drgramWantFullFirst
+                    ? new String[]{"FULL", "LITE", "CORE"}
+                    : new String[]{"LITE", "FULL", "CORE"};
+            drgramDiagLogs = "";
             drawProgram = 0;
             for (int a = 0; a < drgramOrder.length && drawProgram == 0; a++) {
                 int fs = loadShader(GLES20.GL_FRAGMENT_SHADER, AndroidUtilities.readRes(drgramOrder[a]));
-                if (fs != 0) {
+                if (fs == 0) {
+                    drgramDiagLogs += "FRAG-" + drgramNames[a] + " COMPILE: " + drgramLastShaderLog + "\n";
+                } else {
                     drawProgram = drgramBuildProgram(vertexShader, fs);
                     if (drawProgram != 0) {
-                        drgramLiteProgram = drgramOrder[a] == R.raw.camera_frag_lite;
+                        drgramLiteProgram = drgramOrder[a] != R.raw.camera_frag;
+                        drgramCoreProgramActive = drgramOrder[a] == R.raw.camera_frag_core;
                         break;
                     }
+                    drgramDiagLogs += "LINK-" + drgramNames[a] + ": " + drgramLastLinkLog + "\n";
                     GLES20.glDeleteShader(fs);
                 }
             }
             if (drawProgram == 0) {
                 if (BuildVars.LOGS_ENABLED) {
-                    FileLog.e("failed creating shader");
+                    FileLog.e("failed creating shader: " + drgramDiagLogs);
                 }
-                CameraView.this.drgramGlFailed("SHADER COMPILE/LINK LITE+FULL"); // Fix 55
+                String reason = "SHADER COMPILE/LINK ALL3\n" + drgramDiagGpu + drgramDiagLogs; // Fix 56
+                drgramDiagPersist(reason);
+                CameraView.this.drgramGlFailed(reason); // Fix 55/56
                 finish();
                 return false;
             }
             drgramLiteProgramActive = drgramLiteProgram;
+            if (drgramCoreProgramActive && BuildVars.LOGS_ENABLED) {
+                FileLog.e("DrGram preview CORE compat program active; failed attempts: " + drgramDiagLogs);
+            }
             drgramFetchHandles(drawProgram);
 
             CameraView.this.drgramGlInitFinished(drawProgram != 0); // DrGram Fix 54
@@ -2840,6 +2900,7 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
         int[] compileStatus = new int[1];
         GLES20.glGetShaderiv(shader, GLES20.GL_COMPILE_STATUS, compileStatus, 0);
         if (compileStatus[0] == 0) {
+            drgramLastShaderLog = drgramTrimLog(GLES20.glGetShaderInfoLog(shader), 130); // Fix 56
             if (BuildVars.LOGS_ENABLED) {
                 FileLog.e(GLES20.glGetShaderInfoLog(shader));
             }
@@ -2856,6 +2917,7 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
         }
         int program = GLES20.glCreateProgram();
         if (program == 0) {
+            drgramLastLinkLog = "glCreateProgram=0"; // Fix 56
             return 0;
         }
         GLES20.glAttachShader(program, vertexShader);
@@ -2864,6 +2926,7 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
         int[] linkStatus = new int[1];
         GLES20.glGetProgramiv(program, GLES20.GL_LINK_STATUS, linkStatus, 0);
         if (linkStatus[0] == 0) {
+            drgramLastLinkLog = drgramTrimLog(GLES20.glGetProgramInfoLog(program), 130); // Fix 56
             if (BuildVars.LOGS_ENABLED) {
                 FileLog.e("DrGram shader link failed: " + GLES20.glGetProgramInfoLog(program));
             }
@@ -3733,26 +3796,31 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
             textureBuffer.put(texData).position(0);
 
             int vertexShader = loadShader(GLES20.GL_VERTEX_SHADER, AndroidUtilities.readRes(R.raw.camera_vert));
-            // DrGram Fix 55: guaranteed lite beauty program FIRST, polygon shader
-            // as fallback — recording start can never stall on the heavy shader.
+            // DrGram Fix 56: lite beauty program FIRST, polygon shader second,
+            // upstream CORE shader as the guaranteed last resort — recording
+            // start can never stall on (or die from) the heavy shaders.
             boolean drgramLiteProgram = true;
-            int fragmentShader = loadShader(GLES20.GL_FRAGMENT_SHADER, AndroidUtilities.readRes(R.raw.camera_frag_lite));
-            if (fragmentShader != 0) {
-                drawProgram = drgramBuildProgram(vertexShader, fragmentShader);
-            }
-            if (drawProgram == 0) {
-                if (fragmentShader != 0) {
-                    GLES20.glDeleteShader(fragmentShader);
+            int[] drgramOrder = new int[]{R.raw.camera_frag_lite, R.raw.camera_frag, R.raw.camera_frag_core};
+            String[] drgramNames = new String[]{"LITE", "FULL", "CORE"};
+            for (int a = 0; a < drgramOrder.length && drawProgram == 0; a++) {
+                int fs = loadShader(GLES20.GL_FRAGMENT_SHADER, AndroidUtilities.readRes(drgramOrder[a]));
+                if (fs == 0) {
+                    if (BuildVars.LOGS_ENABLED) {
+                        FileLog.e("DrGram recorder FRAG-" + drgramNames[a] + " compile failed: " + drgramLastShaderLog);
+                    }
+                    continue;
                 }
-                if (vertexShader != 0) {
-                    int fullFragment = loadShader(GLES20.GL_FRAGMENT_SHADER, AndroidUtilities.readRes(R.raw.camera_frag));
-                    if (fullFragment != 0) {
-                        drawProgram = drgramBuildProgram(vertexShader, fullFragment);
-                        if (drawProgram != 0) {
-                            drgramLiteProgram = false;
-                        } else {
-                            GLES20.glDeleteShader(fullFragment);
-                        }
+                drawProgram = drgramBuildProgram(vertexShader, fs);
+                if (drawProgram == 0) {
+                    if (BuildVars.LOGS_ENABLED) {
+                        FileLog.e("DrGram recorder LINK-" + drgramNames[a] + " failed: " + drgramLastLinkLog);
+                    }
+                    GLES20.glDeleteShader(fs);
+                } else {
+                    drgramLiteProgram = drgramOrder[a] != R.raw.camera_frag;
+                    drgramCoreProgramActive = drgramOrder[a] == R.raw.camera_frag_core;
+                    if (drgramCoreProgramActive && BuildVars.LOGS_ENABLED) {
+                        FileLog.e("DrGram recorder CORE compat program active");
                     }
                 }
             }
