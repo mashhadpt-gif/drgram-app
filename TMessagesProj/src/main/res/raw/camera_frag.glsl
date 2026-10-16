@@ -44,12 +44,43 @@ uniform float fxOrganPrecise; // 1.0 = rects come from the dense mesh
 // DrGram Fix 52: sampled mesh contours packed two xy points per vec4.
 // 16-point face oval per face, 12-point outer lip ring and 8-point eye rings.
 uniform vec4 fxFaceOval[16]; // 8 vec4 per face
+uniform vec4 fxNosePoly[12]; // 6 vec4 per face, 12 contour points per nose
 uniform vec4 fxLipOuter[12]; // 6 vec4 per face
 uniform vec4 fxEyePolyL[8];  // 4 vec4 per face
 uniform vec4 fxEyePolyR[8];
 uniform float fxPolygonPrecise;
 
 vec2 drgramMeshPoint(int faceIndex, int pointIndex, int polygonType) {
+  if (polygonType == 4) {
+    if (faceIndex == 0) {
+      if (pointIndex == 0) return fxNosePoly[0].xy;
+      if (pointIndex == 1) return fxNosePoly[0].zw;
+      if (pointIndex == 2) return fxNosePoly[1].xy;
+      if (pointIndex == 3) return fxNosePoly[1].zw;
+      if (pointIndex == 4) return fxNosePoly[2].xy;
+      if (pointIndex == 5) return fxNosePoly[2].zw;
+      if (pointIndex == 6) return fxNosePoly[3].xy;
+      if (pointIndex == 7) return fxNosePoly[3].zw;
+      if (pointIndex == 8) return fxNosePoly[4].xy;
+      if (pointIndex == 9) return fxNosePoly[4].zw;
+      if (pointIndex == 10) return fxNosePoly[5].xy;
+      if (pointIndex == 11) return fxNosePoly[5].zw;
+    }
+    if (faceIndex == 1) {
+      if (pointIndex == 0) return fxNosePoly[6].xy;
+      if (pointIndex == 1) return fxNosePoly[6].zw;
+      if (pointIndex == 2) return fxNosePoly[7].xy;
+      if (pointIndex == 3) return fxNosePoly[7].zw;
+      if (pointIndex == 4) return fxNosePoly[8].xy;
+      if (pointIndex == 5) return fxNosePoly[8].zw;
+      if (pointIndex == 6) return fxNosePoly[9].xy;
+      if (pointIndex == 7) return fxNosePoly[9].zw;
+      if (pointIndex == 8) return fxNosePoly[10].xy;
+      if (pointIndex == 9) return fxNosePoly[10].zw;
+      if (pointIndex == 10) return fxNosePoly[11].xy;
+      if (pointIndex == 11) return fxNosePoly[11].zw;
+    }
+  }
   if (polygonType == 0) {
     if (faceIndex == 0) {
       if (pointIndex == 0) return fxFaceOval[0].xy;
@@ -167,7 +198,7 @@ vec2 drgramMeshPoint(int faceIndex, int pointIndex, int polygonType) {
 
 // Returns a softly antialiased coverage for a tracked mesh polygon.
 mediump float drgramMeshPolygonMask(mediump vec2 p, int faceIndex, int polygonType) {
-  int pointCount = polygonType == 0 ? 16 : (polygonType == 1 ? 12 : 8);
+  int pointCount = polygonType == 0 ? 16 : ((polygonType == 1 || polygonType == 4) ? 12 : 8);
   bool inside = false;
   mediump float edgeDistance = 1.0;
   mediump vec2 previous = drgramMeshPoint(faceIndex, pointCount - 1, polygonType);
@@ -339,6 +370,12 @@ highp vec2 drgramWarp(highp vec2 p) {
             highp float e = dot(q, q);
             if (e < 1.0) {
               highp float f = 1.0 - smoothstep(0.28, 1.0, sqrt(e));
+              // When a dense mesh is available, intersect the smooth warp
+              // with the actual nose contour. The rectangle only bounds work;
+              // it is no longer allowed to affect skin outside the nose ring.
+              if (fxPolygonPrecise > 0.5) {
+                f *= drgramMeshPolygonMask(p, i, 4);
+              }
               // vertical weight: strongest at the tip/nostril half
               highp float v = clamp((p.y - (nc.y - nh.y)) / max(2.0 * nh.y, 1e-4), 0.0, 1.0);
               highp float vw = mix(0.55, 1.0, smoothstep(0.05, 0.60, v));
