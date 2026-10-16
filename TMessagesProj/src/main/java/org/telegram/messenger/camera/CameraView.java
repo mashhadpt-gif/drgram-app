@@ -2358,6 +2358,7 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
         boolean preciseEyes = false;
         boolean feedIsSoftware = false;
         boolean organPrecise = false;
+        boolean polygonPrecise = false;
         // DrGram Fix 50: a fresh MediaPipe mesh result LEADS the feed — the
         // 478-point temporal mesh (iris-grade anchors, glide-stable centre)
         // is strictly better than the coarse hardware boxes that caused the
