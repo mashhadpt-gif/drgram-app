@@ -50,22 +50,119 @@ uniform vec4 fxEyePolyR[8];
 uniform float fxPolygonPrecise;
 
 vec2 drgramMeshPoint(int faceIndex, int pointIndex, int polygonType) {
-  int pairIndex;
-  vec4 pair;
   if (polygonType == 0) {
-    pairIndex = faceIndex * 8 + pointIndex / 2;
-    pair = fxFaceOval[pairIndex];
-  } else if (polygonType == 1) {
-    pairIndex = faceIndex * 6 + pointIndex / 2;
-    pair = fxLipOuter[pairIndex];
-  } else if (polygonType == 2) {
-    pairIndex = faceIndex * 4 + pointIndex / 2;
-    pair = fxEyePolyL[pairIndex];
-  } else {
-    pairIndex = faceIndex * 4 + pointIndex / 2;
-    pair = fxEyePolyR[pairIndex];
+    if (faceIndex == 0) {
+      if (pointIndex == 0) return fxFaceOval[0].xy;
+      if (pointIndex == 1) return fxFaceOval[0].zw;
+      if (pointIndex == 2) return fxFaceOval[1].xy;
+      if (pointIndex == 3) return fxFaceOval[1].zw;
+      if (pointIndex == 4) return fxFaceOval[2].xy;
+      if (pointIndex == 5) return fxFaceOval[2].zw;
+      if (pointIndex == 6) return fxFaceOval[3].xy;
+      if (pointIndex == 7) return fxFaceOval[3].zw;
+      if (pointIndex == 8) return fxFaceOval[4].xy;
+      if (pointIndex == 9) return fxFaceOval[4].zw;
+      if (pointIndex == 10) return fxFaceOval[5].xy;
+      if (pointIndex == 11) return fxFaceOval[5].zw;
+      if (pointIndex == 12) return fxFaceOval[6].xy;
+      if (pointIndex == 13) return fxFaceOval[6].zw;
+      if (pointIndex == 14) return fxFaceOval[7].xy;
+      if (pointIndex == 15) return fxFaceOval[7].zw;
+    }
+    if (faceIndex == 1) {
+      if (pointIndex == 0) return fxFaceOval[8].xy;
+      if (pointIndex == 1) return fxFaceOval[8].zw;
+      if (pointIndex == 2) return fxFaceOval[9].xy;
+      if (pointIndex == 3) return fxFaceOval[9].zw;
+      if (pointIndex == 4) return fxFaceOval[10].xy;
+      if (pointIndex == 5) return fxFaceOval[10].zw;
+      if (pointIndex == 6) return fxFaceOval[11].xy;
+      if (pointIndex == 7) return fxFaceOval[11].zw;
+      if (pointIndex == 8) return fxFaceOval[12].xy;
+      if (pointIndex == 9) return fxFaceOval[12].zw;
+      if (pointIndex == 10) return fxFaceOval[13].xy;
+      if (pointIndex == 11) return fxFaceOval[13].zw;
+      if (pointIndex == 12) return fxFaceOval[14].xy;
+      if (pointIndex == 13) return fxFaceOval[14].zw;
+      if (pointIndex == 14) return fxFaceOval[15].xy;
+      if (pointIndex == 15) return fxFaceOval[15].zw;
+    }
   }
-  return (pointIndex - (pointIndex / 2) * 2) == 0 ? pair.xy : pair.zw;
+  if (polygonType == 1) {
+    if (faceIndex == 0) {
+      if (pointIndex == 0) return fxLipOuter[0].xy;
+      if (pointIndex == 1) return fxLipOuter[0].zw;
+      if (pointIndex == 2) return fxLipOuter[1].xy;
+      if (pointIndex == 3) return fxLipOuter[1].zw;
+      if (pointIndex == 4) return fxLipOuter[2].xy;
+      if (pointIndex == 5) return fxLipOuter[2].zw;
+      if (pointIndex == 6) return fxLipOuter[3].xy;
+      if (pointIndex == 7) return fxLipOuter[3].zw;
+      if (pointIndex == 8) return fxLipOuter[4].xy;
+      if (pointIndex == 9) return fxLipOuter[4].zw;
+      if (pointIndex == 10) return fxLipOuter[5].xy;
+      if (pointIndex == 11) return fxLipOuter[5].zw;
+    }
+    if (faceIndex == 1) {
+      if (pointIndex == 0) return fxLipOuter[6].xy;
+      if (pointIndex == 1) return fxLipOuter[6].zw;
+      if (pointIndex == 2) return fxLipOuter[7].xy;
+      if (pointIndex == 3) return fxLipOuter[7].zw;
+      if (pointIndex == 4) return fxLipOuter[8].xy;
+      if (pointIndex == 5) return fxLipOuter[8].zw;
+      if (pointIndex == 6) return fxLipOuter[9].xy;
+      if (pointIndex == 7) return fxLipOuter[9].zw;
+      if (pointIndex == 8) return fxLipOuter[10].xy;
+      if (pointIndex == 9) return fxLipOuter[10].zw;
+      if (pointIndex == 10) return fxLipOuter[11].xy;
+      if (pointIndex == 11) return fxLipOuter[11].zw;
+    }
+  }
+  if (polygonType == 2) {
+    if (faceIndex == 0) {
+      if (pointIndex == 0) return fxEyePolyL[0].xy;
+      if (pointIndex == 1) return fxEyePolyL[0].zw;
+      if (pointIndex == 2) return fxEyePolyL[1].xy;
+      if (pointIndex == 3) return fxEyePolyL[1].zw;
+      if (pointIndex == 4) return fxEyePolyL[2].xy;
+      if (pointIndex == 5) return fxEyePolyL[2].zw;
+      if (pointIndex == 6) return fxEyePolyL[3].xy;
+      if (pointIndex == 7) return fxEyePolyL[3].zw;
+    }
+    if (faceIndex == 1) {
+      if (pointIndex == 0) return fxEyePolyL[4].xy;
+      if (pointIndex == 1) return fxEyePolyL[4].zw;
+      if (pointIndex == 2) return fxEyePolyL[5].xy;
+      if (pointIndex == 3) return fxEyePolyL[5].zw;
+      if (pointIndex == 4) return fxEyePolyL[6].xy;
+      if (pointIndex == 5) return fxEyePolyL[6].zw;
+      if (pointIndex == 6) return fxEyePolyL[7].xy;
+      if (pointIndex == 7) return fxEyePolyL[7].zw;
+    }
+  }
+  if (polygonType == 3) {
+    if (faceIndex == 0) {
+      if (pointIndex == 0) return fxEyePolyR[0].xy;
+      if (pointIndex == 1) return fxEyePolyR[0].zw;
+      if (pointIndex == 2) return fxEyePolyR[1].xy;
+      if (pointIndex == 3) return fxEyePolyR[1].zw;
+      if (pointIndex == 4) return fxEyePolyR[2].xy;
+      if (pointIndex == 5) return fxEyePolyR[2].zw;
+      if (pointIndex == 6) return fxEyePolyR[3].xy;
+      if (pointIndex == 7) return fxEyePolyR[3].zw;
+    }
+    if (faceIndex == 1) {
+      if (pointIndex == 0) return fxEyePolyR[4].xy;
+      if (pointIndex == 1) return fxEyePolyR[4].zw;
+      if (pointIndex == 2) return fxEyePolyR[5].xy;
+      if (pointIndex == 3) return fxEyePolyR[5].zw;
+      if (pointIndex == 4) return fxEyePolyR[6].xy;
+      if (pointIndex == 5) return fxEyePolyR[6].zw;
+      if (pointIndex == 6) return fxEyePolyR[7].xy;
+      if (pointIndex == 7) return fxEyePolyR[7].zw;
+    }
+  }
+  return vec2(0.0);
 }
 
 // Returns a softly antialiased coverage for a tracked mesh polygon.
