@@ -548,6 +548,11 @@ public class CameraSession {
     private final float[] drgramSmoothMouthRect = new float[8];
     private final float[] drgramSmoothEyeLRect = new float[8];
     private final float[] drgramSmoothEyeRRect = new float[8];
+    private final float[] drgramSmoothFaceOval = new float[64]; // DrGram Fix 52
+    private final float[] drgramSmoothLipOuter = new float[48];
+    private final float[] drgramSmoothEyeLPoly = new float[32];
+    private final float[] drgramSmoothEyeRPoly = new float[32];
+    private int drgramSmoothPolygonCount = -1;
     private int drgramSmoothOrganCount = -1; // DrGram Fix 51
     private int drgramSmoothFaceCount = -1;
 
@@ -600,6 +605,45 @@ public class CameraSession {
      * anchor smoothing. Rect centres and half-extents are smoothed as one
      * 4-vector so the region never leads/lags its own anchor.
      */
+    /** Temporal EMA for mesh contour points, preventing makeup-mask shimmer in video. */
+    public synchronized void smoothDrgramBeautyPolygons(float[] faceOval, float[] lipOuter,
+                                                          float[] eyeLPoly, float[] eyeRPoly, int count) {
+        if (count <= 0) {
+            drgramSmoothPolygonCount = 0;
+            java.util.Arrays.fill(drgramSmoothFaceOval, 0f);
+            java.util.Arrays.fill(drgramSmoothLipOuter, 0f);
+            java.util.Arrays.fill(drgramSmoothEyeLPoly, 0f);
+            java.util.Arrays.fill(drgramSmoothEyeRPoly, 0f);
+            return;
+        }
+        count = Math.min(2, count);
+        if (drgramSmoothPolygonCount != count) {
+            System.arraycopy(faceOval, 0, drgramSmoothFaceOval, 0, faceOval.length);
+            System.arraycopy(lipOuter, 0, drgramSmoothLipOuter, 0, lipOuter.length);
+            System.arraycopy(eyeLPoly, 0, drgramSmoothEyeLPoly, 0, eyeLPoly.length);
+            System.arraycopy(eyeRPoly, 0, drgramSmoothEyeRPoly, 0, eyeRPoly.length);
+            drgramSmoothPolygonCount = count;
+            return;
+        }
+        final float weight = 0.42f;
+        for (int i = 0; i < faceOval.length; i++) {
+            drgramSmoothFaceOval[i] += (faceOval[i] - drgramSmoothFaceOval[i]) * weight;
+            faceOval[i] = drgramSmoothFaceOval[i];
+        }
+        for (int i = 0; i < lipOuter.length; i++) {
+            drgramSmoothLipOuter[i] += (lipOuter[i] - drgramSmoothLipOuter[i]) * weight;
+            lipOuter[i] = drgramSmoothLipOuter[i];
+        }
+        for (int i = 0; i < eyeLPoly.length; i++) {
+            drgramSmoothEyeLPoly[i] += (eyeLPoly[i] - drgramSmoothEyeLPoly[i]) * weight;
+            eyeLPoly[i] = drgramSmoothEyeLPoly[i];
+        }
+        for (int i = 0; i < eyeRPoly.length; i++) {
+            drgramSmoothEyeRPoly[i] += (eyeRPoly[i] - drgramSmoothEyeRPoly[i]) * weight;
+            eyeRPoly[i] = drgramSmoothEyeRPoly[i];
+        }
+    }
+
     public synchronized void smoothDrgramOrganRects(float[] noseRect, float[] mouthRect,
                                                     float[] eyeLRect, float[] eyeRRect, int count) {
         if (count <= 0) {
