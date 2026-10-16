@@ -679,6 +679,9 @@ public class CameraController implements MediaRecorder.OnInfoListener {
                     AndroidUtilities.runOnUIThread(callback);
                 }
             } catch (Exception e) {
+                // DrGram Fix 54: surface camera-open failures to the preview
+                // diagnostic overlay instead of failing silently to black.
+                CameraView.drgramLastOpenFailedAt = android.os.SystemClock.elapsedRealtime();
                 session.cameraInfo.camera = null;
                 if (camera != null) {
                     camera.release();

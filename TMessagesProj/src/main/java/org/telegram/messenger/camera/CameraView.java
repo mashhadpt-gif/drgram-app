@@ -416,6 +416,19 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
         blurredStubView = new ImageView(context);
         addView(blurredStubView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.CENTER));
         blurredStubView.setVisibility(View.GONE);
+
+        // DrGram Fix 54: on-device diagnostic overlay. When the preview cannot
+        // start, a solid status panel is painted instead of a silent black
+        // frame, so a single screenshot from the user pins the failing layer.
+        drgramDiagView = new android.widget.TextView(context);
+        drgramDiagView.setVisibility(View.GONE);
+        drgramDiagView.setGravity(Gravity.CENTER);
+        drgramDiagView.setTextColor(0xffffffff);
+        drgramDiagView.setTextSize(18f);
+        drgramDiagView.setTypeface(android.graphics.Typeface.create("sans-serif-medium", android.graphics.Typeface.BOLD));
+        drgramDiagView.setClickable(false);
+        drgramDiagView.setFocusable(false);
+        addView(drgramDiagView, LayoutHelper.createFrame(LayoutHelper.MATCH_PARENT, LayoutHelper.MATCH_PARENT, Gravity.CENTER));
         focusAreaSize = dp(96);
         outerPaint.setColor(0xffffffff);
         outerPaint.setStyle(Paint.Style.STROKE);
@@ -684,6 +697,71 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
     }
 
     protected CameraGLThread cameraThread;
+
+    // ===== DrGram Fix 54: preview diagnostics =====
+    // The GL thread publishes its state here; a lightweight UI watcher paints
+    // drgramDiagView with a solid status panel whenever the preview cannot
+    // start, so one screenshot identifies the failing layer.
+    protected static final int DRGRAM_GL_WAIT = 0;        // thread started, initGL not finished
+    protected static final int DRGRAM_GL_FRAMES = 1;      // camera frames flowing (healthy)
+    protected static final int DRGRAM_GL_NO_FRAMES = 2;   // GL ready but zero frames arrived
+    protected static final int DRGRAM_GL_DRAW_ERROR = 3;  // exception thrown inside onDraw
+    protected static final int DRGRAM_GL_NO_PROGRAM = 4;  // full AND lite programs both failed
+    private volatile int drgramGlState = DRGRAM_GL_WAIT;
+    private volatile long drgramGlReadyAt;
+    private volatile long drgramUiStartAt;
+    public static volatile long drgramLastOpenFailedAt;   // set by CameraController.open() catch
+    private android.widget.TextView drgramDiagView;
+
+    private final Runnable drgramDiagWatcher = new Runnable() {
+        @Override
+        public void run() {
+            if (drgramDiagView == null || !isAttachedToWindow()) {
+                return;
+            }
+            AndroidUtilities.runOnUIThread(this, 3000);
+            int state = drgramGlState;
+            long now = android.os.SystemClock.elapsedRealtime();
+            String text = null;
+            int background = 0;
+            if (state == DRGRAM_GL_DRAW_ERROR) {
+                text = "DRGRAM " + BuildVars.BUILD_VERSION_STRING + " · DIAG 3\nRENDER EXCEPTION";
+                background = 0xE60F7A2E; // green
+            } else if (drgramUiStartAt > 0 && drgramLastOpenFailedAt >= drgramUiStartAt) {
+                text = "DRGRAM " + BuildVars.BUILD_VERSION_STRING + " · DIAG 4\nCAMERA OPEN FAILED";
+                background = 0xE6B25E00; // orange
+            } else if (state == DRGRAM_GL_NO_PROGRAM) {
+                text = "DRGRAM " + BuildVars.BUILD_VERSION_STRING + " · DIAG 5\nNO GL PROGRAM";
+                background = 0xE65B21B0; // purple
+            } else if (state == DRGRAM_GL_NO_FRAMES && now - drgramGlReadyAt > 6000) {
+                text = "DRGRAM " + BuildVars.BUILD_VERSION_STRING + " · DIAG 1\nGL OK — NO CAMERA FRAMES";
+                background = 0xE6103A8C; // blue
+            } else if (state == DRGRAM_GL_WAIT && now - drgramUiStartAt > 8000) {
+                text = "DRGRAM " + BuildVars.BUILD_VERSION_STRING + " · DIAG 2\nGL THREAD NOT READY";
+                background = 0xE68C103A; // red
+            }
+            if (text != null) {
+                drgramDiagView.setText(text);
+                drgramDiagView.setBackgroundColor(background);
+                drgramDiagView.setVisibility(VISIBLE);
+            } else {
+                drgramDiagView.setVisibility(GONE);
+            }
+        }
+    };
+
+    protected void drgramGlInitFinished(boolean programOk) {
+        drgramGlReadyAt = android.os.SystemClock.elapsedRealtime();
+        drgramGlState = programOk ? DRGRAM_GL_NO_FRAMES : DRGRAM_GL_NO_PROGRAM;
+    }
+
+    protected void drgramNoteFrame() {
+        if (drgramGlState != DRGRAM_GL_FRAMES) {
+            drgramGlState = DRGRAM_GL_FRAMES;
+        }
+    }
+    // ===== end DrGram Fix 54 =====
+
     @Override
     public void onSurfaceTextureAvailable(SurfaceTexture surface, int width, int height) {
         updateCameraInfoSize(0);
@@ -693,6 +771,13 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
 
         surfaceHeight = height;
         surfaceWidth = width;
+
+        // DrGram Fix 54: restart the preview diagnostic watcher for this session.
+        drgramUiStartAt = android.os.SystemClock.elapsedRealtime();
+        drgramGlReadyAt = 0;
+        drgramGlState = DRGRAM_GL_WAIT;
+        AndroidUtilities.cancelRunOnUIThread(drgramDiagWatcher);
+        AndroidUtilities.runOnUIThread(drgramDiagWatcher, 3000);
 
         if (cameraThread == null && surface != null) {
             if (BuildVars.LOGS_ENABLED) {
@@ -1497,6 +1582,8 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
                 return false;
             }
 
+            CameraView.this.drgramGlInitFinished(drawProgram != 0); // DrGram Fix 54
+
             GLES20.glGenTextures(1, cameraTexture[0], 0);
             GLES20.glBindTexture(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, cameraTexture[0][0]);
             GLES20.glTexParameteri(GLES11Ext.GL_TEXTURE_EXTERNAL_OES, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_LINEAR);
@@ -1631,6 +1718,7 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
         }
 
         private void updTex(SurfaceTexture surfaceTexture) {
+            drgramNoteFrame(); // DrGram Fix 54: first camera frame reached the GL thread
             if (surfaceTexture == cameraSurface[0]) {
                 if (!ignoreCamera1Upd && System.currentTimeMillis() > camera1AppearedUntil) {
                     camera1Appeared = true;
@@ -1985,7 +2073,14 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
 
             switch (what) {
                 case DO_RENDER_MESSAGE:
-                    onDraw(inputMessage.arg1, inputMessage.arg2, inputMessage.obj == updateTexBoth || inputMessage.obj == updateTex1, inputMessage.obj == updateTexBoth || inputMessage.obj == updateTex2);
+                    try {
+                        onDraw(inputMessage.arg1, inputMessage.arg2, inputMessage.obj == updateTexBoth || inputMessage.obj == updateTex1, inputMessage.obj == updateTexBoth || inputMessage.obj == updateTex2);
+                    } catch (Throwable t) {
+                        // DrGram Fix 54: a dead GL thread paints a silent black
+                        // preview forever — keep it alive and surface the state.
+                        FileLog.e(t);
+                        drgramGlState = DRGRAM_GL_DRAW_ERROR;
+                    }
                     break;
                 case DO_SHUTDOWN_MESSAGE:
                     finishBlur();
