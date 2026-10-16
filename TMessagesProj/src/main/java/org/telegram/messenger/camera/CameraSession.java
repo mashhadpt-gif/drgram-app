@@ -89,6 +89,7 @@ public class CameraSession {
     public volatile float[] drgramSoftEyeRRect = new float[8];
     // DrGram Fix 52: exact sampled contours from MediaPipe, normalized to source frame.
     public volatile float[] drgramSoftFaceOval = new float[64]; // 16 points x 2 faces
+    public volatile float[] drgramSoftNosePoly = new float[48]; // 12 points x 2 faces
     public volatile float[] drgramSoftLipOuter = new float[48]; // 12 points x 2 faces
     public volatile float[] drgramSoftEyeLPoly = new float[32]; // 8 points x 2 faces
     public volatile float[] drgramSoftEyeRPoly = new float[32];
@@ -224,7 +225,7 @@ public class CameraSession {
                 float[] f = new float[8], n = new float[4], m = new float[4], el = new float[4], er = new float[4];
                 // DrGram Fix 51: organ rect scratch (vec4 per face).
                 float[] nRect = new float[8], mRect = new float[8], elRect = new float[8], erRect = new float[8];
-                float[] faceOval = new float[64], lipOuter = new float[48], eyeLPoly = new float[32], eyeRPoly = new float[32];
+                float[] faceOval = new float[64], nosePoly = new float[48], lipOuter = new float[48], eyeLPoly = new float[32], eyeRPoly = new float[32];
                 int cnt = 0;
                 boolean meshPrecise = false;
 
@@ -272,6 +273,10 @@ public class CameraSession {
                             for (int j = 0; j < 32; j++) {
                                 float v = tr.faceOvalData[i * 32 + j];
                                 faceOval[cnt * 32 + j] = (j & 1) == 0 ? originX + v * mapNX : originY + v * mapNY;
+                            }
+                            for (int j = 0; j < 24; j++) {
+                                float nv = tr.nosePolyData[i * 24 + j];
+                                nosePoly[cnt * 24 + j] = (j & 1) == 0 ? originX + nv * mapNX : originY + nv * mapNY;
                             }
                             for (int j = 0; j < 24; j++) {
                                 float v = tr.lipOuterData[i * 24 + j];
@@ -373,6 +378,7 @@ public class CameraSession {
                     drgramSoftEyeLRect = elRect;
                     drgramSoftEyeRRect = erRect;
                     drgramSoftFaceOval = faceOval;
+                    drgramSoftNosePoly = nosePoly;
                     drgramSoftLipOuter = lipOuter;
                     drgramSoftEyeLPoly = eyeLPoly;
                     drgramSoftEyeRPoly = eyeRPoly;
@@ -508,15 +514,16 @@ public class CameraSession {
     }
 
     /** Exact mesh contours for shader masks; false on ML Kit/hardware fallback. */
-    public boolean drgramSoftPolygonsFresh(float[] faceOvalOut, float[] lipOuterOut,
+    public boolean drgramSoftPolygonsFresh(float[] faceOvalOut, float[] nosePolyOut, float[] lipOuterOut,
                                            float[] eyeLPolyOut, float[] eyeRPolyOut) {
         if (!drgramSoftMeshPrecise || drgramSoftCount <= 0) return false;
         if (android.os.SystemClock.elapsedRealtime() - drgramSoftAt > DRGRAM_SOFT_RESULT_TTL_MS) return false;
-        float[] oval = drgramSoftFaceOval, lips = drgramSoftLipOuter;
+        float[] oval = drgramSoftFaceOval, nose = drgramSoftNosePoly, lips = drgramSoftLipOuter;
         float[] left = drgramSoftEyeLPoly, right = drgramSoftEyeRPoly;
-        if (oval == null || oval.length < 64 || lips == null || lips.length < 48
+        if (oval == null || oval.length < 64 || nose == null || nose.length < 48 || lips == null || lips.length < 48
                 || left == null || left.length < 32 || right == null || right.length < 32) return false;
         System.arraycopy(oval, 0, faceOvalOut, 0, faceOvalOut.length);
+        System.arraycopy(nose, 0, nosePolyOut, 0, nosePolyOut.length);
         System.arraycopy(lips, 0, lipOuterOut, 0, lipOuterOut.length);
         System.arraycopy(left, 0, eyeLPolyOut, 0, eyeLPolyOut.length);
         System.arraycopy(right, 0, eyeRPolyOut, 0, eyeRPolyOut.length);
@@ -549,6 +556,7 @@ public class CameraSession {
     private final float[] drgramSmoothEyeLRect = new float[8];
     private final float[] drgramSmoothEyeRRect = new float[8];
     private final float[] drgramSmoothFaceOval = new float[64]; // DrGram Fix 52
+    private final float[] drgramSmoothNosePoly = new float[48]; // exact nose contour
     private final float[] drgramSmoothLipOuter = new float[48];
     private final float[] drgramSmoothEyeLPoly = new float[32];
     private final float[] drgramSmoothEyeRPoly = new float[32];
@@ -606,11 +614,12 @@ public class CameraSession {
      * 4-vector so the region never leads/lags its own anchor.
      */
     /** Temporal EMA for mesh contour points, preventing makeup-mask shimmer in video. */
-    public synchronized void smoothDrgramBeautyPolygons(float[] faceOval, float[] lipOuter,
+    public synchronized void smoothDrgramBeautyPolygons(float[] faceOval, float[] nosePoly, float[] lipOuter,
                                                           float[] eyeLPoly, float[] eyeRPoly, int count) {
         if (count <= 0) {
             drgramSmoothPolygonCount = 0;
             java.util.Arrays.fill(drgramSmoothFaceOval, 0f);
+            java.util.Arrays.fill(drgramSmoothNosePoly, 0f);
             java.util.Arrays.fill(drgramSmoothLipOuter, 0f);
             java.util.Arrays.fill(drgramSmoothEyeLPoly, 0f);
             java.util.Arrays.fill(drgramSmoothEyeRPoly, 0f);
@@ -619,6 +628,7 @@ public class CameraSession {
         count = Math.min(2, count);
         if (drgramSmoothPolygonCount != count) {
             System.arraycopy(faceOval, 0, drgramSmoothFaceOval, 0, faceOval.length);
+            System.arraycopy(nosePoly, 0, drgramSmoothNosePoly, 0, nosePoly.length);
             System.arraycopy(lipOuter, 0, drgramSmoothLipOuter, 0, lipOuter.length);
             System.arraycopy(eyeLPoly, 0, drgramSmoothEyeLPoly, 0, eyeLPoly.length);
             System.arraycopy(eyeRPoly, 0, drgramSmoothEyeRPoly, 0, eyeRPoly.length);
@@ -629,6 +639,10 @@ public class CameraSession {
         for (int i = 0; i < faceOval.length; i++) {
             drgramSmoothFaceOval[i] += (faceOval[i] - drgramSmoothFaceOval[i]) * weight;
             faceOval[i] = drgramSmoothFaceOval[i];
+        }
+        for (int i = 0; i < nosePoly.length; i++) {
+            drgramSmoothNosePoly[i] += (nosePoly[i] - drgramSmoothNosePoly[i]) * weight;
+            nosePoly[i] = drgramSmoothNosePoly[i];
         }
         for (int i = 0; i < lipOuter.length; i++) {
             drgramSmoothLipOuter[i] += (lipOuter[i] - drgramSmoothLipOuter[i]) * weight;

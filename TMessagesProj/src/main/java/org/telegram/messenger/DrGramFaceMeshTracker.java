@@ -53,6 +53,7 @@ public final class DrGramFaceMeshTracker {
         // DrGram Fix 52: sampled mesh contours packed as normalized x/y points.
         // Face oval: 16 points per face; outer lips and each eye: 12/8 points.
         public final float[] faceOvalData = new float[64]; // 2 faces * 16 * xy
+        public final float[] nosePolyData = new float[48]; // 2 faces * 12 * xy
         public final float[] lipOuterData = new float[48]; // 2 faces * 12 * xy
         public final float[] eyeLPolyData = new float[32]; // 2 faces * 8 * xy
         public final float[] eyeRPolyData = new float[32]; // 2 faces * 8 * xy
@@ -365,6 +366,7 @@ public final class DrGramFaceMeshTracker {
                 // Mesh contours are copied in the same stable face-slot order.
                 List<com.google.mediapipe.tasks.components.containers.NormalizedLandmark> points = valid.get(assignedSources[s]);
                 sampleRing(points, FACE_OVAL, 16, out.faceOvalData, s * 32);
+                sampleRing(points, NOSE_RING, 12, out.nosePolyData, s * 24);
                 sampleRing(points, LIPS_OUTER_RING, 12, out.lipOuterData, s * 24);
                 sampleRing(points, LEFT_EYE_RING, 8, out.eyeLPolyData, s * 16);
                 sampleRing(points, RIGHT_EYE_RING, 8, out.eyeRPolyData, s * 16);
