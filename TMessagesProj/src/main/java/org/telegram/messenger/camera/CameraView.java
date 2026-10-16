@@ -1423,6 +1423,16 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
 
             int vertexShader = loadShader(GLES20.GL_VERTEX_SHADER, AndroidUtilities.readRes(R.raw.camera_vert));
             int fragmentShader = loadShader(GLES20.GL_FRAGMENT_SHADER, AndroidUtilities.readRes(R.raw.camera_frag));
+            // DrGram Fix 53: the full polygon shader carries 99 fragment
+            // uniform vectors; budget GPUs with 64-vector limits cannot host
+            // it. When it fails to compile or link, fall back to the lite
+            // beauty program (the v5.18 pipeline — organ rects, no contours)
+            // so the preview can never go black.
+            boolean drgramLiteProgram = false;
+            if (fragmentShader == 0) {
+                fragmentShader = loadShader(GLES20.GL_FRAGMENT_SHADER, AndroidUtilities.readRes(R.raw.camera_frag_lite));
+                drgramLiteProgram = true;
+            }
             if (vertexShader != 0 && fragmentShader != 0) {
                 drawProgram = GLES20.glCreateProgram();
                 GLES20.glAttachShader(drawProgram, vertexShader);
@@ -1436,7 +1446,29 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
                     }
                     GLES20.glDeleteProgram(drawProgram);
                     drawProgram = 0;
-                } else {
+                    int liteFragment = drgramLiteProgram ? 0 : loadShader(GLES20.GL_FRAGMENT_SHADER, AndroidUtilities.readRes(R.raw.camera_frag_lite));
+                    if (liteFragment != 0) {
+                        int liteProgram = GLES20.glCreateProgram();
+                        GLES20.glAttachShader(liteProgram, vertexShader);
+                        GLES20.glAttachShader(liteProgram, liteFragment);
+                        GLES20.glLinkProgram(liteProgram);
+                        int[] liteLinkStatus = new int[1];
+                        GLES20.glGetProgramiv(liteProgram, GLES20.GL_LINK_STATUS, liteLinkStatus, 0);
+                        if (liteLinkStatus[0] != 0) {
+                            drawProgram = liteProgram;
+                            drgramLiteProgram = true;
+                            if (BuildVars.LOGS_ENABLED) {
+                                FileLog.d("DrGram lite beauty program active (polygon shader failed to link)");
+                            }
+                        } else {
+                            if (BuildVars.LOGS_ENABLED) {
+                                FileLog.e("DrGram lite beauty program also failed to link");
+                            }
+                            GLES20.glDeleteProgram(liteProgram);
+                        }
+                    }
+                }
+                if (drawProgram != 0) {
                     positionHandle = GLES20.glGetAttribLocation(drawProgram, "aPosition");
                     textureHandle = GLES20.glGetAttribLocation(drawProgram, "aTextureCoord");
                     vertexMatrixHandle = GLES20.glGetUniformLocation(drawProgram, "uMVPMatrix");
@@ -3434,6 +3466,14 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
 
             int vertexShader = loadShader(GLES20.GL_VERTEX_SHADER, AndroidUtilities.readRes(R.raw.camera_vert));
             int fragmentShader = loadShader(GLES20.GL_FRAGMENT_SHADER, AndroidUtilities.readRes(R.raw.camera_frag));
+            // DrGram Fix 53: same lite fallback as the preview — recorded and
+            // encoded frames keep flowing even when the polygon shader cannot
+            // be hosted by the GPU.
+            boolean drgramLiteProgram = false;
+            if (fragmentShader == 0) {
+                fragmentShader = loadShader(GLES20.GL_FRAGMENT_SHADER, AndroidUtilities.readRes(R.raw.camera_frag_lite));
+                drgramLiteProgram = true;
+            }
             if (vertexShader != 0 && fragmentShader != 0) {
                 drawProgram = GLES20.glCreateProgram();
                 GLES20.glAttachShader(drawProgram, vertexShader);
@@ -3444,7 +3484,26 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
                 if (linkStatus[0] == 0) {
                     GLES20.glDeleteProgram(drawProgram);
                     drawProgram = 0;
-                } else {
+                    int liteFragment = drgramLiteProgram ? 0 : loadShader(GLES20.GL_FRAGMENT_SHADER, AndroidUtilities.readRes(R.raw.camera_frag_lite));
+                    if (liteFragment != 0) {
+                        int liteProgram = GLES20.glCreateProgram();
+                        GLES20.glAttachShader(liteProgram, vertexShader);
+                        GLES20.glAttachShader(liteProgram, liteFragment);
+                        GLES20.glLinkProgram(liteProgram);
+                        int[] liteLinkStatus = new int[1];
+                        GLES20.glGetProgramiv(liteProgram, GLES20.GL_LINK_STATUS, liteLinkStatus, 0);
+                        if (liteLinkStatus[0] != 0) {
+                            drawProgram = liteProgram;
+                            drgramLiteProgram = true;
+                            if (BuildVars.LOGS_ENABLED) {
+                                FileLog.d("DrGram recorder lite beauty program active (polygon shader failed to link)");
+                            }
+                        } else {
+                            GLES20.glDeleteProgram(liteProgram);
+                        }
+                    }
+                }
+                if (drawProgram != 0) {
                     positionHandle = GLES20.glGetAttribLocation(drawProgram, "aPosition");
                     textureHandle = GLES20.glGetAttribLocation(drawProgram, "aTextureCoord");
                     vertexMatrixHandle = GLES20.glGetUniformLocation(drawProgram, "uMVPMatrix");

@@ -50,168 +50,76 @@ uniform vec4 fxEyePolyL[8];  // 4 vec4 per face
 uniform vec4 fxEyePolyR[8];
 uniform float fxPolygonPrecise;
 
-vec2 drgramMeshPoint(int faceIndex, int pointIndex, int polygonType) {
-  if (polygonType == 4) {
-    if (faceIndex == 0) {
-      if (pointIndex == 0) return fxNosePoly[0].xy;
-      if (pointIndex == 1) return fxNosePoly[0].zw;
-      if (pointIndex == 2) return fxNosePoly[1].xy;
-      if (pointIndex == 3) return fxNosePoly[1].zw;
-      if (pointIndex == 4) return fxNosePoly[2].xy;
-      if (pointIndex == 5) return fxNosePoly[2].zw;
-      if (pointIndex == 6) return fxNosePoly[3].xy;
-      if (pointIndex == 7) return fxNosePoly[3].zw;
-      if (pointIndex == 8) return fxNosePoly[4].xy;
-      if (pointIndex == 9) return fxNosePoly[4].zw;
-      if (pointIndex == 10) return fxNosePoly[5].xy;
-      if (pointIndex == 11) return fxNosePoly[5].zw;
-    }
-    if (faceIndex == 1) {
-      if (pointIndex == 0) return fxNosePoly[6].xy;
-      if (pointIndex == 1) return fxNosePoly[6].zw;
-      if (pointIndex == 2) return fxNosePoly[7].xy;
-      if (pointIndex == 3) return fxNosePoly[7].zw;
-      if (pointIndex == 4) return fxNosePoly[8].xy;
-      if (pointIndex == 5) return fxNosePoly[8].zw;
-      if (pointIndex == 6) return fxNosePoly[9].xy;
-      if (pointIndex == 7) return fxNosePoly[9].zw;
-      if (pointIndex == 8) return fxNosePoly[10].xy;
-      if (pointIndex == 9) return fxNosePoly[10].zw;
-      if (pointIndex == 10) return fxNosePoly[11].xy;
-      if (pointIndex == 11) return fxNosePoly[11].zw;
-    }
-  }
+// Fetches one contour point from the packed polygon uniforms. Loop-guarded
+// selection keeps the code compact for mobile shader compilers (GLSL ES 1.00
+// requires constant-index expressions for fragment uniform arrays — the loop
+// counter qualifies). polygonType: 0 = face oval (16 pts), 1 = outer lips
+// (12), 2/3 = left/right eye (8), 4 = nose ring (12).
+highp vec2 drgramMeshPoint(int faceIndex, int pointIndex, int polygonType) {
+  highp vec2 result = vec2(0.0);
+  highp float pickZW = mod(float(pointIndex), 2.0);
   if (polygonType == 0) {
-    if (faceIndex == 0) {
-      if (pointIndex == 0) return fxFaceOval[0].xy;
-      if (pointIndex == 1) return fxFaceOval[0].zw;
-      if (pointIndex == 2) return fxFaceOval[1].xy;
-      if (pointIndex == 3) return fxFaceOval[1].zw;
-      if (pointIndex == 4) return fxFaceOval[2].xy;
-      if (pointIndex == 5) return fxFaceOval[2].zw;
-      if (pointIndex == 6) return fxFaceOval[3].xy;
-      if (pointIndex == 7) return fxFaceOval[3].zw;
-      if (pointIndex == 8) return fxFaceOval[4].xy;
-      if (pointIndex == 9) return fxFaceOval[4].zw;
-      if (pointIndex == 10) return fxFaceOval[5].xy;
-      if (pointIndex == 11) return fxFaceOval[5].zw;
-      if (pointIndex == 12) return fxFaceOval[6].xy;
-      if (pointIndex == 13) return fxFaceOval[6].zw;
-      if (pointIndex == 14) return fxFaceOval[7].xy;
-      if (pointIndex == 15) return fxFaceOval[7].zw;
+    int slot = faceIndex * 8 + pointIndex / 2;
+    for (int k = 0; k < 16; k++) {
+      if (k == slot) {
+        highp vec4 v = fxFaceOval[k];
+        result = mix(v.xy, v.zw, pickZW);
+      }
     }
-    if (faceIndex == 1) {
-      if (pointIndex == 0) return fxFaceOval[8].xy;
-      if (pointIndex == 1) return fxFaceOval[8].zw;
-      if (pointIndex == 2) return fxFaceOval[9].xy;
-      if (pointIndex == 3) return fxFaceOval[9].zw;
-      if (pointIndex == 4) return fxFaceOval[10].xy;
-      if (pointIndex == 5) return fxFaceOval[10].zw;
-      if (pointIndex == 6) return fxFaceOval[11].xy;
-      if (pointIndex == 7) return fxFaceOval[11].zw;
-      if (pointIndex == 8) return fxFaceOval[12].xy;
-      if (pointIndex == 9) return fxFaceOval[12].zw;
-      if (pointIndex == 10) return fxFaceOval[13].xy;
-      if (pointIndex == 11) return fxFaceOval[13].zw;
-      if (pointIndex == 12) return fxFaceOval[14].xy;
-      if (pointIndex == 13) return fxFaceOval[14].zw;
-      if (pointIndex == 14) return fxFaceOval[15].xy;
-      if (pointIndex == 15) return fxFaceOval[15].zw;
+  } else if (polygonType == 4) {
+    int slot = faceIndex * 6 + pointIndex / 2;
+    for (int k = 0; k < 12; k++) {
+      if (k == slot) {
+        highp vec4 v = fxNosePoly[k];
+        result = mix(v.xy, v.zw, pickZW);
+      }
     }
-  }
-  if (polygonType == 1) {
-    if (faceIndex == 0) {
-      if (pointIndex == 0) return fxLipOuter[0].xy;
-      if (pointIndex == 1) return fxLipOuter[0].zw;
-      if (pointIndex == 2) return fxLipOuter[1].xy;
-      if (pointIndex == 3) return fxLipOuter[1].zw;
-      if (pointIndex == 4) return fxLipOuter[2].xy;
-      if (pointIndex == 5) return fxLipOuter[2].zw;
-      if (pointIndex == 6) return fxLipOuter[3].xy;
-      if (pointIndex == 7) return fxLipOuter[3].zw;
-      if (pointIndex == 8) return fxLipOuter[4].xy;
-      if (pointIndex == 9) return fxLipOuter[4].zw;
-      if (pointIndex == 10) return fxLipOuter[5].xy;
-      if (pointIndex == 11) return fxLipOuter[5].zw;
+  } else if (polygonType == 1) {
+    int slot = faceIndex * 6 + pointIndex / 2;
+    for (int k = 0; k < 12; k++) {
+      if (k == slot) {
+        highp vec4 v = fxLipOuter[k];
+        result = mix(v.xy, v.zw, pickZW);
+      }
     }
-    if (faceIndex == 1) {
-      if (pointIndex == 0) return fxLipOuter[6].xy;
-      if (pointIndex == 1) return fxLipOuter[6].zw;
-      if (pointIndex == 2) return fxLipOuter[7].xy;
-      if (pointIndex == 3) return fxLipOuter[7].zw;
-      if (pointIndex == 4) return fxLipOuter[8].xy;
-      if (pointIndex == 5) return fxLipOuter[8].zw;
-      if (pointIndex == 6) return fxLipOuter[9].xy;
-      if (pointIndex == 7) return fxLipOuter[9].zw;
-      if (pointIndex == 8) return fxLipOuter[10].xy;
-      if (pointIndex == 9) return fxLipOuter[10].zw;
-      if (pointIndex == 10) return fxLipOuter[11].xy;
-      if (pointIndex == 11) return fxLipOuter[11].zw;
+  } else if (polygonType == 2) {
+    int slot = faceIndex * 4 + pointIndex / 2;
+    for (int k = 0; k < 8; k++) {
+      if (k == slot) {
+        highp vec4 v = fxEyePolyL[k];
+        result = mix(v.xy, v.zw, pickZW);
+      }
+    }
+  } else {
+    int slot = faceIndex * 4 + pointIndex / 2;
+    for (int k = 0; k < 8; k++) {
+      if (k == slot) {
+        highp vec4 v = fxEyePolyR[k];
+        result = mix(v.xy, v.zw, pickZW);
+      }
     }
   }
-  if (polygonType == 2) {
-    if (faceIndex == 0) {
-      if (pointIndex == 0) return fxEyePolyL[0].xy;
-      if (pointIndex == 1) return fxEyePolyL[0].zw;
-      if (pointIndex == 2) return fxEyePolyL[1].xy;
-      if (pointIndex == 3) return fxEyePolyL[1].zw;
-      if (pointIndex == 4) return fxEyePolyL[2].xy;
-      if (pointIndex == 5) return fxEyePolyL[2].zw;
-      if (pointIndex == 6) return fxEyePolyL[3].xy;
-      if (pointIndex == 7) return fxEyePolyL[3].zw;
-    }
-    if (faceIndex == 1) {
-      if (pointIndex == 0) return fxEyePolyL[4].xy;
-      if (pointIndex == 1) return fxEyePolyL[4].zw;
-      if (pointIndex == 2) return fxEyePolyL[5].xy;
-      if (pointIndex == 3) return fxEyePolyL[5].zw;
-      if (pointIndex == 4) return fxEyePolyL[6].xy;
-      if (pointIndex == 5) return fxEyePolyL[6].zw;
-      if (pointIndex == 6) return fxEyePolyL[7].xy;
-      if (pointIndex == 7) return fxEyePolyL[7].zw;
-    }
-  }
-  if (polygonType == 3) {
-    if (faceIndex == 0) {
-      if (pointIndex == 0) return fxEyePolyR[0].xy;
-      if (pointIndex == 1) return fxEyePolyR[0].zw;
-      if (pointIndex == 2) return fxEyePolyR[1].xy;
-      if (pointIndex == 3) return fxEyePolyR[1].zw;
-      if (pointIndex == 4) return fxEyePolyR[2].xy;
-      if (pointIndex == 5) return fxEyePolyR[2].zw;
-      if (pointIndex == 6) return fxEyePolyR[3].xy;
-      if (pointIndex == 7) return fxEyePolyR[3].zw;
-    }
-    if (faceIndex == 1) {
-      if (pointIndex == 0) return fxEyePolyR[4].xy;
-      if (pointIndex == 1) return fxEyePolyR[4].zw;
-      if (pointIndex == 2) return fxEyePolyR[5].xy;
-      if (pointIndex == 3) return fxEyePolyR[5].zw;
-      if (pointIndex == 4) return fxEyePolyR[6].xy;
-      if (pointIndex == 5) return fxEyePolyR[6].zw;
-      if (pointIndex == 6) return fxEyePolyR[7].xy;
-      if (pointIndex == 7) return fxEyePolyR[7].zw;
-    }
-  }
-  return vec2(0.0);
+  return result;
 }
 
 // Returns a softly antialiased coverage for a tracked mesh polygon.
-mediump float drgramMeshPolygonMask(mediump vec2 p, int faceIndex, int polygonType) {
+// All math is highp: polygon edges live below mediump resolution, and the
+// previous 1e-6 floors underflowed to zero in mediump (half-float min ~6e-5).
+mediump float drgramMeshPolygonMask(highp vec2 p, int faceIndex, int polygonType) {
   int pointCount = polygonType == 0 ? 16 : ((polygonType == 1 || polygonType == 4) ? 12 : 8);
   bool inside = false;
-  mediump float edgeDistance = 1.0;
-  mediump vec2 previous = drgramMeshPoint(faceIndex, pointCount - 1, polygonType);
+  highp float edgeDistance = 1.0;
+  highp vec2 previous = drgramMeshPoint(faceIndex, pointCount - 1, polygonType);
   for (int j = 0; j < 16; j++) {
     if (j < pointCount) {
-      mediump vec2 current = drgramMeshPoint(faceIndex, j, polygonType);
-      mediump vec2 segment = current - previous;
-      mediump float segmentLength = max(dot(segment, segment), 1e-6);
-      mediump float along = clamp(dot(p - previous, segment) / segmentLength, 0.0, 1.0);
+      highp vec2 current = drgramMeshPoint(faceIndex, j, polygonType);
+      highp vec2 segment = current - previous;
+      highp float segmentLength = max(dot(segment, segment), 1e-4);
+      highp float along = clamp(dot(p - previous, segment) / segmentLength, 0.0, 1.0);
       edgeDistance = min(edgeDistance, length(p - (previous + segment * along)));
-      mediump float dy = previous.y - current.y;
+      highp float dy = previous.y - current.y;
       bool crosses = ((current.y > p.y) != (previous.y > p.y))
-          && (p.x < (previous.x - current.x) * (p.y - current.y) / (abs(dy) > 1e-6 ? dy : 1e-6) + current.x);
+          && (p.x < (previous.x - current.x) * (p.y - current.y) / (abs(dy) > 1e-4 ? dy : 1e-4) + current.x);
       if (crosses) inside = !inside;
       previous = current;
     }
