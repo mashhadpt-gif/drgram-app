@@ -87,6 +87,11 @@ public class CameraSession {
     public volatile float[] drgramSoftMouthRect = new float[8];
     public volatile float[] drgramSoftEyeLRect = new float[8];
     public volatile float[] drgramSoftEyeRRect = new float[8];
+    // DrGram Fix 52: exact sampled contours from MediaPipe, normalized to source frame.
+    public volatile float[] drgramSoftFaceOval = new float[64]; // 16 points x 2 faces
+    public volatile float[] drgramSoftLipOuter = new float[48]; // 12 points x 2 faces
+    public volatile float[] drgramSoftEyeLPoly = new float[32]; // 8 points x 2 faces
+    public volatile float[] drgramSoftEyeRPoly = new float[32];
     public volatile long drgramSoftAt;
     private volatile long drgramSoftLastArmAt;
     private volatile boolean drgramSoftBusy;
@@ -219,6 +224,7 @@ public class CameraSession {
                 float[] f = new float[8], n = new float[4], m = new float[4], el = new float[4], er = new float[4];
                 // DrGram Fix 51: organ rect scratch (vec4 per face).
                 float[] nRect = new float[8], mRect = new float[8], elRect = new float[8], erRect = new float[8];
+                float[] faceOval = new float[64], lipOuter = new float[48], eyeLPoly = new float[32], eyeRPoly = new float[32];
                 int cnt = 0;
                 boolean meshPrecise = false;
 
@@ -263,6 +269,20 @@ public class CameraSession {
                             erRect[cnt * 4 + 1] = originY + tr.eyeRRect[cnt * 4 + 1] * mapNY;
                             erRect[cnt * 4 + 2] = tr.eyeRRect[cnt * 4 + 2] * mapNX;
                             erRect[cnt * 4 + 3] = tr.eyeRRect[cnt * 4 + 3] * mapNY;
+                            for (int j = 0; j < 32; j++) {
+                                float v = tr.faceOvalData[i * 32 + j];
+                                faceOval[cnt * 32 + j] = (j & 1) == 0 ? originX + v * mapNX : originY + v * mapNY;
+                            }
+                            for (int j = 0; j < 24; j++) {
+                                float v = tr.lipOuterData[i * 24 + j];
+                                lipOuter[cnt * 24 + j] = (j & 1) == 0 ? originX + v * mapNX : originY + v * mapNY;
+                            }
+                            for (int j = 0; j < 16; j++) {
+                                float lv = tr.eyeLPolyData[i * 16 + j];
+                                float rv = tr.eyeRPolyData[i * 16 + j];
+                                eyeLPoly[cnt * 16 + j] = (j & 1) == 0 ? originX + lv * mapNX : originY + lv * mapNY;
+                                eyeRPoly[cnt * 16 + j] = (j & 1) == 0 ? originX + rv * mapNX : originY + rv * mapNY;
+                            }
                             cnt++;
                         }
                         meshPrecise = cnt > 0;
@@ -352,6 +372,10 @@ public class CameraSession {
                     drgramSoftMouthRect = mRect;
                     drgramSoftEyeLRect = elRect;
                     drgramSoftEyeRRect = erRect;
+                    drgramSoftFaceOval = faceOval;
+                    drgramSoftLipOuter = lipOuter;
+                    drgramSoftEyeLPoly = eyeLPoly;
+                    drgramSoftEyeRPoly = eyeRPoly;
                     drgramSoftCount = cnt;
                     drgramSoftAt = now;
                     drgramSoftHadFaces = cnt > 0;
@@ -480,6 +504,22 @@ public class CameraSession {
         System.arraycopy(mr, 0, mouthRectOut, 0, mouthRectOut.length);
         if (elr != null && elr.length >= 8) System.arraycopy(elr, 0, eyeLRectOut, 0, eyeLRectOut.length);
         if (err != null && err.length >= 8) System.arraycopy(err, 0, eyeRRectOut, 0, eyeRRectOut.length);
+        return true;
+    }
+
+    /** Exact mesh contours for shader masks; false on ML Kit/hardware fallback. */
+    public boolean drgramSoftPolygonsFresh(float[] faceOvalOut, float[] lipOuterOut,
+                                           float[] eyeLPolyOut, float[] eyeRPolyOut) {
+        if (!drgramSoftMeshPrecise || drgramSoftCount <= 0) return false;
+        if (android.os.SystemClock.elapsedRealtime() - drgramSoftAt > DRGRAM_SOFT_RESULT_TTL_MS) return false;
+        float[] oval = drgramSoftFaceOval, lips = drgramSoftLipOuter;
+        float[] left = drgramSoftEyeLPoly, right = drgramSoftEyeRPoly;
+        if (oval == null || oval.length < 64 || lips == null || lips.length < 48
+                || left == null || left.length < 32 || right == null || right.length < 32) return false;
+        System.arraycopy(oval, 0, faceOvalOut, 0, faceOvalOut.length);
+        System.arraycopy(lips, 0, lipOuterOut, 0, lipOuterOut.length);
+        System.arraycopy(left, 0, eyeLPolyOut, 0, eyeLPolyOut.length);
+        System.arraycopy(right, 0, eyeRPolyOut, 0, eyeRPolyOut.length);
         return true;
     }
 
