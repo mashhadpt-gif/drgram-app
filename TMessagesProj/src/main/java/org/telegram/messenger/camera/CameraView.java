@@ -1212,7 +1212,7 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
         int blush, lips, bright, eyesL, eyesR, eyePrecise;
         int dark, slim; // DrGram Fix 47
         int noseRects, mouthRects, eyeLRects, eyeRRects, organPrecise; // DrGram Fix 51
-        int faceOvalPoly, lipOuterPoly, eyeLPoly, eyeRPoly, polygonPrecise; // DrGram Fix 52
+        int faceOvalPoly, nosePoly, lipOuterPoly, eyeLPoly, eyeRPoly, polygonPrecise; // DrGram Fix 52/53
 
         void fetch(int program) {
             nose = GLES20.glGetUniformLocation(program, "fxNose");
@@ -1238,6 +1238,7 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
             eyeRRects = GLES20.glGetUniformLocation(program, "fxEyeRectR");
             organPrecise = GLES20.glGetUniformLocation(program, "fxOrganPrecise");
             faceOvalPoly = GLES20.glGetUniformLocation(program, "fxFaceOval");
+            nosePoly = GLES20.glGetUniformLocation(program, "fxNosePoly");
             lipOuterPoly = GLES20.glGetUniformLocation(program, "fxLipOuter");
             eyeLPoly = GLES20.glGetUniformLocation(program, "fxEyePolyL");
             eyeRPoly = GLES20.glGetUniformLocation(program, "fxEyePolyR");
@@ -2351,6 +2352,7 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
         float[] eyeRRectData = new float[8];
         // DrGram Fix 52: packed mesh contours (two points per vec4 uniform).
         float[] faceOvalPolyData = new float[64];
+        float[] nosePolyData = new float[48];
         float[] lipOuterPolyData = new float[48];
         float[] eyeLPolyData = new float[32];
         float[] eyeRPolyData = new float[32];
@@ -2485,7 +2487,7 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
                 if (feedIsSoftware && session != null && session.camera1Session != null) {
                     try {
                         polygonPrecise = session.camera1Session.drgramSoftPolygonsFresh(
-                                faceOvalPolyData, lipOuterPolyData, eyeLPolyData, eyeRPolyData);
+                                faceOvalPolyData, nosePolyData, lipOuterPolyData, eyeLPolyData, eyeRPolyData);
                     } catch (Throwable ignore) {
                         polygonPrecise = false;
                     }
@@ -2526,7 +2528,7 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
             if (session != null && session.camera1Session != null) {
                 session.camera1Session.smoothDrgramBeautyLandmarks(faceData, noseData, mouthData, eyeLData, eyeRData, count);
                 session.camera1Session.smoothDrgramOrganRects(noseRectData, mouthRectData, eyeLRectData, eyeRRectData, count);
-                session.camera1Session.smoothDrgramBeautyPolygons(faceOvalPolyData, lipOuterPolyData,
+                session.camera1Session.smoothDrgramBeautyPolygons(faceOvalPolyData, nosePolyData, lipOuterPolyData,
                         eyeLPolyData, eyeRPolyData, polygonPrecise ? count : 0);
             }
         } catch (Throwable ignore) {
@@ -2548,6 +2550,7 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
         // Shared shader uploader is used by live preview and VideoRecorder, so
         // the same exact mesh masks follow every encoded frame as well.
         GLES20.glUniform4fv(h.faceOvalPoly, 16, faceOvalPolyData, 0);
+        GLES20.glUniform4fv(h.nosePoly, 12, nosePolyData, 0);
         GLES20.glUniform4fv(h.lipOuterPoly, 12, lipOuterPolyData, 0);
         GLES20.glUniform4fv(h.eyeLPoly, 8, eyeLPolyData, 0);
         GLES20.glUniform4fv(h.eyeRPoly, 8, eyeRPolyData, 0);
