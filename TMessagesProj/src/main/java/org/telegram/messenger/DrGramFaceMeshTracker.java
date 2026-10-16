@@ -104,9 +104,14 @@ public final class DrGramFaceMeshTracker {
 
     private static final Object lock = new Object();
     private static com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarker engine;
+    // Still photos use a separate IMAGE-mode graph so a photo cannot poison
+    // the live VIDEO tracker or mix wall-clock and elapsed-realtime timestamps.
+    private static com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarker photoEngine;
     private static boolean dead;
+    private static boolean photoDead;
     private static long lastTs;
     private static int failStreak;
+    private static int photoFailStreak;
 
     // Slot smoothing state (normalized source-bitmap space).
     private static int slotCount = -1;
@@ -163,6 +168,48 @@ public final class DrGramFaceMeshTracker {
         }
     }
 
+    private static com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarker ensurePhotoEngine() {
+        if (photoDead) return null;
+        if (photoEngine != null) return photoEngine;
+        try {
+            com.google.mediapipe.tasks.core.BaseOptions base =
+                    com.google.mediapipe.tasks.core.BaseOptions.builder()
+                            .setModelAssetPath("models/face_landmarker.task")
+                            .setDelegate(com.google.mediapipe.tasks.core.Delegate.CPU)
+                            .build();
+            com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarker.FaceLandmarkerOptions opts =
+                    com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarker.FaceLandmarkerOptions.builder()
+                            .setBaseOptions(base)
+                            .setRunningMode(com.google.mediapipe.tasks.vision.core.RunningMode.IMAGE)
+                            .setNumFaces(MAX_FACES)
+                            .setMinFaceDetectionConfidence(0.4f)
+                            .setMinFacePresenceConfidence(0.4f)
+                            .setOutputFaceBlendshapes(false)
+                            .build();
+            photoEngine = com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarker
+                    .createFromOptions(ApplicationLoader.applicationContext, opts);
+            photoFailStreak = 0;
+            if (BuildVars.LOGS_ENABLED) {
+                FileLog.d("DrGramFaceMeshTracker photo engine ready (478-pt IMAGE mode)");
+            }
+            return photoEngine;
+        } catch (Throwable t) {
+            FileLog.e(t);
+            photoDead = true;
+            return null;
+        }
+    }
+
+    private static void dropPhotoEngine() {
+        if (photoEngine != null) {
+            try {
+                photoEngine.close();
+            } catch (Throwable ignore) {
+            }
+            photoEngine = null;
+        }
+    }
+
     private static void dropEngine() {
         if (engine != null) {
             try {
@@ -184,7 +231,11 @@ public final class DrGramFaceMeshTracker {
     public static void release() {
         synchronized (lock) {
             dropEngine();
+            dropPhotoEngine();
             slotCount = -1;
+            lastTs = 0L;
+            photoDead = false;
+            photoFailStreak = 0;
         }
     }
 
@@ -195,7 +246,7 @@ public final class DrGramFaceMeshTracker {
      * TrackResult, or a result with count == 0 when no face is found, or
      * null when the engine is unavailable (caller falls back to ML Kit).
      *
-     * @param timestampMs wall-clock-ish timestamp; forced monotonic internally
+     * @param timestampMs monotonic elapsed-realtime timestamp; forced strictly increasing internally
      */
     public static TrackResult track(Bitmap frame, long timestampMs) {
         synchronized (lock) {
@@ -373,25 +424,23 @@ public final class DrGramFaceMeshTracker {
      */
     public static ArrayList<DrGramFaceEngine.MeshResult> trackMesh(Bitmap frame) {
         synchronized (lock) {
-            com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarker lm = ensureEngine();
+            com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarker lm = ensurePhotoEngine();
             if (lm == null || frame == null || frame.isRecycled() || frame.getConfig() == null) {
                 return null;
             }
             List<List<com.google.mediapipe.tasks.components.containers.NormalizedLandmark>> faces;
             try {
-                long ts = Math.max(System.currentTimeMillis(), lastTs + 1);
-                lastTs = ts;
                 com.google.mediapipe.framework.image.MPImage image =
                         new com.google.mediapipe.framework.image.BitmapImageBuilder(frame).build();
                 com.google.mediapipe.tasks.vision.facelandmarker.FaceLandmarkerResult result =
-                        lm.detectForVideo(image, ts);
+                        lm.detect(image);
                 faces = result == null ? null : result.faceLandmarks();
-                failStreak = 0;
+                photoFailStreak = 0;
             } catch (Throwable t) {
                 FileLog.e(t);
-                dropEngine();
-                if (++failStreak >= 3) {
-                    dead = true;
+                dropPhotoEngine();
+                if (++photoFailStreak >= 3) {
+                    photoDead = true;
                 }
                 return null;
             }
