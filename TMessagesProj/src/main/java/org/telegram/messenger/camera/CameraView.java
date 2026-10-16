@@ -1631,14 +1631,25 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
             // shader, verbatim, no beauty) — the one shader proven to compile
             // and link on every GPU that runs Telegram, including the budget
             // PowerVR units that reject both DrGram beauty programs.
-            boolean drgramWantFullFirst = drgramFullShaderRead() == 1;
-            int[] drgramOrder = drgramWantFullFirst
-                    ? new int[]{R.raw.camera_frag, R.raw.camera_frag_lite, R.raw.camera_frag_core}
-                    : new int[]{R.raw.camera_frag_lite, R.raw.camera_frag, R.raw.camera_frag_core};
-            String[] drgramNames = drgramWantFullFirst
-                    ? new String[]{"FULL", "LITE", "CORE"}
-                    : new String[]{"LITE", "FULL", "CORE"};
+            // DrGram Fix 58: FLAT tier — the whole beauty suite rewritten
+            // loop-free/highp-free (structurally closest to CORE). Persisted
+            // verdict 5 means FLAT already won on this GPU, so it is tried
+            // first and the known-bad lite/full compiles are skipped.
+            int drgramVerdict = drgramFullShaderRead();
+            int[] drgramOrder;
+            String[] drgramNames;
+            if (drgramVerdict == 5) {
+                drgramOrder = new int[]{R.raw.camera_frag_flat, R.raw.camera_frag_lite, R.raw.camera_frag, R.raw.camera_frag_core};
+                drgramNames = new String[]{"FLAT", "LITE", "FULL", "CORE"};
+            } else if (drgramVerdict == 1) {
+                drgramOrder = new int[]{R.raw.camera_frag, R.raw.camera_frag_lite, R.raw.camera_frag_flat, R.raw.camera_frag_core};
+                drgramNames = new String[]{"FULL", "LITE", "FLAT", "CORE"};
+            } else {
+                drgramOrder = new int[]{R.raw.camera_frag_lite, R.raw.camera_frag, R.raw.camera_frag_flat, R.raw.camera_frag_core};
+                drgramNames = new String[]{"LITE", "FULL", "FLAT", "CORE"};
+            }
             drgramDiagLogs = "";
+            String drgramActiveName = "";
             drawProgram = 0;
             for (int a = 0; a < drgramOrder.length && drawProgram == 0; a++) {
                 int fs = loadShader(GLES20.GL_FRAGMENT_SHADER, AndroidUtilities.readRes(drgramOrder[a]));
@@ -1649,6 +1660,10 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
                     if (drawProgram != 0) {
                         drgramLiteProgram = drgramOrder[a] != R.raw.camera_frag;
                         drgramCoreProgramActive = drgramOrder[a] == R.raw.camera_frag_core;
+                        drgramActiveName = drgramNames[a];
+                        if (drgramOrder[a] == R.raw.camera_frag_flat) {
+                            drgramFullShaderSave(5); // Fix 58: remember FLAT is the best this GPU can do
+                        }
                         break;
                     }
                     drgramDiagLogs += "LINK-" + drgramNames[a] + ": " + drgramLastLinkLog + "\n";
@@ -1659,16 +1674,21 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
                 if (BuildVars.LOGS_ENABLED) {
                     FileLog.e("failed creating shader: " + drgramDiagLogs);
                 }
-                String reason = "SHADER COMPILE/LINK ALL3\n" + drgramDiagGpu + drgramDiagLogs; // Fix 56
+                String reason = "SHADER COMPILE/LINK ALL4\n" + drgramDiagGpu + drgramDiagLogs; // Fix 58: 4 tiers
                 drgramDiagPersist(reason);
                 CameraView.this.drgramGlFailed(reason); // Fix 55/56
                 finish();
                 return false;
             }
             drgramLiteProgramActive = drgramLiteProgram;
-            if (drgramDiagLogs.length() > 0) {
-                drgramDiagPersist("FALLBACK USED\n" + drgramDiagLogs); // Fix 57: keep the why for the Tools diag row
-            }
+            // DrGram Fix 58: always record which tier is live and whether the
+            // beauty uniforms exist on it — the Tools > camera shader diag row
+            // is now a complete remote snapshot (tier + FX state + GPU + any
+            // compile/link logs of the tiers that were skipped).
+            drgramDiagPersist("ACTIVE: " + (drgramActiveName.length() > 0 ? drgramActiveName : "?")
+                    + (drgramCoreProgramActive ? " (FX OFF)" : " (FX ON)")
+                    + "\n" + drgramDiagGpu
+                    + (drgramDiagLogs.length() > 0 ? "failed attempts:\n" + drgramDiagLogs : ""));
             if (drgramCoreProgramActive && BuildVars.LOGS_ENABLED) {
                 FileLog.e("DrGram preview CORE compat program active; failed attempts: " + drgramDiagLogs);
             }
@@ -3871,8 +3891,9 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
             // upstream CORE shader as the guaranteed last resort — recording
             // start can never stall on (or die from) the heavy shaders.
             boolean drgramLiteProgram = true;
-            int[] drgramOrder = new int[]{R.raw.camera_frag_lite, R.raw.camera_frag, R.raw.camera_frag_core};
-            String[] drgramNames = new String[]{"LITE", "FULL", "CORE"};
+            // DrGram Fix 58: FLAT beauty tier slots in right before CORE.
+            int[] drgramOrder = new int[]{R.raw.camera_frag_lite, R.raw.camera_frag, R.raw.camera_frag_flat, R.raw.camera_frag_core};
+            String[] drgramNames = new String[]{"LITE", "FULL", "FLAT", "CORE"};
             for (int a = 0; a < drgramOrder.length && drawProgram == 0; a++) {
                 int fs = loadShader(GLES20.GL_FRAGMENT_SHADER, AndroidUtilities.readRes(drgramOrder[a]));
                 if (fs == 0) {

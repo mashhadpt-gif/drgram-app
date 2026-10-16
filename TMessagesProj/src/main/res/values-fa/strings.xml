@@ -800,6 +800,8 @@
     <string name="DrGramProxySwitching">در حال تست و وصل شدن به بهترین پروکسی…</string>
     <string name="DrGramProxyVpnOff">خاموش کردن خودکار پروکسی وقتی VPN روشنه</string>
     <string name="DrGramProxyVpnActive">VPN فعاله — پروکسی خودکار رد شد</string>
+    <string name="DrGramProxyTesting">دکترگرام: در حال تست %d پروکسی…</string>
+    <string name="DrGramProxyEmpty">دکترگرام: پروکسی‌ای از سایت‌ها پیدا نشد، دوباره تلاش می‌کنیم…</string>
     <string name="DrGramProxyVpnProxyOff">پروکسی خاموش شد (VPN فعاله)</string>
     <string name="DrGramSmartCmdWeather">آب و هوا (شهر ردیف پایین)</string>
     <string name="DrGramSmartCmdFal">فال حافظ</string>
