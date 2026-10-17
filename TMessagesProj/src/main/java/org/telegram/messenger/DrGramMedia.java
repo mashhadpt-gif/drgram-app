@@ -77,13 +77,9 @@ public class DrGramMedia {
 
     // DrGram Fix 40: camera beautify (صاف کردن صورت) for stories & video messages
 
-    /** True when the camera skin-smoothing effect is enabled. */
+    /** DrGram Fix 61: beauty section removed entirely — always false, all paths kept. */
     public static boolean isBeautifyEnabled() {
-        try {
-            return prefs().getBoolean("camera_beautify", true);
-        } catch (Exception e) {
-            return true;
-        }
+        return false;
     }
 
     public static void setBeautifyEnabled(boolean value) {
@@ -295,13 +291,9 @@ public class DrGramMedia {
         prefs().edit().putInt("camera_fx", id).apply();
     }
 
-    // DrGram Fix 45: portrait background blur for photo stories
+    // DrGram Fix 45 portrait blur — hard-disabled by Fix 61 (beauty suite removed)
     public static boolean storyPortraitBg() {
-        try {
-            return prefs().getBoolean("story_portrait_bg", false);
-        } catch (Throwable t) {
-            return false;
-        }
+        return false;
     }
 
     public static void setStoryPortraitBg(boolean value) {
@@ -436,16 +428,9 @@ public class DrGramMedia {
     public static final int CALL_BEAUTY_LIGHT = 1;
     public static final int CALL_BEAUTY_STRONG = 2;
 
-    /** Live stream / video call beauty level: 0 = off, 1 = light, 2 = strong. */
+    /** DrGram Fix 61: call beauty removed — always OFF, all paths kept. */
     public static int callBeautyLevel() {
-        try {
-            int v = prefs().getInt("call_beauty_level", CALL_BEAUTY_OFF);
-            if (v < CALL_BEAUTY_OFF) v = CALL_BEAUTY_OFF;
-            if (v > CALL_BEAUTY_STRONG) v = CALL_BEAUTY_STRONG;
-            return v;
-        } catch (Exception e) {
-            return CALL_BEAUTY_OFF;
-        }
+        return CALL_BEAUTY_OFF;
     }
 
     public static void setCallBeautyLevel(int level) {

@@ -4392,35 +4392,6 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
         });
         buttonsContainer.addButton(flipButton);
 
-        // DrGram Fix 49: live beauty — cycles off / light / strong. The level is
-        // applied by DrGramCallBeautyFX to the outgoing live stream & video-call frames.
-        beautyButton = new VoIPToggleButton(context, 50f);
-        beautyButton.setCheckable(true);
-        beautyButton.setTextSize(12);
-        beautyButton.showText(false, false);
-        beautyIconView = new ImageView(context);
-        beautyIconView.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        beautyIconView.setImageResource(R.drawable.media_magic_cut);
-        beautyIconView.setColorFilter(new PorterDuffColorFilter(0xFFFFFFFF, PorterDuff.Mode.SRC_IN));
-        beautyIconView.setAlpha(0.45f);
-        beautyButton.addView(beautyIconView, LayoutHelper.createFrame(30, 30, Gravity.CENTER_HORIZONTAL, 0, 11, 0, 0));
-        beautyButton.setOnClickListener(view -> {
-            renderersContainer.delayHideUi();
-            int next = org.telegram.messenger.DrGramMedia.callBeautyLevel() + 1;
-            if (next > org.telegram.messenger.DrGramMedia.CALL_BEAUTY_STRONG) {
-                next = org.telegram.messenger.DrGramMedia.CALL_BEAUTY_OFF;
-            }
-            org.telegram.messenger.DrGramMedia.setCallBeautyLevel(next);
-            updateBeautyButtonIcon();
-            int textRes = next == org.telegram.messenger.DrGramMedia.CALL_BEAUTY_STRONG ? R.string.DrGramCallBeautyStrong
-                : next == org.telegram.messenger.DrGramMedia.CALL_BEAUTY_LIGHT ? R.string.DrGramCallBeautyLight
-                : R.string.DrGramCallBeautyOff;
-            BulletinFactory.of(topBulletinContainer, new DarkBlueThemeResourcesProvider())
-                .createSimpleBulletin(getContext().getResources().getDrawable(R.drawable.media_magic_cut).mutate(), getString(textRes))
-                .show(isBulletinTop());
-        });
-        buttonsContainer.addButton(beautyButton);
-
         speakerButton = new VoIPToggleButton(context, 50f);
         speakerButton.setCheckable(true);
         speakerButton.setTextSize(12);
@@ -7148,7 +7119,6 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
             buttonsContainer.setButtonVisibility(flipButton, false, animated);
             buttonsContainer.setButtonVisibility(speakerButton, false, animated);
             buttonsContainer.setButtonVisibility(messageButton, false, animated);
-            buttonsContainer.setButtonVisibility(beautyButton, false, animated);
             return;
         }
 
@@ -7195,8 +7165,6 @@ public class GroupCallActivity extends BottomSheet implements NotificationCenter
         buttonsContainer.setButtonVisibility(soundButton, soundButtonVisible, animated);
         buttonsContainer.setButtonVisibility(speakerButton, speakerButtonVisible, animated);
         buttonsContainer.setButtonVisibility(messageButton, messageButtonVisible, animated);
-        // DrGram Fix 49: beauty control only matters while broadcasting video
-        buttonsContainer.setButtonVisibility(beautyButton, outgoingVideoIsActive && flipButtonVisible, animated);
         if (outgoingVideoIsActive) {
             updateBeautyButtonIcon();
         }

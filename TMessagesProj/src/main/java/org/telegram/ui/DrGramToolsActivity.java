@@ -845,64 +845,6 @@ public class DrGramToolsActivity extends BaseFragment {
         });
         addSectionRow(luxSoundRow);
 
-        // DrGram Fix 40: camera beautify (صاف کردن صورت) for stories & video messages
-        Switch beautifySwitch = new Switch(context);
-        beautifySwitch.setChecked(org.telegram.messenger.DrGramMedia.isBeautifyEnabled(), false);
-        LinearLayout beautifyRow = makeRow(context, LocaleController.getString(R.string.DrGramBeautify), beautifySwitch);
-        beautifyRow.setTag("media_beautify");
-        beautifyRow.setOnClickListener(v -> {
-            if (getParentActivity() == null) {
-                return;
-            }
-            float current = org.telegram.messenger.DrGramMedia.beautifyStrength();
-            String[] items = {
-                    LocaleController.getString(R.string.DrGramBeautifyLight) + (current <= 0.3f + 0.01f ? "  ✔" : ""),
-                    LocaleController.getString(R.string.DrGramBeautifyMedium) + (current > 0.3f + 0.01f && current <= 0.6f + 0.01f ? "  ✔" : ""),
-                    LocaleController.getString(R.string.DrGramBeautifyStrong) + (current > 0.6f + 0.01f ? "  ✔" : "")
-            };
-            new AlertDialog.Builder(getParentActivity(), getResourceProvider())
-                    .setTitle(LocaleController.getString(R.string.DrGramBeautify))
-                    .setItems(items, (dialog, which) -> {
-                        float v2 = which == 0 ? 0.3f : (which == 1 ? 0.55f : 0.85f);
-                        org.telegram.messenger.DrGramMedia.setBeautifyEnabled(true);
-                        org.telegram.messenger.DrGramMedia.setBeautifyStrength(v2);
-                        beautifySwitch.setChecked(true, false);
-                    })
-                    .setNeutralButton(LocaleController.getString(R.string.DrGramVoiceOff), (dialog, which) -> {
-                        org.telegram.messenger.DrGramMedia.setBeautifyEnabled(false);
-                        beautifySwitch.setChecked(false, false);
-                    })
-                    .show();
-        });
-        addSectionRow(beautifyRow);
-
-        // DrGram Fix 41: nose slimming level
-        LinearLayout noseRow = makeActionRow(context, drgramLevelTitle(LocaleController.getString(R.string.DrGramBeautifyNose),
-                org.telegram.messenger.DrGramMedia.beautifyNose()), v -> {
-            if (getParentActivity() == null) {
-                return;
-            }
-            drgramShowLevelDialog(LocaleController.getString(R.string.DrGramBeautifyNose),
-                    org.telegram.messenger.DrGramMedia.beautifyNose(), v2 -> {
-                        org.telegram.messenger.DrGramMedia.setBeautifyNose(v2);
-                        refreshDynamicRows();
-                    });
-        }, "media_beautify_nose");
-        addSectionRow(noseRow);
-
-        // DrGram Fix 41: teeth whitening level
-        LinearLayout teethRow = makeActionRow(context, drgramLevelTitle(LocaleController.getString(R.string.DrGramBeautifyTeeth),
-                org.telegram.messenger.DrGramMedia.beautifyTeeth()), v -> {
-            if (getParentActivity() == null) {
-                return;
-            }
-            drgramShowLevelDialog(LocaleController.getString(R.string.DrGramBeautifyTeeth),
-                    org.telegram.messenger.DrGramMedia.beautifyTeeth(), v2 -> {
-                        org.telegram.messenger.DrGramMedia.setBeautifyTeeth(v2);
-                        refreshDynamicRows();
-                    });
-        }, "media_beautify_teeth");
-        addSectionRow(teethRow);
 
         // DrGram Fix 38: pick your own love/gold notification chime
         boolean drgramLoveNow = org.telegram.messenger.DrGramThemeInstaller.isLoveMode();
@@ -948,35 +890,6 @@ public class DrGramToolsActivity extends BaseFragment {
         });
         addSectionRow(handsFreeRow);
 
-        // DrGram Fix 45: portrait background blur for photo stories
-        Switch portraitSwitch = new Switch(context);
-        portraitSwitch.setChecked(DrGramMedia.storyPortraitBg(), false);
-        LinearLayout portraitRow = makeRow(context, LocaleController.getString(R.string.DrGramStoryPortrait), portraitSwitch);
-        portraitRow.setOnClickListener(v -> {
-            boolean newState = !DrGramMedia.storyPortraitBg();
-            DrGramMedia.setStoryPortraitBg(newState);
-            portraitSwitch.setChecked(newState, false);
-        });
-        addSectionRow(portraitRow);
-
-        // DrGram Fix 49: live / video-call beauty level (off -> light -> strong)
-        TextView callBeautyValue = new TextView(context);
-        callBeautyValue.setTextSize(TypedValue.COMPLEX_UNIT_DIP, 13);
-        callBeautyValue.setTextColor(0xFFF5C242);
-        LinearLayout callBeautyRow = makeRow(context, LocaleController.getString(R.string.DrGramCallBeautyTitle), callBeautyValue);
-        Runnable updateCallBeauty = () -> {
-            int lvl = DrGramMedia.callBeautyLevel();
-            callBeautyValue.setText(LocaleController.getString(
-                lvl == DrGramMedia.CALL_BEAUTY_STRONG ? R.string.DrGramCallBeautyStrong
-                : lvl == DrGramMedia.CALL_BEAUTY_LIGHT ? R.string.DrGramCallBeautyLight
-                : R.string.DrGramCallBeautyOff));
-        };
-        updateCallBeauty.run();
-        callBeautyRow.setOnClickListener(v -> {
-            DrGramMedia.setCallBeautyLevel((DrGramMedia.callBeautyLevel() + 1) % (DrGramMedia.CALL_BEAUTY_STRONG + 1));
-            updateCallBeauty.run();
-        });
-        addSectionRow(callBeautyRow);
 
         // DrGram Fix 49: HD stories — 1080p photo stories + 6 Mbps video ceiling
         Switch storyHdSwitch = new Switch(context);
