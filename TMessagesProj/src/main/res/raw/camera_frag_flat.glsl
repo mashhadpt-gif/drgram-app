@@ -407,7 +407,7 @@ mediump vec3 drgramTeeth(mediump vec3 base, mediump vec2 p) {
   }
   mediump float best = 0.0;
   {
-    mediump vec2 mr = fxMouthRect[0];
+    mediump vec4 mr = fxMouthRect[0];
     mediump vec2 tc;
     mediump vec2 th;
     if (mr.z > 0.002) {
@@ -420,7 +420,7 @@ mediump vec3 drgramTeeth(mediump vec3 base, mediump vec2 p) {
     best = max(best, ellipseFalloff(p, tc, th));
   }
   if (fxFaceCount > 1.5) {
-    mediump vec2 mr = fxMouthRect[1];
+    mediump vec4 mr = fxMouthRect[1];
     mediump vec2 tc;
     mediump vec2 th;
     if (mr.z > 0.002) {
@@ -547,7 +547,7 @@ mediump float drgramUnder00(mediump vec2 p) {
   }
   mediump vec2 c = ec + vec2(0.0, fhs.y * 0.085);
   mediump vec2 ehs = vec2(fhs.x * 0.17, fhs.y * 0.075);
-  mediump vec2 er = fxEyeRectL[0];
+  mediump vec4 er = fxEyeRectL[0];
   if (er.z > 0.002) {
     c = ec + vec2(0.0, er.w * 1.15);
     ehs = vec2(er.z * 1.25, er.w * 0.80);
@@ -562,7 +562,7 @@ mediump float drgramUnder01(mediump vec2 p) {
   }
   mediump vec2 c = ec + vec2(0.0, fhs.y * 0.085);
   mediump vec2 ehs = vec2(fhs.x * 0.17, fhs.y * 0.075);
-  mediump vec2 er = fxEyeRectR[0];
+  mediump vec4 er = fxEyeRectR[0];
   if (er.z > 0.002) {
     c = ec + vec2(0.0, er.w * 1.15);
     ehs = vec2(er.z * 1.25, er.w * 0.80);
@@ -577,7 +577,7 @@ mediump float drgramUnder10(mediump vec2 p) {
   }
   mediump vec2 c = ec + vec2(0.0, fhs.y * 0.085);
   mediump vec2 ehs = vec2(fhs.x * 0.17, fhs.y * 0.075);
-  mediump vec2 er = fxEyeRectL[1];
+  mediump vec4 er = fxEyeRectL[1];
   if (er.z > 0.002) {
     c = ec + vec2(0.0, er.w * 1.15);
     ehs = vec2(er.z * 1.25, er.w * 0.80);
@@ -592,7 +592,7 @@ mediump float drgramUnder11(mediump vec2 p) {
   }
   mediump vec2 c = ec + vec2(0.0, fhs.y * 0.085);
   mediump vec2 ehs = vec2(fhs.x * 0.17, fhs.y * 0.075);
-  mediump vec2 er = fxEyeRectR[1];
+  mediump vec4 er = fxEyeRectR[1];
   if (er.z > 0.002) {
     c = ec + vec2(0.0, er.w * 1.15);
     ehs = vec2(er.z * 1.25, er.w * 0.80);
@@ -607,7 +607,7 @@ void drgramBlushLips0(mediump vec2 p, inout mediump float blush, inout mediump f
   mediump vec2 cheekSize = max(halfSize * vec2(0.24, 0.13), vec2(0.001));
   blush = max(blush, ellipseFalloff(p, center + vec2(-halfSize.x * 0.36, halfSize.y * 0.20), cheekSize));
   blush = max(blush, ellipseFalloff(p, center + vec2( halfSize.x * 0.36, halfSize.y * 0.20), cheekSize));
-  mediump vec2 mr = fxMouthRect[0];
+  mediump vec4 mr = fxMouthRect[0];
   if (mr.z > 0.002) {
     lips = max(lips, ellipseFalloff(p, mr.xy, max(mr.zw * vec2(1.06, 1.14), vec2(0.001))));
   } else {
@@ -620,7 +620,7 @@ void drgramBlushLips1(mediump vec2 p, inout mediump float blush, inout mediump f
   mediump vec2 cheekSize = max(halfSize * vec2(0.24, 0.13), vec2(0.001));
   blush = max(blush, ellipseFalloff(p, center + vec2(-halfSize.x * 0.36, halfSize.y * 0.20), cheekSize));
   blush = max(blush, ellipseFalloff(p, center + vec2( halfSize.x * 0.36, halfSize.y * 0.20), cheekSize));
-  mediump vec2 mr = fxMouthRect[1];
+  mediump vec4 mr = fxMouthRect[1];
   if (mr.z > 0.002) {
     lips = max(lips, ellipseFalloff(p, mr.xy, max(mr.zw * vec2(1.06, 1.14), vec2(0.001))));
   } else {

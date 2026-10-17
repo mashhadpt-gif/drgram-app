@@ -824,8 +824,20 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
             synchronized (CameraView.class) {
                 if (!drgramFullShaderStateRead) {
                     try {
-                        drgramFullShaderState = ApplicationLoader.applicationContext
-                                .getSharedPreferences(DRGRAM_PREFS, Context.MODE_PRIVATE).getInt("fullshader", 0);
+                        android.content.SharedPreferences drgramPrefs = ApplicationLoader.applicationContext
+                                .getSharedPreferences(DRGRAM_PREFS, Context.MODE_PRIVATE);
+                        // DrGram Fix 59: lite/full/flat carried a genuine GLSL type
+                        // bug (vec4->vec2 assignment) that failed compilation on
+                        // EVERY GPU. Verdicts recorded before the repair (full
+                        // failed = 2/3, flat won = 5, slow = 4) are stale now, so
+                        // a one-time epoch reset makes every device re-run the
+                        // ladder with the fixed shaders and re-record its verdict.
+                        if (drgramPrefs.getInt("fullshader_epoch", 0) < 59) {
+                            drgramPrefs.edit().putInt("fullshader_epoch", 59).putInt("fullshader", 0).apply();
+                            drgramFullShaderState = 0;
+                        } else {
+                            drgramFullShaderState = drgramPrefs.getInt("fullshader", 0);
+                        }
                     } catch (Throwable ignore) {}
                     drgramFullShaderStateRead = true;
                 }

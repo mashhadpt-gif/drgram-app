@@ -281,7 +281,7 @@ highp vec2 drgramWarp(highp vec2 p) {
             highp vec2 eyeHalf = hs * vec2(0.19, 0.13);
             if (fxEyePrecise > 0.5) {
               eyeCenter = eye == 0 ? fxEyesL[i] : fxEyesR[i];
-              highp vec2 rrect = eye == 0 ? fxEyeRectL[i] : fxEyeRectR[i];
+              highp vec4 rrect = eye == 0 ? fxEyeRectL[i] : fxEyeRectR[i];
               if (rrect.z > 0.002) {
                 eyeCenter = rrect.xy;
                 eyeHalf = rrect.zw * 1.30;
@@ -384,7 +384,7 @@ mediump vec3 drgramTeeth(mediump vec3 base, mediump vec2 p) {
   mediump float best = 0.0;
   for (int i = 0; i < 2; i++) {
     if (float(i) < fxFaceCount) {
-      mediump vec2 mr = fxMouthRect[i];
+      mediump vec4 mr = fxMouthRect[i];
       mediump vec2 c;
       mediump vec2 hs;
       if (mr.z > 0.002) {
@@ -573,7 +573,7 @@ vec4 beautifySample(vec4 base) {
           mediump vec2 ehs = vec2(fhs.x * 0.17, fhs.y * 0.075);
           // DrGram Fix 51: real eye ring extents — the lift zone tracks the
           // actual lower lid instead of a face-box guess.
-          mediump vec2 er = eye == 0 ? fxEyeRectL[i] : fxEyeRectR[i];
+          mediump vec4 er = eye == 0 ? fxEyeRectL[i] : fxEyeRectR[i];
           if (er.z > 0.002) {
             c = ec + vec2(0.0, er.w * 1.15);
             ehs = vec2(er.z * 1.25, er.w * 0.80);
@@ -601,13 +601,13 @@ vec4 beautifySample(vec4 base) {
         blush = max(blush, ellipseFalloff(p, center + vec2(-halfSize.x * 0.36, halfSize.y * 0.20), cheekSize));
         blush = max(blush, ellipseFalloff(p, center + vec2( halfSize.x * 0.36, halfSize.y * 0.20), cheekSize));
         // DrGram Fix 51: lip tint hugs the real outer-lip rect from the mesh.
-        mediump vec2 mr = fxMouthRect[i];
+        mediump vec4 mr = fxMouthRect[i];
         if (mr.z > 0.002) {
           lips = max(lips, ellipseFalloff(p, mr.xy, max(mr.zw * vec2(1.06, 1.14), vec2(0.001))));
         } else {
           mediump float lipRegion = 0.0;
           if (fxPolygonPrecise > 0.5) {
-            mediump vec2 mr = fxMouthRect[i];
+            mediump vec4 mr = fxMouthRect[i];
             if (mr.z > 0.002 && abs(p.x - mr.x) <= mr.z * 1.10 && abs(p.y - mr.y) <= mr.w * 1.10) {
               lipRegion = drgramMeshPolygonMask(p, i, 1);
             }
@@ -638,13 +638,13 @@ vec4 beautifySample(vec4 base) {
         blush = max(blush, ellipseFalloff(p, center + vec2(-halfSize.x * 0.36, halfSize.y * 0.20), cheekSize));
         blush = max(blush, ellipseFalloff(p, center + vec2( halfSize.x * 0.36, halfSize.y * 0.20), cheekSize));
         // DrGram Fix 51: same real-lip scoping for the glam preset.
-        mediump vec2 mr2 = fxMouthRect[i];
+        mediump vec4 mr2 = fxMouthRect[i];
         if (mr2.z > 0.002) {
           lips = max(lips, ellipseFalloff(p, mr2.xy, max(mr2.zw * vec2(1.04, 1.10), vec2(0.001))));
         } else {
           mediump float lipRegion = 0.0;
           if (fxPolygonPrecise > 0.5) {
-            mediump vec2 mr = fxMouthRect[i];
+            mediump vec4 mr = fxMouthRect[i];
             if (mr.z > 0.002 && abs(p.x - mr.x) <= mr.z * 1.10 && abs(p.y - mr.y) <= mr.w * 1.10) {
               lipRegion = drgramMeshPolygonMask(p, i, 1);
             }
