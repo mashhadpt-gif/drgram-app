@@ -33,15 +33,17 @@ import java.util.regex.Pattern;
  *
  * What the user asked for, exactly:
  *  1. "وقتی پینگ نداد / متصل نشد خودکار بره از چند تا سایت پروکسی mtproto
- *     پیدا کنه" — a connection watchdog checks every 15 s: if Telegram is not
- *     connected (no ping) for ~30 s, a proxy cycle starts automatically.
+ *     پیدا کنه" — a connection watchdog checks every 5 s (Fix 60: instant,
+ *     previously 15 s ticks with a ~30 s grace) and fires a full proxy cycle
+ *     on the FIRST tick without a working connection.
  *  2. "از چند تا سایت" — candidates are fetched IN PARALLEL from three
  *     independent sources: the telegramvpn.org JSON API, the SoliSpirit/mtproto
  *     GitHub list (raw.githubusercontent.com — reachable in Iran, Iran-focused
  *     proxies) and mtpro.xyz. Results are merged, de-duplicated and
  *     latency-tested one by one with ConnectionsManager.checkProxy.
  *  3. "متصل شه تا زمانی که پینگ بده" — while the connection stays down, the
- *     watchdog re-runs the cycle (at most every 90 s) until a proxy answers.
+ *     watchdog re-runs the cycle back-to-back (at most every 8 s, Fix 60)
+ *     until a proxy answers.
  *  4. "پروکسی‌هایی که پینگ ندارن هم از لیست حذف کنه" — after every successful
  *     connect the saved proxy list is pruned in the background: every entry
  *     that fails its ping check is removed via SharedConfig.deleteProxy
@@ -70,10 +72,15 @@ public class DrGramAutoProxy {
     private static final int MAX_CANDIDATES = 10;
     private static final long FETCH_JOIN_TIMEOUT_MS = 11_000;
 
-    // Connection watchdog (Fix 58).
-    private static final long WATCHDOG_PERIOD_MS = 15_000;
-    private static final long CYCLE_MIN_INTERVAL_MS = 90_000;
-    private static final int DOWN_TICKS_TO_TRIGGER = 2; // ~30 s without a connection
+    // Connection watchdog (Fix 58, instant in Fix 60).
+    // Fix 60: the user asked for INSTANT proxy testing — "میخوام آنی تست کنه
+    // متصل کنه پروکسی رو نه هر 30 ثانیه برسی کنه". So the watchdog now ticks
+    // every 5 s, fires on the FIRST tick without a connection (worst case ~5 s
+    // after the drop instead of ~30 s) and retries cycles back-to-back (8 s
+    // floor, which a failed cycle itself always exceeds) until ping returns.
+    private static final long WATCHDOG_PERIOD_MS = 5_000;
+    private static final long CYCLE_MIN_INTERVAL_MS = 8_000;
+    private static final int DOWN_TICKS_TO_TRIGGER = 1; // fire on the first down tick — instantly
 
     private static volatile boolean running;
     private static volatile boolean vpnWatcherRegistered;
@@ -234,11 +241,12 @@ public class DrGramAutoProxy {
 
     /**
      * Starts the periodic connection watchdog. Call once from ApplicationLoader.
-     * Every 15 s: if the auto-proxy feature is on, no manual proxy is set and
-     * Telegram has failed to reach a connected state for ~30 s, a full proxy
-     * cycle (multi-source fetch → latency-test → connect → prune) runs. While
-     * the connection stays down the cycle repeats — at most once per 90 s —
-     * until something answers with a ping.
+     * Every 5 s (Fix 60): if the auto-proxy feature is on, no manual proxy is
+     * set and Telegram is not connected, a full proxy cycle (multi-source
+     * fetch → latency-test → connect → prune) fires INSTANTLY — no 30 s
+     * observation window. While the connection stays down the cycle repeats
+     * back-to-back — at most once per 8 s — until something answers with a
+     * ping.
      */
     public static void startWatchdog() {
         if (watchdogRunning) {

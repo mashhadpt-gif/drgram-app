@@ -832,8 +832,11 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
                         // failed = 2/3, flat won = 5, slow = 4) are stale now, so
                         // a one-time epoch reset makes every device re-run the
                         // ladder with the fixed shaders and re-record its verdict.
-                        if (drgramPrefs.getInt("fullshader_epoch", 0) < 59) {
-                            drgramPrefs.edit().putInt("fullshader_epoch", 59).putInt("fullshader", 0).apply();
+                        // DrGram Fix 60: another reset — the beauty tiers were
+                        // rewritten (beauty rendering removed) and the ladder
+                        // order is fixed, so all old verdicts are meaningless.
+                        if (drgramPrefs.getInt("fullshader_epoch", 0) < 60) {
+                            drgramPrefs.edit().putInt("fullshader_epoch", 60).putInt("fullshader", 0).apply();
                             drgramFullShaderState = 0;
                         } else {
                             drgramFullShaderState = drgramPrefs.getInt("fullshader", 0);
@@ -1643,23 +1646,16 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
             // shader, verbatim, no beauty) — the one shader proven to compile
             // and link on every GPU that runs Telegram, including the budget
             // PowerVR units that reject both DrGram beauty programs.
-            // DrGram Fix 58: FLAT tier — the whole beauty suite rewritten
-            // loop-free/highp-free (structurally closest to CORE). Persisted
-            // verdict 5 means FLAT already won on this GPU, so it is tried
-            // first and the known-bad lite/full compiles are skipped.
+            // DrGram Fix 60: face beautification is gone from every tier, so
+            // the verdict no longer picks the order — the tiers differ only in
+            // robustness now. FULL carries the complete FX set plus the Fix 57
+            // mesh infrastructure, so it is always tried FIRST (effects + grid
+            // survive on every GPU); FLAT and LITE are lighter fallbacks and
+            // CORE stays the last-resort upstream shader. The persisted verdict
+            // is still read and reported in the diagnostics snapshot.
             int drgramVerdict = drgramFullShaderRead();
-            int[] drgramOrder;
-            String[] drgramNames;
-            if (drgramVerdict == 5) {
-                drgramOrder = new int[]{R.raw.camera_frag_flat, R.raw.camera_frag_lite, R.raw.camera_frag, R.raw.camera_frag_core};
-                drgramNames = new String[]{"FLAT", "LITE", "FULL", "CORE"};
-            } else if (drgramVerdict == 1) {
-                drgramOrder = new int[]{R.raw.camera_frag, R.raw.camera_frag_lite, R.raw.camera_frag_flat, R.raw.camera_frag_core};
-                drgramNames = new String[]{"FULL", "LITE", "FLAT", "CORE"};
-            } else {
-                drgramOrder = new int[]{R.raw.camera_frag_lite, R.raw.camera_frag, R.raw.camera_frag_flat, R.raw.camera_frag_core};
-                drgramNames = new String[]{"LITE", "FULL", "FLAT", "CORE"};
-            }
+            int[] drgramOrder = new int[]{R.raw.camera_frag, R.raw.camera_frag_flat, R.raw.camera_frag_lite, R.raw.camera_frag_core};
+            String[] drgramNames = new String[]{"FULL", "FLAT", "LITE", "CORE"};
             drgramDiagLogs = "";
             String drgramActiveName = "";
             drawProgram = 0;
@@ -1699,6 +1695,7 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
             // compile/link logs of the tiers that were skipped).
             drgramDiagPersist("ACTIVE: " + (drgramActiveName.length() > 0 ? drgramActiveName : "?")
                     + (drgramCoreProgramActive ? " (FX OFF)" : " (FX ON)")
+                    + " V" + drgramVerdict // Fix 60: legacy verdict, order is fixed now
                     + "\n" + drgramDiagGpu
                     + (drgramDiagLogs.length() > 0 ? "failed attempts:\n" + drgramDiagLogs : ""));
             if (drgramCoreProgramActive && BuildVars.LOGS_ENABLED) {
@@ -3904,8 +3901,10 @@ public class CameraView extends FrameLayout implements TextureView.SurfaceTextur
             // start can never stall on (or die from) the heavy shaders.
             boolean drgramLiteProgram = true;
             // DrGram Fix 58: FLAT beauty tier slots in right before CORE.
-            int[] drgramOrder = new int[]{R.raw.camera_frag_lite, R.raw.camera_frag, R.raw.camera_frag_flat, R.raw.camera_frag_core};
-            String[] drgramNames = new String[]{"LITE", "FULL", "FLAT", "CORE"};
+            // DrGram Fix 60: recorder matches the preview ladder — FULL first
+            // (only tier with the complete FX set + mesh grid), CORE last.
+            int[] drgramOrder = new int[]{R.raw.camera_frag, R.raw.camera_frag_flat, R.raw.camera_frag_lite, R.raw.camera_frag_core};
+            String[] drgramNames = new String[]{"FULL", "FLAT", "LITE", "CORE"};
             for (int a = 0; a < drgramOrder.length && drawProgram == 0; a++) {
                 int fs = loadShader(GLES20.GL_FRAGMENT_SHADER, AndroidUtilities.readRes(drgramOrder[a]));
                 if (fs == 0) {
