@@ -1864,9 +1864,10 @@ public class SharedConfig {
     }
 
     public static boolean canBlurChat() {
-        if (drgramGlassUI && Build.VERSION.SDK_INT >= 31) {
-            return true;
-        }
+        // DrGram Fix 62: Glass UI no longer force-enables chat blur on every
+        // Android 12+ device — that made chats look blurry on weaker GPUs
+        // (user report: «مشکل بلور شدن چت‌ها»). Blur is now strictly
+        // performance-gated; it can still be toggled in chat settings.
         return getDevicePerformanceClass() >= (Build.VERSION.SDK_INT >= 31 ? PERFORMANCE_CLASS_AVERAGE : PERFORMANCE_CLASS_HIGH) || BuildVars.DEBUG_PRIVATE_VERSION;
     }
 

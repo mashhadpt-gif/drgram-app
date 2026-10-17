@@ -11418,11 +11418,6 @@
     <string name="DrGramVoiceBee">Bee</string>
     <string name="DrGramVoiceGiant">Giant</string>
     <string name="DrGramStoryHandsFree">Hands-free story recording (tap to start/stop)</string>
-    <string name="DrGramStoryPortrait">Portrait mode: blur story background</string>
-    <string name="DrGramCallBeautyTitle">Beauty in live &amp; video calls</string>
-    <string name="DrGramCallBeautyOff">Off</string>
-    <string name="DrGramCallBeautyLight">Light</string>
-    <string name="DrGramCallBeautyStrong">Strong</string>
     <string name="DrGramStoryHd">HD stories (1080p, 6 Mbps)</string>
     <string name="DrGramStoryGrid">Composition grid in story camera</string>
     <string name="DrGramStoryGradient">Animated story background</string>
@@ -11612,6 +11607,11 @@
     <string name="DrGramSetConnectionHint">Automatic MTProto proxy — telegramvpn.org</string>
     <string name="DrGramSetAutoProxy">Auto-connect proxy</string>
     <string name="DrGramAutoProxyOn">Auto proxy connected · %s</string>
+    <string name="DrGramProxyLastScan">Last auto-connected proxy: %s</string>
+    <string name="DrGramProxyScanNow">Scan proxies now</string>
+    <string name="DrGramProxyScanStarted">Scan started — connecting to the first proxy that answers</string>
+    <string name="DrGramProxyScanBusy">A scan is already running</string>
+    <string name="DrGramProxyManualOn">A manual proxy is set — it will not be overridden</string>
 
     <!-- DrGram Fix 27: control center diagnostics -->
     <string name="DrGramCCFallback">Control Center could not open (%1$s)</string>
@@ -11790,13 +11790,10 @@
     <string name="DrGramSmartCityTitle">Weather city</string>
     <string name="DrGramSmartCityHint">Type your city name, e.g. Tehran or Mashhad</string>
     <string name="DrGramSmartNeedArg">Add the text after the command, e.g. «Name: LuxGram»</string>
-    <string name="DrGramBeautify">Face beautify (stories &amp; video)</string>
     <string name="DrGramBeautifyLight">Light</string>
     <string name="DrGramBeautifyMedium">Medium</string>
     <string name="DrGramBeautifyStrong">Strong</string>
     <!-- DrGram Fix 41 -->
-    <string name="DrGramBeautifyNose">Nose slimming</string>
-    <string name="DrGramBeautifyTeeth">Teeth whitening</string>
     <string name="DrGramVoiceIntensity">Voice change intensity</string>
     <string name="DrGramFxTitle">Camera effects</string>
     <string name="DrGramFxNone">No effect</string>

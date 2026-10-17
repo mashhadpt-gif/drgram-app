@@ -866,6 +866,24 @@ public class DrGramSettingsActivity extends BaseFragment {
                 org.telegram.messenger.DrGramAutoProxy.onAppOpen(); // apply right away
             }
         }));
+
+        // DrGram Fix 62: last auto-connected proxy + instant manual rescan
+        String autoStatus = org.telegram.messenger.DrGramAutoProxy.lastStatusLine();
+        if (!android.text.TextUtils.isEmpty(autoStatus)) {
+            contentView.addView(makeActionRow(context,
+                    LocaleController.formatString("DrGramProxyLastScan", R.string.DrGramProxyLastScan, autoStatus),
+                    null));
+        }
+        contentView.addView(makeActionRow(context, LocaleController.getString(R.string.DrGramProxyScanNow), v -> {
+            int result = org.telegram.messenger.DrGramAutoProxy.scanNow();
+            int textRes = result == org.telegram.messenger.DrGramAutoProxy.SCAN_STARTED ? R.string.DrGramProxyScanStarted
+                    : result == org.telegram.messenger.DrGramAutoProxy.SCAN_BUSY ? R.string.DrGramProxyScanBusy
+                    : R.string.DrGramProxyManualOn;
+            try {
+                android.widget.Toast.makeText(context, LocaleController.getString(textRes), android.widget.Toast.LENGTH_SHORT).show();
+            } catch (Throwable ignore) {
+            }
+        }));
     }
 
     private void buildGiftsSection(Context context) {

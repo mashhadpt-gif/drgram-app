@@ -525,6 +525,7 @@ public class DrGramAutoProxy {
             NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.proxySettingsChanged);
 
             String label = info.settings.getAddress() + " · " + ping + " ms";
+            lastStatus = label; // Fix 62: shown in DrGram settings
             AndroidUtilities.runOnUIThread(() -> {
                 try {
                     Toast.makeText(ApplicationLoader.applicationContext,
@@ -598,6 +599,40 @@ public class DrGramAutoProxy {
             FileLog.e(t);
             pruneChain(list, index + 1);
         }
+    }
+
+    // ===================== Fix 62: settings status + manual scan =====================
+
+    private static volatile String lastStatus = "";
+
+    /** Last proxy auto-connected by this feature, e.g. "1.2.3.4 · 230 ms". */
+    public static String lastStatusLine() {
+        return lastStatus;
+    }
+
+    /** Scan outcome for the settings screen. */
+    public static final int SCAN_STARTED = 1;
+    public static final int SCAN_BUSY = 0;
+    public static final int SCAN_MANUAL_PROXY = -1;
+
+    /**
+     * Manual rescan requested from DrGram settings. Same guards as the
+     * automatic path: feature enabled, no cycle running, and a proxy the
+     * user picked manually is never overridden.
+     */
+    public static int scanNow() {
+        if (running) {
+            return SCAN_BUSY;
+        }
+        if (!SharedConfig.drgramAutoProxy) {
+            return SCAN_MANUAL_PROXY;
+        }
+        if (SharedConfig.isProxyEnabled() && SharedConfig.currentProxy != null
+                && !isDrgramAutoProxy(SharedConfig.currentProxy)) {
+            return SCAN_MANUAL_PROXY;
+        }
+        startCycle();
+        return SCAN_STARTED;
     }
 
     /** True when this proxy was last applied by the auto-proxy feature. */

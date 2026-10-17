@@ -432,11 +432,6 @@
     <string name="DrGramVoiceBee">زنبوری</string>
     <string name="DrGramVoiceGiant">غول‌پیکر</string>
     <string name="DrGramStoryHandsFree">ضبط استوری دست‌آزاد (با یک لمس شروع/پایان)</string>
-    <string name="DrGramStoryPortrait">حالت پرتره: محوکردن پس‌زمینه استوری</string>
-    <string name="DrGramCallBeautyTitle">زیبایی در لایو و تماس تصویری</string>
-    <string name="DrGramCallBeautyOff">خاموش</string>
-    <string name="DrGramCallBeautyLight">ملایم</string>
-    <string name="DrGramCallBeautyStrong">قوی</string>
     <string name="DrGramStoryHd">استوری HD (۱۰۸۰p، ۶ مگابیت)</string>
     <string name="DrGramStoryGrid">شبکه چهره‌بندی دوربین استوری</string>
     <string name="DrGramStoryGradient">پس‌زمینه متحرک استوری</string>
@@ -634,6 +629,11 @@
     <string name="DrGramSetConnectionHint">پروکسی خودکار ام‌تی‌پروتو — telegramvpn.org</string>
     <string name="DrGramSetAutoProxy">وصل شدن خودکار به پروکسی</string>
     <string name="DrGramAutoProxyOn">پروکسی خودکار وصل شد · %s</string>
+    <string name="DrGramProxyLastScan">آخرین پروکسیِ وصل‌شدهٔ خودکار: %s</string>
+    <string name="DrGramProxyScanNow">اسکن فوری پروکسی‌ها</string>
+    <string name="DrGramProxyScanStarted">اسکن شروع شد؛ به اولین پروکسیِ پاسخ‌دهنده وصل می‌شود</string>
+    <string name="DrGramProxyScanBusy">یک اسکن قبلی هنوز در جریان است</string>
+    <string name="DrGramProxyManualOn">پروکسی دستی تنظیم شده؛ بازنویسی نمی‌شود</string>
 
     <!-- DrGram Fix 27 -->
     <string name="DrGramCCFallback">مرکز کنترل باز نشد (%1$s)</string>
@@ -817,8 +817,6 @@
     <string name="DrGramBeautifyMedium">متوسط</string>
     <string name="DrGramBeautifyStrong">زیاد</string>
     <!-- DrGram Fix 41 -->
-    <string name="DrGramBeautifyNose">کوچک کردن بینی</string>
-    <string name="DrGramBeautifyTeeth">سفید کردن دندان‌ها</string>
     <string name="DrGramVoiceIntensity">شدت تغییر صدا</string>
     <string name="DrGramFxTitle">افکت‌های دوربین</string>
     <string name="DrGramFxNone">بدون افکت</string>
